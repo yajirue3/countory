@@ -80,6 +80,8 @@
             font-size: 0.85rem;
         }
         button:hover { background-color: #f1c40f; }
+        .btn-transfer { background-color: #27ae60; color: #fff; }
+        .btn-transfer:hover { background-color: #2ecc71; }
         .btn-board { background-color: #2980b9; color: #fff; margin-top: 10px; }
         .btn-board:hover { background-color: #3498db; }
         .btn-logout { background-color: #444; color: #ccc; margin-top: 8px; }
@@ -108,6 +110,18 @@
 
         <button onclick="payTax()">💰 本日の納税を行う</button>
         <button class="btn-board" onclick="location.href='/board'">📜 王国回覧板（掲示板）へ</button>
+    </div>
+
+    <!-- ゴールド送金 -->
+    <div class="card">
+        <div class="header">💸 国民間送金</div>
+        <div class="label">送金先のニックネーム</div>
+        <input type="text" id="transfer-nickname" placeholder="例: 鉱山ハナコ">
+
+        <div class="label">送金金額 (Gold)</div>
+        <input type="number" id="transfer-amount" min="1" placeholder="例: 50">
+
+        <button class="btn-transfer" onclick="sendGold()">ゴールドを送金する</button>
     </div>
 
     <!-- 国民情報編集 -->
@@ -172,6 +186,33 @@
         const data = await res.json();
         if (res.ok) {
             alert(data.message);
+            loadProfile();
+        } else {
+            alert(data.detail);
+        }
+    }
+
+    async function sendGold() {
+        const receiver_nickname = document.getElementById("transfer-nickname").value;
+        const amount = parseInt(document.getElementById("transfer-amount").value, 10);
+
+        if (!receiver_nickname || !amount || amount <= 0) {
+            return alert("正しいニックネームと1以上の金額を入力してください");
+        }
+
+        const res = await fetch("/api/transfer", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ receiver_nickname, amount })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert(data.message);
+            document.getElementById("transfer-nickname").value = "";
+            document.getElementById("transfer-amount").value = "";
             loadProfile();
         } else {
             alert(data.detail);
