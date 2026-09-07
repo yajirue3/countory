@@ -1,59 +1,173 @@
-import os
-from pathlib import Path
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
-from supabase import create_client, Client
-
-app = FastAPI(title="村岡王国 ポータル")
-
-BASE_DIR = Path(__file__).resolve().parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
-
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
-
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
-
-class UserAuth(BaseModel):
-    email: str
-    password: str
-
-# --------------------------------------------------
-# 画面配信（フロントエンド）
-# --------------------------------------------------
-@app.get("/", response_class=HTMLResponse)
-def get_index(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
-
-@app.get("/dashboard", response_class=HTMLResponse)
-def get_dashboard(request: Request):
-    return templates.TemplateResponse(request=request, name="dashboard.html")
-
-# --------------------------------------------------
-# バックエンドAPI
-# --------------------------------------------------
-@app.post("/signup")
-def signup(user: UserAuth):
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Supabaseクライアントが未設定です")
-    try:
-        res = supabase.auth.sign_up({"email": user.email, "password": user.password})
-        return {"message": "国民登録が完了しました！"}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.post("/login")
-def login(user: UserAuth):
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Supabaseクライアントが未設定です")
-    try:
-        res = supabase.auth.sign_in_with_password({"email": user.email, "password": user.password})
-        return {
-            "message": "入国が許可されました！",
-            "access_token": res.session.access_token,
-            "email": user.email
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>村岡王国 - 入国管理所</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
         }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"ログイン失敗: {str(e)}")
+        .container {
+            background: #2a2a2a;
+            border: 2px solid #555;
+            border-radius: 12px;
+            padding: 32px;
+            width: 320px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        h1 {
+            font-size: 1.4rem;
+            text-align: center;
+            color: #d4af37; /* 金色 */
+            margin-bottom: 24px;
+            letter-spacing: 1px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            color: #aaa;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background-color: #333;
+            color: #fff;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+        }
+        input:focus {
+            outline: none;
+            border-color: #d4af37;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 8px;
+            font-size: 0.95rem;
+        }
+        .btn-primary {
+            background-color: #d4af37;
+            color: #1a1a1a;
+        }
+        .btn-primary:hover {
+            background-color: #f1c40f;
+        }
+        .btn-secondary {
+            background-color: #444;
+            color: #ccc;
+        }
+        .btn-secondary:hover {
+            background-color: #555;
+        }
+        .divider {
+            border-top: 1px solid #444;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>村岡王国 入国管理所</h1>
+
+    <!-- ログインフォーム -->
+    <div class="form-group">
+        <label for="login-email">国民ID (Email)</label>
+        <input type="email" id="login-email" placeholder="mail@example.com">
+    </div>
+    <div class="form-group">
+        <label for="login-password">暗証番号 (Password)</label>
+        <input type="password" id="login-password" placeholder="••••••••">
+    </div>
+    <button class="btn-primary" onclick="login()">入国する（ログイン）</button>
+
+    <div class="divider"></div>
+
+    <!-- 新規登録フォーム -->
+    <button class="btn-secondary" onclick="signup()">新規国民登録（サインアップ）</button>
+</div>
+
+<script>
+    // すでにログイン済みの場合は自動でダッシュボードへ飛ばす
+    if (localStorage.getItem("access_token")) {
+        window.location.href = "/dashboard";
+    }
+
+    async function login() {
+        const email = document.getElementById("login-email").value;
+        const password = document.getElementById("login-password").value;
+
+        if (!email || !password) {
+            alert("IDと暗証番号を入力してください");
+            return;
+        }
+
+        try {
+            const res = await fetch("/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                localStorage.setItem("access_token", data.access_token);
+                localStorage.setItem("user_email", data.email);
+                alert(data.message);
+                window.location.href = "/dashboard";
+            } else {
+                alert(data.detail || "入国に失敗しました");
+            }
+        } catch (e) {
+            alert("通信エラーが発生しました");
+        }
+    }
+
+    async function signup() {
+        const email = document.getElementById("login-email").value;
+        const password = document.getElementById("login-password").value;
+
+        if (!email || !password) {
+            alert("登録するIDと暗証番号を入力してください");
+            return;
+        }
+
+        try {
+            const res = await fetch("/signup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                alert(data.message + " そのまま入国ボタンを押してください。");
+            } else {
+                alert(data.detail || "登録に失敗しました");
+            }
+        } catch (e) {
+            alert("通信エラーが発生しました");
+        }
+    }
+</script>
+
+</body>
+</html>
