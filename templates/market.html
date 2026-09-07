@@ -1,4 +1,3 @@
-Market.html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -40,23 +39,23 @@ Market.html
     <div class="card">
         <div class="header">⚖️ 王国自由市場（契約広場）</div>
         <p style="font-size: 0.75rem; color: #aaa; margin-top: 0; line-height: 1.4;">
-            ここでは国民同士が条件付きの契約（裏取引・依頼）を行えます。署名と同時に代金はエスクロー（仮預かり）され、履行完了後に安全に支払われます。
+            ここでは国民同士が条件付きの契約（仕事・依頼）を行えます。受注時に依頼主の口座から代金が仮預かり（エスクロー）され、履行完了後に受注者へ安全に支払われます。
         </p>
     </div>
 
     <!-- 新規契約書の出品 -->
     <div class="card">
-        <div class="header">📝 新規契約書の作成（出品）</div>
+        <div class="header">📝 新規契約書の作成（仕事の発行）</div>
         <div class="label">契約タイトル（依頼内容の要約）</div>
         <input type="text" id="c-title" placeholder="例: Discord Botのカスタマイズ代行">
 
         <div class="label">契約条件・詳細内容</div>
-        <textarea id="c-desc" placeholder="例: 週末までに指定の機能を実装すること。不履行の場合は無効。"></textarea>
+        <textarea id="c-desc" placeholder="例: 週末までに指定の機能を実装すること。"></textarea>
 
         <div class="label">報酬 Gold</div>
         <input type="number" id="c-amount" min="1" placeholder="例: 300">
 
-        <div class="label">報酬の受取指定口座</div>
+        <div class="label">報酬の支払指定口座（依頼主）</div>
         <select id="creator-wallet-select"></select>
 
         <button onclick="createContract()">市場に契約書を掲示する</button>
@@ -120,15 +119,15 @@ Market.html
 
                 let actionHtml = "";
 
-                // 1. OPEN状態で自分が作成者でない場合 ➔ 署名ボタン表示
+                // 1. OPEN状態で自分が作成者でない場合 ➔ 受注ボタン表示
                 if (c.status === "OPEN" && c.creator_user_id !== currentUserId) {
                     actionHtml = `
                         <div style="margin-top: 10px;">
-                            <div class="label">支払いに使う口座</div>
+                            <div class="label">報酬を受け取る口座（受注者）</div>
                             <select id="accept-wallet-${c.id}">
-                                ${myWalletsList.map(w => `<option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} (${w.wallet_id}) - 残高:${w.balance}G</option>`).join('')}
+                                ${myWalletsList.map(w => `<option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} (${w.wallet_id})</option>`).join('')}
                             </select>
-                            <button onclick="acceptContract(${c.id})">✍️ 署名してエスクロー（購入）</button>
+                            <button onclick="acceptContract(${c.id})">✍️ 契約を受注する</button>
                         </div>
                     `;
                 }
@@ -148,7 +147,7 @@ Market.html
                     kingHtml = `
                         <div class="king-box">
                             <div class="label" style="color: #d4af37;">👑 国王専用裁定</div>
-                            <button class="btn-king-complete" onclick="kingOverride(${c.id}, 'force_complete')">【強制完了】報酬を強制支給</button>
+                            <button class="btn-king-complete" onclick="kingOverride(${c.id}, 'force_complete')">【強制完了】受注者へ報酬支給</button>
                             <button class="btn-king-cancel" onclick="kingOverride(${c.id}, 'force_cancel')">【強制破棄】契約破棄して返金</button>
                         </div>
                     `;
@@ -157,10 +156,10 @@ Market.html
                 return `
                     <div class="contract-card">
                         <div class="c-title">${escapeHtml(c.title)}</div>
-                        <div class="c-info">発行者: ${escapeHtml(c.creator_nickname)} | 報酬: <b>${c.amount} Gold</b></div>
+                        <div class="c-info">依頼主: ${escapeHtml(c.creator_nickname)} | 報酬: <b>${c.amount} Gold</b></div>
                         <div style="margin-bottom: 6px;">${statusText}</div>
                         <div class="c-desc">${escapeHtml(c.description)}</div>
-                        <div class="c-info" style="font-family: monospace;">受取口座: ${c.creator_wallet_id}</div>
+                        <div class="c-info" style="font-family: monospace;">支払口座: ${c.creator_wallet_id}</div>
                         ${actionHtml}
                         ${kingHtml}
                     </div>
@@ -207,9 +206,9 @@ Market.html
         const selectEl = document.getElementById(`accept-wallet-${contractId}`);
         const acceptor_wallet_id = selectEl.value;
 
-        if (!acceptor_wallet_id) return alert("支払口座を選択してください");
+        if (!acceptor_wallet_id) return alert("受取口座を選択してください");
 
-        if (!confirm("署名すると、あなたの口座から報酬Goldが一時的にエスクロー（仮預かり）されます。よろしいですか？")) return;
+        if (!confirm("契約を受注しますか？依頼主の口座から資金が仮預かりされます。")) return;
 
         try {
             const res = await fetch(`/api/contracts/${contractId}/accept`, {
@@ -231,7 +230,7 @@ Market.html
     }
 
     async function completeContract(contractId) {
-        if (!confirm("現実での履行が完了していることを確認しましたか？承認するとエスクローの資金が出品者へ送金されます。")) return;
+        if (!confirm("現実での履行が完了していることを確認しましたか？承認すると仮預かりされていた資金が受注者へ送金されます。")) return;
 
         try {
             const res = await fetch(`/api/contracts/${contractId}/complete`, {
