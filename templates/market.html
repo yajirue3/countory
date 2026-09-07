@@ -133,7 +133,9 @@
         async function loadContracts() {
             const listEl = document.getElementById("contract-list");
             try {
-                const res = await fetch("/api/contracts");
+                const res = await fetch("/api/contracts", {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
                 if (!res.ok) throw new Error("一覧の取得に失敗");
 
                 const contracts = await res.json();
