@@ -140,19 +140,16 @@ def update_profile(data: ProfileUpdate, authorization: str = Header(None)):
     }).eq("id", user.id).execute()
     return {"message": "国民情報を更新しました"}
 
-# 納税処理（フロントエンドで指定された wallet_id へ給付する）
 @app.post("/api/pay-tax")
 def pay_tax(data: PayTaxRequest, authorization: str = Header(None)):
     user = get_user_from_token(authorization)
     
-    # 日付チェック
     prof_res = supabase.table("profiles").select("*").eq("id", user.id).execute()
     today_str = str(date.today())
 
     if prof_res.data and prof_res.data[0].get("last_tax_date") == today_str:
         raise HTTPException(status_code=400, detail="本日の納税は完了しています！")
 
-    # 指定されたウォレットの存在と所有権をチェック
     wallet_res = supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
     if not wallet_res.data:
         raise HTTPException(status_code=400, detail="指定された受取口座が存在しないか、所有権がありません。")
@@ -161,7 +158,6 @@ def pay_tax(data: PayTaxRequest, authorization: str = Header(None)):
     current_balance = target_wallet.get("balance") or 0
     new_balance = current_balance + 100
 
-    # DB更新
     supabase.table("wallets").update({"balance": new_balance}).eq("id", target_wallet["id"]).execute()
     supabase.table("profiles").update({"last_tax_date": today_str}).eq("id", user.id).execute()
 
@@ -189,19 +185,47 @@ def create_wallet(data: WalletCreate, authorization: str = Header(None)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"口座開設エラー: {str(e)}")
 
+# 送金処理＋履歴記録
 @app.post("/api/transfer")
 def transfer_gold(data: TransferRequest, authorization: str = Header(None)):
     user = get_user_from_token(authorization)
     try:
-        res = supabase.rpc("transfer_gold_by_wallet", {
+        # 送金実行
+        supabase.rpc("transfer_gold_by_wallet", {
             "sender_wallet_id": data.sender_wallet_id,
             "receiver_wallet_id": data.receiver_wallet_id,
             "amount": data.amount,
             "auth_user_id": user.id
         }).execute()
+
+        # 送金履歴の保存
+        supabase.table("transfer_logs").insert({
+            "sender_wallet_id": data.sender_wallet_id,
+            "receiver_wallet_id": data.receiver_wallet_id,
+            "amount": data.amount
+        }).execute()
+
         return {"message": f"口座 {data.receiver_wallet_id} へ {data.amount} Gold 送金しました！"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# ログインユーザーが所有する口座に関わる送金履歴を取得
+@app.get("/api/transfer-logs")
+def get_transfer_logs(authorization: str = Header(None)):
+    user = get_user_from_token(authorization)
+    
+    # 自分の所持ウォレットIDリストを取得
+    my_wallets_res = supabase.table("wallets").select("wallet_id").eq("user_id", user.id).execute()
+    my_wallet_ids = [w["wallet_id"] for w in my_wallets_res.data] if my_wallets_res.data else []
+
+    if not my_wallet_ids:
+        return []
+
+    # 出金または入金に自分のウォレットIDが含まれるログを取得（直近20件）
+    filter_str = f"sender_wallet_id.in.({','.join(my_wallet_ids)}),receiver_wallet_id.in.({','.join(my_wallet_ids)})"
+    res = supabase.table("transfer_logs").select("*").or_(filter_str).order("created_at", desc=True).limit(20).execute()
+    
+    return {"logs": res.data, "my_wallets": my_wallet_ids}
 
 @app.get("/api/reports")
 def get_reports():
