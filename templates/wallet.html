@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>村岡王国 - 王国中央銀行</title>
+    <style>
+        body { font-family: sans-serif; background-color: #1a1a1a; color: #e0e0e0; display: flex; justify-content: center; padding: 20px 0; margin: 0; }
+        .container { width: 360px; display: flex; flex-direction: column; gap: 16px; }
+        .card { background: #2a2a2a; border: 2px solid #555; border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        .header { font-size: 1.1rem; font-weight: bold; color: #d4af37; text-align: center; border-bottom: 1px solid #444; padding-bottom: 8px; margin-bottom: 12px; }
+        input, select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #333; color: #fff; box-sizing: border-box; margin-top: 4px; margin-bottom: 10px; font-size: 0.85rem; }
+        button { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #27ae60; color: #fff; font-size: 0.85rem; }
+        button:hover { background: #2ecc71; }
+        .btn-back { background: #444; color: #ccc; margin-top: 8px; }
+        .btn-back:hover { background: #555; }
+        .wallet-item { background: #202020; border: 1px solid #444; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+        .wallet-title { color: #d4af37; font-weight: bold; font-size: 0.9rem; }
+        .wallet-id { color: #888; font-size: 0.75rem; font-family: monospace; }
+        .wallet-balance { font-size: 1.1rem; font-weight: bold; color: #2ecc71; margin-top: 4px; }
+        .label { color: #888; font-size: 0.75rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 口座一覧 -->
+    <div class="card">
+        <div class="header">🏦 所持ウォレット一覧</div>
+        <div id="wallets-list"></div>
+    </div>
+
+    <!-- 新規口座作成 -->
+    <div class="card">
+        <div class="header">➕ 新規ウォレット開設</div>
+        <div class="label">口座名</div>
+        <input type="text" id="new-wallet-name" placeholder="例: 隠し預金口座">
+        <button onclick="createWallet()">口座を開設する</button>
+    </div>
+
+    <!-- ウォレット送金 -->
+    <div class="card">
+        <div class="header">💸 ウォレット間送金</div>
+        <div class="label">出金元ウォレット</div>
+        <select id="sender-wallet"></select>
+
+        <div class="label">送金先ウォレットID</div>
+        <input type="text" id="receiver-wallet-id" placeholder="例: MW-X82K9L">
+
+        <div class="label">送金金額 (Gold)</div>
+        <input type="number" id="transfer-amount" min="1" placeholder="例: 50">
+
+        <button onclick="sendGold()">送金を実行する</button>
+    </div>
+
+    <button class="btn-back" onclick="location.href='/dashboard'">◀ 国民証に戻る</button>
+</div>
+
+<script>
+    const token = localStorage.getItem("access_token");
+    if (!token) window.location.href = "/";
+    else loadWallets();
+
+    async function loadWallets() {
+        const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
+        if (res.ok) {
+            const wallets = await res.json();
+            
+            // 口座一覧の描画
+            document.getElementById("wallets-list").innerHTML = wallets.map(w => `
+                <div class="wallet-item">
+                    <div class="wallet-title">${escapeHtml(w.wallet_name)}</div>
+                    <div class="wallet-id">ID: ${w.wallet_id}</div>
+                    <div class="wallet-balance">${w.balance} Gold</div>
+                </div>
+            `).join('');
+
+            // 送金元のドロップダウン作成
+            document.getElementById("sender-wallet").innerHTML = wallets.map(w => `
+                <option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} (${w.wallet_id}) - 残高:${w.balance}G</option>
+            `).join('');
+        }
+    }
+
+    async function createWallet() {
+        const wallet_name = document.getElementById("new-wallet-name").value;
+        if (!wallet_name) return alert("口座名を入力してください");
+
+        const res = await fetch("/api/wallets", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({ wallet_name })
+        });
+        const data = await res.json();
+        alert(data.message);
+        document.getElementById("new-wallet-name").value = "";
+        loadWallets();
+    }
+
+    async function sendGold() {
+        const sender_wallet_id = document.getElementById("sender-wallet").value;
+        const receiver_wallet_id = document.getElementById("receiver-wallet-id").value.trim();
+        const amount = parseInt(document.getElementById("transfer-amount").value, 10);
+
+        if (!sender_wallet_id || !receiver_wallet_id || !amount || amount <= 0) {
+            return alert("送金先ウォレットIDと正の金額を入力してください");
+        }
+
+        const res = await fetch("/api/transfer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+         
