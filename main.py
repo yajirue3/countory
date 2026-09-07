@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -7,8 +8,9 @@ from supabase import create_client, Client
 
 app = FastAPI(title="Web Application")
 
-# テンプレートエンジンの設定
-templates = Jinja2Templates(directory="templates")
+# 実行ファイル(main.py)のあるディレクトリからの絶対パスでtemplatesを指定
+BASE_DIR = Path(__file__).resolve().parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 # 環境変数からSupabaseの接続情報を取得
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
