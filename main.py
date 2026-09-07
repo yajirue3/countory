@@ -38,9 +38,11 @@ class TransferRequest(BaseModel):
     receiver_wallet_id: str
     amount: int
 
+# ランダムなウォレットIDを生成（例: MW-7X9B2K）
 def generate_wallet_id():
     return "MW-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
+# トークンからユーザー情報を取得
 def get_user_from_token(authorization: str):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="認証トークンがありません")
@@ -51,7 +53,8 @@ def get_user_from_token(authorization: str):
     except Exception:
         raise HTTPException(status_code=401, detail="無効なトークンです")
 
-def ensure_user_has_wallet(user_id: str):
+# ウォレットがゼロ個の場合のみ、初期ウォレットを1つだけ自動作成する
+def ensure_default_wallet(user_id: str):
     try:
         res = supabase.table("wallets").select("id").eq("user_id", user_id).execute()
         if not res.data:
@@ -63,7 +66,7 @@ def ensure_user_has_wallet(user_id: str):
                 "balance": 0
             }).execute()
     except Exception as e:
-        print(f"Wallet creation error: {e}")
+        print(f"Default wallet creation error: {e}")
 
 # --------------------------------------------------
 # 画面配信
@@ -95,7 +98,7 @@ def signup(user: UserAuth):
         res = supabase.auth.sign_up({"email": user.email, "password": user.password})
         if res.user:
             supabase.table("profiles").insert({"id": res.user.id, "nickname": "名無しの労働奴隷"}).execute()
-            ensure_user_has_wallet(res.user.id)
+            ensure_default_wallet(res.user.id)
         return {"message": "国民登録が完了しました！"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -115,12 +118,12 @@ def login(user: UserAuth):
         raise HTTPException(status_code=400, detail=f"ログイン失敗: {str(e)}")
 
 # --------------------------------------------------
-# 王国API
+# 王国機能API
 # --------------------------------------------------
 @app.get("/api/profile")
 def get_profile(authorization: str = Header(None)):
     user = get_user_from_token(authorization)
-    ensure_user_has_wallet(user.id)
+    ensure_default_wallet(user.id)
     res = supabase.table("profiles").select("*").eq("id", user.id).execute()
     if not res.data:
         new_prof = {"id": user.id, "nickname": "名無しの労働奴隷"}
@@ -137,41 +140,45 @@ def update_profile(data: ProfileUpdate, authorization: str = Header(None)):
     }).eq("id", user.id).execute()
     return {"message": "国民情報を更新しました"}
 
+# 納税処理（所有する一番最初の口座に給付される）
 @app.post("/api/pay-tax")
 def pay_tax(authorization: str = Header(None)):
     user = get_user_from_token(authorization)
     
+    # 1. 納税日のチェック
     prof_res = supabase.table("profiles").select("*").eq("id", user.id).execute()
     today_str = str(date.today())
 
     if prof_res.data and prof_res.data[0].get("last_tax_date") == today_str:
         raise HTTPException(status_code=400, detail="本日の納税は完了しています！")
 
-    ensure_user_has_wallet(user.id)
+    # 2. 初期ウォレットの存在確認
+    ensure_default_wallet(user.id)
+    
+    # 3. ユーザーが所持する「最古の口座」を取得して加算
     wallets = supabase.table("wallets").select("*").eq("user_id", user.id).order("created_at").execute()
-    
     if not wallets.data:
-        raise HTTPException(status_code=400, detail="口座の取得に失敗しました。SQLでRLS解除を行ったか確認してください。")
+        raise HTTPException(status_code=400, detail="受取用のウォレットが存在しません。口座を開設してください。")
     
-    main_wallet = wallets.data[0]
-    current_balance = main_wallet.get("balance") or 0
+    target_wallet = wallets.data[0]
+    current_balance = target_wallet.get("balance") or 0
     new_balance = current_balance + 100
 
-    supabase.table("wallets").update({"balance": new_balance}).eq("id", main_wallet["id"]).execute()
+    # DB更新
+    supabase.table("wallets").update({"balance": new_balance}).eq("id", target_wallet["id"]).execute()
     supabase.table("profiles").update({"last_tax_date": today_str}).eq("id", user.id).execute()
 
-    return {"message": f"納税完了！{main_wallet['wallet_name']}（{main_wallet['wallet_id']}）に100Gold獲得！"}
+    return {"message": f"納税完了！「{target_wallet['wallet_name']}」（{target_wallet['wallet_id']}）に100Gold獲得！"}
 
+# 口座一覧取得（持っている口座をすべて返す）
 @app.get("/api/wallets")
 def get_wallets(authorization: str = Header(None)):
     user = get_user_from_token(authorization)
-    ensure_user_has_wallet(user.id)
-    try:
-        res = supabase.table("wallets").select("*").eq("user_id", user.id).order("created_at").execute()
-        return res.data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"ウォレット取得エラー: {str(e)}")
+    ensure_default_wallet(user.id)
+    res = supabase.table("wallets").select("*").eq("user_id", user.id).order("created_at").execute()
+    return res.data
 
+# 新規口座開設（ユーザー指定の名前で新規作成）
 @app.post("/api/wallets")
 def create_wallet(data: WalletCreate, authorization: str = Header(None)):
     user = get_user_from_token(authorization)
@@ -187,6 +194,7 @@ def create_wallet(data: WalletCreate, authorization: str = Header(None)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"口座開設エラー: {str(e)}")
 
+# 送金処理
 @app.post("/api/transfer")
 def transfer_gold(data: TransferRequest, authorization: str = Header(None)):
     user = get_user_from_token(authorization)
