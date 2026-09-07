@@ -28,7 +28,6 @@ class ProfileUpdate(BaseModel):
 class ReportCreate(BaseModel):
     content: str
 
-# トークンからユーザー情報を取得する関数
 def get_user_from_token(authorization: str):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="認証トークンがありません")
@@ -40,7 +39,7 @@ def get_user_from_token(authorization: str):
         raise HTTPException(status_code=401, detail="無効なトークンです")
 
 # --------------------------------------------------
-# 画面配信
+# 画面配信（フロントエンド）
 # --------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
 def get_index(request: Request):
@@ -49,6 +48,10 @@ def get_index(request: Request):
 @app.get("/dashboard", response_class=HTMLResponse)
 def get_dashboard(request: Request):
     return templates.TemplateResponse(request=request, name="dashboard.html")
+
+@app.get("/board", response_class=HTMLResponse)
+def get_board(request: Request):
+    return templates.TemplateResponse(request=request, name="board.html")
 
 # --------------------------------------------------
 # 認証API
@@ -60,7 +63,6 @@ def signup(user: UserAuth):
     try:
         res = supabase.auth.sign_up({"email": user.email, "password": user.password})
         if res.user:
-            # プロフィールの初期レコード作成
             supabase.table("profiles").insert({"id": res.user.id, "nickname": "名無しの労働奴隷"}).execute()
         return {"message": "国民登録が完了しました！"}
     except Exception as e:
@@ -83,20 +85,16 @@ def login(user: UserAuth):
 # --------------------------------------------------
 # 王国機能API
 # --------------------------------------------------
-
-# プロフィール取得
 @app.get("/api/profile")
 def get_profile(authorization: str = Header(None)):
     user = get_user_from_token(authorization)
     res = supabase.table("profiles").select("*").eq("id", user.id).execute()
     if not res.data:
-        # レコードがない場合は新規作成
         new_prof = {"id": user.id, "nickname": "名無しの労働奴隷", "gold": 0}
         supabase.table("profiles").insert(new_prof).execute()
         return new_prof
     return res.data[0]
 
-# プロフィール更新（ニックネーム・秘密の本名）
 @app.post("/api/profile")
 def update_profile(data: ProfileUpdate, authorization: str = Header(None)):
     user = get_user_from_token(authorization)
@@ -106,7 +104,6 @@ def update_profile(data: ProfileUpdate, authorization: str = Header(None)):
     }).eq("id", user.id).execute()
     return {"message": "国民情報を更新しました"}
 
-# 本日の納税（1日1回）
 @app.post("/api/pay-tax")
 def pay_tax(authorization: str = Header(None)):
     user = get_user_from_token(authorization)
@@ -129,10 +126,8 @@ def pay_tax(authorization: str = Header(None)):
 
     return {"message": "納税完了！100ゴールドを獲得しました", "gold": new_gold}
 
-# 労働報告（投稿・一覧取得）
 @app.get("/api/reports")
 def get_reports():
-    # 最新10件の報告を取得（本名は含めずニックネームのみ公開）
     res = supabase.table("reports").select("id, nickname, content, created_at").order("id", desc=True).limit(10).execute()
     return res.data
 
