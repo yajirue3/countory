@@ -52,15 +52,18 @@ def get_user_from_token(authorization: str):
         raise HTTPException(status_code=401, detail="無効なトークンです")
 
 def ensure_user_has_wallet(user_id: str):
-    res = supabase.table("wallets").select("*").eq("user_id", user_id).execute()
-    if not res.data:
-        w_id = generate_wallet_id()
-        supabase.table("wallets").insert({
-            "wallet_id": w_id,
-            "user_id": user_id,
-            "wallet_name": "メイン口座",
-            "balance": 0
-        }).execute()
+    try:
+        res = supabase.table("wallets").select("id").eq("user_id", user_id).execute()
+        if not res.data:
+            w_id = generate_wallet_id()
+            supabase.table("wallets").insert({
+                "wallet_id": w_id,
+                "user_id": user_id,
+                "wallet_name": "メイン口座",
+                "balance": 0
+            }).execute()
+    except Exception as e:
+        print(f"Wallet ensure error: {e}")
 
 # --------------------------------------------------
 # 画面配信
@@ -137,22 +140,31 @@ def update_profile(data: ProfileUpdate, authorization: str = Header(None)):
 @app.post("/api/pay-tax")
 def pay_tax(authorization: str = Header(None)):
     user = get_user_from_token(authorization)
-    ensure_user_has_wallet(user.id)
     
+    # 1. プロフィール確認
     prof_res = supabase.table("profiles").select("*").eq("id", user.id).execute()
-    profile = prof_res.data[0] if prof_res.data else {}
-    today_str = str(date.today())
+    if not prof_res.data:
+        supabase.table("profiles").insert({"id": user.id, "nickname": "名無しの労働奴隷"}).execute()
+        today_str = ""
+    else:
+        profile = prof_res.data[0]
+        today_str = str(date.today())
+        if profile.get("last_tax_date") == today_str:
+            raise HTTPException(status_code=400, detail="本日の納税は完了しています！")
 
-    if profile.get("last_tax_date") == today_str:
-        raise HTTPException(status_code=400, detail="本日の納税は完了しています！")
-
-    # メイン口座（最初に作成された口座）に100Gold加算
+    # 2. ウォレットの存在確認＆作成
+    ensure_user_has_wallet(user.id)
     wallets = supabase.table("wallets").select("*").eq("user_id", user.id).order("created_at").execute()
+    
     if not wallets.data:
-        raise HTTPException(status_code=400, detail="口座が見つかりません")
+        raise HTTPException(status_code=400, detail="口座の自動作成に失敗しました。時間をおいて再試行してください。")
     
     main_wallet = wallets.data[0]
-    supabase.table("wallets").update({"balance": main_wallet["balance"] + 100}).eq("id", main_wallet["id"]).execute()
+    current_balance = main_wallet.get("balance") or 0
+    new_balance = current_balance + 100
+
+    # 3. 加算処理と日付更新
+    supabase.table("wallets").update({"balance": new_balance}).eq("id", main_wallet["id"]).execute()
     supabase.table("profiles").update({"last_tax_date": today_str}).eq("id", user.id).execute()
 
     return {"message": f"納税完了！{main_wallet['wallet_name']}（{main_wallet['wallet_id']}）に100Gold獲得！"}
