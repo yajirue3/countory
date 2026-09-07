@@ -5,94 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>村岡王国 - 国民証</title>
     <style>
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #1a1a1a;
-            color: #e0e0e0;
-            display: flex;
-            justify-content: center;
-            padding: 20px 0;
-            margin: 0;
-        }
-        .container {
-            width: 360px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-        .card {
-            background: #2a2a2a;
-            border: 2px solid #555;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-        }
-        .header {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #d4af37;
-            letter-spacing: 1px;
-            border-bottom: 1px solid #444;
-            padding-bottom: 8px;
-            margin-bottom: 12px;
-            text-align: center;
-        }
-        .icon-box {
-            font-size: 3rem;
-            text-align: center;
-            margin: 8px 0;
-        }
-        .info-group {
-            margin: 12px 0;
-            font-size: 0.85rem;
-        }
+        body { font-family: sans-serif; background-color: #1a1a1a; color: #e0e0e0; display: flex; justify-content: center; padding: 20px 0; margin: 0; }
+        .container { width: 360px; display: flex; flex-direction: column; gap: 16px; }
+        .card { background: #2a2a2a; border: 2px solid #555; border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        .header { font-size: 1.1rem; font-weight: bold; color: #d4af37; text-align: center; border-bottom: 1px solid #444; padding-bottom: 8px; margin-bottom: 12px; }
+        .icon-box { font-size: 3rem; text-align: center; margin: 8px 0; }
+        .info-group { margin: 12px 0; font-size: 0.85rem; }
         .label { color: #888; font-size: 0.75rem; }
         .value { font-weight: bold; margin-bottom: 6px; word-break: break-all; }
-        .badge {
-            display: inline-block;
-            background-color: #8b0000;
-            color: #fff;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-        }
-        input {
-            width: 100%;
-            padding: 8px;
-            border-radius: 6px;
-            border: 1px solid #444;
-            background-color: #333;
-            color: #fff;
-            box-sizing: border-box;
-            margin-top: 4px;
-            margin-bottom: 10px;
-            font-size: 0.85rem;
-        }
-        button {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            background-color: #d4af37;
-            color: #1a1a1a;
-            font-size: 0.85rem;
-        }
-        button:hover { background-color: #f1c40f; }
-        .btn-transfer { background-color: #27ae60; color: #fff; }
-        .btn-transfer:hover { background-color: #2ecc71; }
-        .btn-board { background-color: #2980b9; color: #fff; margin-top: 10px; }
-        .btn-board:hover { background-color: #3498db; }
-        .btn-logout { background-color: #444; color: #ccc; margin-top: 8px; }
-        .btn-logout:hover { background-color: #555; }
+        .badge { display: inline-block; background-color: #8b0000; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+        input { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #333; color: #fff; box-sizing: border-box; margin-top: 4px; margin-bottom: 10px; font-size: 0.85rem; }
+        button { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #d4af37; color: #1a1a1a; font-size: 0.85rem; margin-top: 6px; }
+        button:hover { background: #f1c40f; }
+        .btn-bank { background: #27ae60; color: #fff; }
+        .btn-bank:hover { background: #2ecc71; }
+        .btn-board { background: #2980b9; color: #fff; }
+        .btn-board:hover { background: #3498db; }
+        .btn-logout { background: #444; color: #ccc; }
+        .btn-logout:hover { background: #555; }
         .secret-tag { color: #e74c3c; font-size: 0.7rem; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- 国民証 -->
     <div class="card">
         <div class="header">村岡王国 国民証</div>
         <div class="icon-box">⛏️</div>
@@ -103,28 +39,13 @@
 
             <div class="label">現在の称号</div>
             <div class="value"><span class="badge">鉱山労働奴隷</span></div>
-
-            <div class="label">所持金</div>
-            <div class="value" id="user-gold">0 Gold</div>
         </div>
 
-        <button onclick="payTax()">💰 本日の納税を行う</button>
-        <button class="btn-board" onclick="location.href='/board'">📜 王国回覧板（掲示板）へ</button>
+        <button onclick="payTax()">💰 本日の納税を行う（+100G）</button>
+        <button class="btn-bank" onclick="location.href='/wallet'">🏦 王国中央銀行（資金管理）</button>
+        <button class="btn-board" onclick="location.href='/board'">📜 王国回覧板（掲示板）</button>
     </div>
 
-    <!-- ゴールド送金 -->
-    <div class="card">
-        <div class="header">💸 国民間送金</div>
-        <div class="label">送金先のニックネーム</div>
-        <input type="text" id="transfer-nickname" placeholder="例: 鉱山ハナコ">
-
-        <div class="label">送金金額 (Gold)</div>
-        <input type="number" id="transfer-amount" min="1" placeholder="例: 50">
-
-        <button class="btn-transfer" onclick="sendGold()">ゴールドを送金する</button>
-    </div>
-
-    <!-- 国民情報編集 -->
     <div class="card">
         <div class="header">国民登録情報の変更</div>
         <div class="label">表のニックネーム (全体公開)</div>
@@ -141,36 +62,27 @@
 
 <script>
     const token = localStorage.getItem("access_token");
-
-    if (!token) {
-        window.location.href = "/";
-    } else {
+    if (!token) window.location.href = "/";
+    else {
         document.getElementById("user-email").innerText = localStorage.getItem("user_email") || "";
         loadProfile();
     }
 
     async function loadProfile() {
-        const res = await fetch("/api/profile", {
-            headers: { "Authorization": `Bearer ${token}` }
-        });
+        const res = await fetch("/api/profile", { headers: { "Authorization": `Bearer ${token}` } });
         if (res.ok) {
             const data = await res.json();
             document.getElementById("nickname").value = data.nickname || "";
             document.getElementById("real-name").value = data.real_name || "";
-            document.getElementById("user-gold").innerText = `${data.gold || 0} Gold`;
         }
     }
 
     async function saveProfile() {
         const nickname = document.getElementById("nickname").value;
         const real_name = document.getElementById("real-name").value;
-
         const res = await fetch("/api/profile", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-            },
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify({ nickname, real_name })
         });
         const data = await res.json();
@@ -184,39 +96,7 @@
             headers: { "Authorization": `Bearer ${token}` }
         });
         const data = await res.json();
-        if (res.ok) {
-            alert(data.message);
-            loadProfile();
-        } else {
-            alert(data.detail);
-        }
-    }
-
-    async function sendGold() {
-        const receiver_nickname = document.getElementById("transfer-nickname").value;
-        const amount = parseInt(document.getElementById("transfer-amount").value, 10);
-
-        if (!receiver_nickname || !amount || amount <= 0) {
-            return alert("正しいニックネームと1以上の金額を入力してください");
-        }
-
-        const res = await fetch("/api/transfer", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-            },
-            body: JSON.stringify({ receiver_nickname, amount })
-        });
-        const data = await res.json();
-        if (res.ok) {
-            alert(data.message);
-            document.getElementById("transfer-nickname").value = "";
-            document.getElementById("transfer-amount").value = "";
-            loadProfile();
-        } else {
-            alert(data.detail);
-        }
+        alert(res.ok ? data.message : data.detail);
     }
 
     function logout() {
