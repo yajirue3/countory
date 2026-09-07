@@ -17,7 +17,6 @@ from jose import JWTError, jwt
 # ==========================================
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./app.db")
 
-# PostgreSQL/SupabaseとSQLiteの両対応
 if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
