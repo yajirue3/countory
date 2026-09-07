@@ -1,4 +1,6 @@
 import os
+import random
+import string
 from pathlib import Path
 from datetime import date
 from fastapi import FastAPI, HTTPException, Request, Header
@@ -28,9 +30,16 @@ class ProfileUpdate(BaseModel):
 class ReportCreate(BaseModel):
     content: str
 
+class WalletCreate(BaseModel):
+    wallet_name: str
+
 class TransferRequest(BaseModel):
-    receiver_nickname: str
+    sender_wallet_id: str
+    receiver_wallet_id: str
     amount: int
+
+def generate_wallet_id():
+    return "MW-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
 def get_user_from_token(authorization: str):
     if not authorization or not authorization.startswith("Bearer "):
@@ -42,8 +51,19 @@ def get_user_from_token(authorization: str):
     except Exception:
         raise HTTPException(status_code=401, detail="無効なトークンです")
 
+def ensure_user_has_wallet(user_id: str):
+    res = supabase.table("wallets").select("*").eq("user_id", user_id).execute()
+    if not res.data:
+        w_id = generate_wallet_id()
+        supabase.table("wallets").insert({
+            "wallet_id": w_id,
+            "user_id": user_id,
+            "wallet_name": "メイン口座",
+            "balance": 0
+        }).execute()
+
 # --------------------------------------------------
-# 画面配信（フロントエンド）
+# 画面配信
 # --------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
 def get_index(request: Request):
@@ -57,6 +77,10 @@ def get_dashboard(request: Request):
 def get_board(request: Request):
     return templates.TemplateResponse(request=request, name="board.html")
 
+@app.get("/wallet", response_class=HTMLResponse)
+def get_wallet(request: Request):
+    return templates.TemplateResponse(request=request, name="wallet.html")
+
 # --------------------------------------------------
 # 認証API
 # --------------------------------------------------
@@ -68,6 +92,7 @@ def signup(user: UserAuth):
         res = supabase.auth.sign_up({"email": user.email, "password": user.password})
         if res.user:
             supabase.table("profiles").insert({"id": res.user.id, "nickname": "名無しの労働奴隷"}).execute()
+            ensure_user_has_wallet(res.user.id)
         return {"message": "国民登録が完了しました！"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -87,14 +112,15 @@ def login(user: UserAuth):
         raise HTTPException(status_code=400, detail=f"ログイン失敗: {str(e)}")
 
 # --------------------------------------------------
-# 王国機能API
+# 王国API
 # --------------------------------------------------
 @app.get("/api/profile")
 def get_profile(authorization: str = Header(None)):
     user = get_user_from_token(authorization)
+    ensure_user_has_wallet(user.id)
     res = supabase.table("profiles").select("*").eq("id", user.id).execute()
     if not res.data:
-        new_prof = {"id": user.id, "nickname": "名無しの労働奴隷", "gold": 0}
+        new_prof = {"id": user.id, "nickname": "名無しの労働奴隷"}
         supabase.table("profiles").insert(new_prof).execute()
         return new_prof
     return res.data[0]
@@ -111,37 +137,59 @@ def update_profile(data: ProfileUpdate, authorization: str = Header(None)):
 @app.post("/api/pay-tax")
 def pay_tax(authorization: str = Header(None)):
     user = get_user_from_token(authorization)
+    ensure_user_has_wallet(user.id)
+    
     prof_res = supabase.table("profiles").select("*").eq("id", user.id).execute()
-    
-    if not prof_res.data:
-        raise HTTPException(status_code=404, detail="プロフィールが見つかりません")
-    
-    profile = prof_res.data[0]
+    profile = prof_res.data[0] if prof_res.data else {}
     today_str = str(date.today())
 
     if profile.get("last_tax_date") == today_str:
         raise HTTPException(status_code=400, detail="本日の納税は完了しています！")
 
-    new_gold = (profile.get("gold") or 0) + 100
-    supabase.table("profiles").update({
-        "gold": new_gold,
-        "last_tax_date": today_str
-    }).eq("id", user.id).execute()
+    # メイン口座（最初に作成された口座）に100Gold加算
+    wallets = supabase.table("wallets").select("*").eq("user_id", user.id).order("created_at").execute()
+    if not wallets.data:
+        raise HTTPException(status_code=400, detail="口座が見つかりません")
+    
+    main_wallet = wallets.data[0]
+    supabase.table("wallets").update({"balance": main_wallet["balance"] + 100}).eq("id", main_wallet["id"]).execute()
+    supabase.table("profiles").update({"last_tax_date": today_str}).eq("id", user.id).execute()
 
-    return {"message": "納税完了！100ゴールドを獲得しました", "gold": new_gold}
+    return {"message": f"納税完了！{main_wallet['wallet_name']}（{main_wallet['wallet_id']}）に100Gold獲得！"}
 
-# 送金処理API
+# ウォレット一覧取得
+@app.get("/api/wallets")
+def get_wallets(authorization: str = Header(None)):
+    user = get_user_from_token(authorization)
+    ensure_user_has_wallet(user.id)
+    res = supabase.table("wallets").select("*").eq("user_id", user.id).order("created_at").execute()
+    return res.data
+
+# 新規ウォレット作成
+@app.post("/api/wallets")
+def create_wallet(data: WalletCreate, authorization: str = Header(None)):
+    user = get_user_from_token(authorization)
+    w_id = generate_wallet_id()
+    supabase.table("wallets").insert({
+        "wallet_id": w_id,
+        "user_id": user.id,
+        "wallet_name": data.wallet_name or "サブ口座",
+        "balance": 0
+    }).execute()
+    return {"message": f"新規口座「{data.wallet_name}」を開設しました（ID: {w_id}）"}
+
+# 送金処理
 @app.post("/api/transfer")
 def transfer_gold(data: TransferRequest, authorization: str = Header(None)):
     user = get_user_from_token(authorization)
     try:
-        # SupabaseのRPC（Database Function）を呼び出し
-        res = supabase.rpc("transfer_gold", {
-            "sender_id": user.id,
-            "receiver_nickname": data.receiver_nickname,
-            "amount": data.amount
+        res = supabase.rpc("transfer_gold_by_wallet", {
+            "sender_wallet_id": data.sender_wallet_id,
+            "receiver_wallet_id": data.receiver_wallet_id,
+            "amount": data.amount,
+            "auth_user_id": user.id
         }).execute()
-        return {"message": f"{data.receiver_nickname} に {data.amount} Gold 送金しました！"}
+        return {"message": f"口座 {data.receiver_wallet_id} へ {data.amount} Gold 送金しました！"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
