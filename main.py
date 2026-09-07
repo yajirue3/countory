@@ -33,16 +33,17 @@ class ReportCreate(BaseModel):
 class WalletCreate(BaseModel):
     wallet_name: str
 
+class PayTaxRequest(BaseModel):
+    wallet_id: str
+
 class TransferRequest(BaseModel):
     sender_wallet_id: str
     receiver_wallet_id: str
     amount: int
 
-# ランダムなウォレットIDを生成（例: MW-7X9B2K）
 def generate_wallet_id():
     return "MW-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
-# トークンからユーザー情報を取得
 def get_user_from_token(authorization: str):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="認証トークンがありません")
@@ -53,7 +54,6 @@ def get_user_from_token(authorization: str):
     except Exception:
         raise HTTPException(status_code=401, detail="無効なトークンです")
 
-# ウォレットがゼロ個の場合のみ、初期ウォレットを1つだけ自動作成する
 def ensure_default_wallet(user_id: str):
     try:
         res = supabase.table("wallets").select("id").eq("user_id", user_id).execute()
@@ -118,7 +118,7 @@ def login(user: UserAuth):
         raise HTTPException(status_code=400, detail=f"ログイン失敗: {str(e)}")
 
 # --------------------------------------------------
-# 王国機能API
+# 王国API
 # --------------------------------------------------
 @app.get("/api/profile")
 def get_profile(authorization: str = Header(None)):
@@ -140,27 +140,24 @@ def update_profile(data: ProfileUpdate, authorization: str = Header(None)):
     }).eq("id", user.id).execute()
     return {"message": "国民情報を更新しました"}
 
-# 納税処理（所有する一番最初の口座に給付される）
+# 納税処理（フロントエンドで指定された wallet_id へ給付する）
 @app.post("/api/pay-tax")
-def pay_tax(authorization: str = Header(None)):
+def pay_tax(data: PayTaxRequest, authorization: str = Header(None)):
     user = get_user_from_token(authorization)
     
-    # 1. 納税日のチェック
+    # 日付チェック
     prof_res = supabase.table("profiles").select("*").eq("id", user.id).execute()
     today_str = str(date.today())
 
     if prof_res.data and prof_res.data[0].get("last_tax_date") == today_str:
         raise HTTPException(status_code=400, detail="本日の納税は完了しています！")
 
-    # 2. 初期ウォレットの存在確認
-    ensure_default_wallet(user.id)
-    
-    # 3. ユーザーが所持する「最古の口座」を取得して加算
-    wallets = supabase.table("wallets").select("*").eq("user_id", user.id).order("created_at").execute()
-    if not wallets.data:
-        raise HTTPException(status_code=400, detail="受取用のウォレットが存在しません。口座を開設してください。")
-    
-    target_wallet = wallets.data[0]
+    # 指定されたウォレットの存在と所有権をチェック
+    wallet_res = supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
+    if not wallet_res.data:
+        raise HTTPException(status_code=400, detail="指定された受取口座が存在しないか、所有権がありません。")
+
+    target_wallet = wallet_res.data[0]
     current_balance = target_wallet.get("balance") or 0
     new_balance = current_balance + 100
 
@@ -170,7 +167,6 @@ def pay_tax(authorization: str = Header(None)):
 
     return {"message": f"納税完了！「{target_wallet['wallet_name']}」（{target_wallet['wallet_id']}）に100Gold獲得！"}
 
-# 口座一覧取得（持っている口座をすべて返す）
 @app.get("/api/wallets")
 def get_wallets(authorization: str = Header(None)):
     user = get_user_from_token(authorization)
@@ -178,7 +174,6 @@ def get_wallets(authorization: str = Header(None)):
     res = supabase.table("wallets").select("*").eq("user_id", user.id).order("created_at").execute()
     return res.data
 
-# 新規口座開設（ユーザー指定の名前で新規作成）
 @app.post("/api/wallets")
 def create_wallet(data: WalletCreate, authorization: str = Header(None)):
     user = get_user_from_token(authorization)
@@ -194,7 +189,6 @@ def create_wallet(data: WalletCreate, authorization: str = Header(None)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"口座開設エラー: {str(e)}")
 
-# 送金処理
 @app.post("/api/transfer")
 def transfer_gold(data: TransferRequest, authorization: str = Header(None)):
     user = get_user_from_token(authorization)
