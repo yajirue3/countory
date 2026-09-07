@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>村岡王国 - 王国回覧板</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            padding: 20px 0;
+            margin: 0;
+        }
+        .container { width: 360px; }
+        .card {
+            background: #2a2a2a;
+            border: 2px solid #555;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        .header {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #d4af37;
+            text-align: center;
+            border-bottom: 1px solid #444;
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+        }
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background: #333;
+            color: #fff;
+            box-sizing: border-box;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            resize: vertical;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            background: #d4af37;
+            color: #1a1a1a;
+            font-size: 0.85rem;
+        }
+        button:hover { background: #f1c40f; }
+        .btn-back { background: #444; color: #ccc; margin-top: 16px; }
+        .btn-back:hover { background: #555; }
+        .report-item {
+            background: #202020;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 3px solid #d4af37;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+        .report-user {
+            color: #d4af37;
+            font-weight: bold;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <div class="header">📜 王国回覧板（労働報告）</div>
+        <textarea id="report-content" rows="3" placeholder="労働成果や国王への忠誠を書き込め..."></textarea>
+        <button onclick="sendReport()">報告を提出する</button>
+
+        <div style="margin-top: 20px;" id="reports-list"></div>
+        <button class="btn-back" onclick="location.href='/dashboard'">◀ 国民証に戻る</button>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+        window.location.href = "/";
+    } else {
+        loadReports();
+    }
+
+    async function loadReports() {
+        const res = await fetch("/api/reports");
+        if (res.ok) {
+            const reports = await res.json();
+            document.getElementById("reports-list").innerHTML = reports.map(r => `
+                <div class="report-item">
+                    <div class="report-user">⛏️ ${escapeHtml(r.nickname)}</div>
+                    <div>${escapeHtml(r.content)}</div>
+                </div>
+            `).join('');
+        }
+    }
+
+    async function sendReport() {
+        const content = document.getElementById("report-content").value;
+        if (!content) return alert("内容を入力してください");
+
+        const res = await fetch("/api/reports", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ content })
+        });
+        if (res.ok) {
+            document.getElementById("report-content").value = "";
+            loadReports();
+        }
+    }
+
+    function escapeHtml(str) {
+        return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
+    }
+</script>
+
+</body>
+</html>
