@@ -6,17 +6,14 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from supabase import create_client, Client
 
-app = FastAPI(title="Web Application")
+app = FastAPI(title="村岡王国 ポータル")
 
-# 実行ファイル(main.py)のあるディレクトリからの絶対パスでtemplatesを指定
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
-# 環境変数からSupabaseの接続情報を取得
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
-# Supabaseクライアントの初期化
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
 
 class UserAuth(BaseModel):
@@ -24,15 +21,18 @@ class UserAuth(BaseModel):
     password: str
 
 # --------------------------------------------------
-# フロントエンド（専用HTMLの配信）
+# 画面配信（フロントエンド）
 # --------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
 def get_index(request: Request):
-    # 最新のFastAPI/Starlette仕様に対応した書き方に修正
     return templates.TemplateResponse(request=request, name="index.html")
 
+@app.get("/dashboard", response_class=HTMLResponse)
+def get_dashboard(request: Request):
+    return templates.TemplateResponse(request=request, name="dashboard.html")
+
 # --------------------------------------------------
-# バックエンドAPI（認証ロジック）
+# バックエンドAPI
 # --------------------------------------------------
 @app.post("/signup")
 def signup(user: UserAuth):
@@ -40,7 +40,7 @@ def signup(user: UserAuth):
         raise HTTPException(status_code=500, detail="Supabaseクライアントが未設定です")
     try:
         res = supabase.auth.sign_up({"email": user.email, "password": user.password})
-        return {"message": "ユーザー登録が完了しました！"}
+        return {"message": "国民登録が完了しました！"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -50,6 +50,10 @@ def login(user: UserAuth):
         raise HTTPException(status_code=500, detail="Supabaseクライアントが未設定です")
     try:
         res = supabase.auth.sign_in_with_password({"email": user.email, "password": user.password})
-        return {"message": "ログインに成功しました！", "access_token": res.session.access_token}
+        return {
+            "message": "入国が許可されました！",
+            "access_token": res.session.access_token,
+            "email": user.email
+        }
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"ログイン失敗: {str(e)}")
