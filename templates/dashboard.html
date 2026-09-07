@@ -39,9 +39,9 @@
             <div class="label">国民ID (Email)</div>
             <div class="value" id="user-email">-</div>
 
-            <div class="label">現在の称号</div>
-            <div class="value"><span class="badge">鉱山労働奴隷</span></div>
-        </div>
+    <div class="label">現在の称号</div>
+<div class="value"><span class="badge" id="user-rank">読み込み中...</span></div>
+
 
         <div class="label">納税報酬の受取口座</div>
         <select id="tax-wallet-select"></select>
@@ -126,6 +126,33 @@
     }
 
     function escapeHtml(str) { return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
+
+// 追加: 称号判定関数
+function getRankName(balance) {
+    if (balance <= 100) return "鉱山労働奴隷";
+    if (balance <= 500) return "商人に雇われた奴隷";
+    if (balance <= 1000) return "平民";
+    if (balance <= 1500) return "金持ち";
+    if (balance <= 10000) return "貴族";
+    return "王族";
+}
+
+// 差し替え: loadWalletsForTax 関数
+async function loadWalletsForTax() {
+    const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
+    if (res.ok) {
+        const wallets = await res.json();
+        
+        // 全口座の合計Goldを計算して称号を更新
+        const totalBalance = wallets.reduce((sum, w) => sum + (w.balance || 0), 0);
+        document.getElementById("user-rank").innerText = getRankName(totalBalance);
+
+        const select = document.getElementById("tax-wallet-select");
+        select.innerHTML = wallets.map(w => `<option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} (${w.wallet_id})</option>`).join('');
+    }
+}
+
+    
 </script>
 
 </body>
