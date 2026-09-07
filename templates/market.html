@@ -20,31 +20,31 @@
 
     <h1>📜 市場・契約掲示板</h1>
 
-    <!-- 新規作成フォーム -->
     <div class="card">
         <h2>新規契約の発行</h2>
-        <div class="form-group">
-            <label for="c-title">タイトル</label>
-            <input type="text" id="c-title" placeholder="例: Webサイトの制作依頼">
-        </div>
-        <div class="form-group">
-            <label for="c-desc">詳細内容</label>
-            <textarea id="c-desc" rows="4" placeholder="具体的な依頼条件や納期など"></textarea>
-        </div>
-        <div class="form-group">
-            <label for="c-amount">報酬額</label>
-            <input type="number" id="c-amount" placeholder="1000" min="1">
-        </div>
-        <div class="form-group">
-            <label for="creator-wallet-select">支払口座を選択</label>
-            <select id="creator-wallet-select">
-                <option value="">-- 口座を読み込み中 --</option>
-            </select>
-        </div>
-        <button type="button" onclick="createContract()">市場に契約書を掲示する</button>
+        <form id="contract-form" onsubmit="handleContractSubmit(event)">
+            <div class="form-group">
+                <label for="c-title">タイトル</label>
+                <input type="text" id="c-title" required placeholder="例: Webサイトの制作依頼">
+            </div>
+            <div class="form-group">
+                <label for="c-desc">詳細内容</label>
+                <textarea id="c-desc" rows="4" required placeholder="具体的な依頼条件や納期など"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="c-amount">報酬額</label>
+                <input type="number" id="c-amount" min="1" required placeholder="1000">
+            </div>
+            <div class="form-group">
+                <label for="creator-wallet-select">支払口座を選択</label>
+                <select id="creator-wallet-select" required>
+                    <option value="">-- 口座を読み込み中 --</option>
+                </select>
+            </div>
+            <button type="submit">市場に契約書を掲示する</button>
+        </form>
     </div>
 
-    <!-- 掲示板一覧 -->
     <div class="card">
         <h2>掲載中の契約一覧</h2>
         <div id="contract-list">読み込み中...</div>
@@ -58,13 +58,11 @@
             window.location.href = "/login";
         }
 
-        // ページ読み込み時に口座と一覧を取得
-        window.onload = function() {
+        window.addEventListener("DOMContentLoaded", () => {
             loadWallets();
             loadContracts();
-        };
+        });
 
-        // 支払用口座一覧の読み込み
         async function loadWallets() {
             const selectEl = document.getElementById("creator-wallet-select");
             try {
@@ -77,14 +75,14 @@
                 selectEl.innerHTML = "";
 
                 if (wallets.length === 0) {
-                    selectEl.innerHTML = '<option value="">(口座がありません。作成してください)</option>';
+                    selectEl.innerHTML = '<option value="">口座が存在しません。作成してください</option>';
                     return;
                 }
 
                 wallets.forEach(w => {
                     const opt = document.createElement("option");
                     opt.value = w.id;
-                    opt.textContent = `${w.name || 'メイン口座'} (${w.account_number}) - 残高: ${w.balance}`;
+                    opt.textContent = `${w.name} (${w.account_number}) - 残高: ${w.balance}`;
                     selectEl.appendChild(opt);
                 });
             } catch (e) {
@@ -93,35 +91,16 @@
             }
         }
 
-        // 契約掲示処理
-        async function createContract() {
-            const titleEl = document.getElementById("c-title");
-            const descEl = document.getElementById("c-desc");
-            const amountEl = document.getElementById("c-amount");
-            const walletEl = document.getElementById("creator-wallet-select");
+        async function handleContractSubmit(event) {
+            event.preventDefault();
 
-            const title = titleEl ? titleEl.value.trim() : "";
-            const description = descEl ? descEl.value.trim() : "";
-            const amountRaw = amountEl ? amountEl.value : "";
-            const creator_wallet_id = walletEl ? walletEl.value : "";
+            const title = document.getElementById("c-title").value.trim();
+            const description = document.getElementById("c-desc").value.trim();
+            const amount = parseInt(document.getElementById("c-amount").value, 10);
+            const creator_wallet_id = document.getElementById("creator-wallet-select").value;
 
-            const amount = Number(amountRaw);
-
-            // フロントエンド側の明確なバリデーションチェック
-            if (!title) {
-                alert("【入力エラー】タイトルを入力してください。");
-                return;
-            }
-            if (!description) {
-                alert("【入力エラー】詳細内容を入力してください。");
-                return;
-            }
-            if (!amountRaw || isNaN(amount) || amount <= 0) {
-                alert("【入力エラー】1以上の有効な報酬額を入力してください。");
-                return;
-            }
             if (!creator_wallet_id) {
-                alert("【エラー】支払口座が選択されていません。先に口座を作成してください。");
+                alert("支払口座が選択されていません。");
                 return;
             }
 
@@ -132,39 +111,30 @@
                         "Content-Type": "application/json", 
                         "Authorization": `Bearer ${token}` 
                     },
-                    body: JSON.stringify({
-                        title: title,
-                        description: description,
-                        amount: amount,
-                        creator_wallet_id: creator_wallet_id
-                    })
+                    body: JSON.stringify({ title, description, amount, creator_wallet_id })
                 });
 
                 const data = await res.json();
 
                 if (res.ok) {
-                    alert(data.message || "契約を掲示しました！");
-                    titleEl.value = "";
-                    descEl.value = "";
-                    amountEl.value = "";
+                    alert(data.message || "掲示に成功しました！");
+                    document.getElementById("contract-form").reset();
                     loadContracts();
+                    loadWallets();
                 } else {
-                    const detail = typeof data.detail === "object" ? JSON.stringify(data.detail) : data.detail;
-                    alert("【エラー (" + res.status + ")】 " + (detail || "掲示に失敗しました"));
+                    const errorMsg = typeof data.detail === "object" ? JSON.stringify(data.detail) : data.detail;
+                    alert("エラー (" + res.status + "): " + (errorMsg || "処理に失敗しました"));
                 }
             } catch (e) {
-                alert("【通信エラー】サーバーと通信できませんでした: " + e.message);
+                alert("通信エラーが発生しました: " + e.message);
             }
         }
 
-        // 掲示板一覧の取得
         async function loadContracts() {
             const listEl = document.getElementById("contract-list");
             try {
-                const res = await fetch("/api/contracts", {
-                    headers: { "Authorization": `Bearer ${token}` }
-                });
-                if (!res.ok) throw new Error("取得失敗");
+                const res = await fetch("/api/contracts");
+                if (!res.ok) throw new Error("一覧の取得に失敗");
 
                 const contracts = await res.json();
                 if (contracts.length === 0) {
@@ -180,7 +150,7 @@
                     </div>
                 `).join("");
             } catch (e) {
-                listEl.innerHTML = "<p>契約一覧の読み込みに失敗しました。</p>";
+                listEl.innerHTML = "<p>契約一覧の取得に失敗しました。</p>";
             }
         }
 
