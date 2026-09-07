@@ -28,7 +28,8 @@ class UserAuth(BaseModel):
 # --------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
 def get_index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    # 最新のFastAPI/Starlette仕様に対応した書き方に修正
+    return templates.TemplateResponse(request=request, name="index.html")
 
 # --------------------------------------------------
 # バックエンドAPI（認証ロジック）
