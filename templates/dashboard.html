@@ -11,112 +11,175 @@
             color: #e0e0e0;
             display: flex;
             justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            padding: 20px 0;
             margin: 0;
+        }
+        .container {
+            width: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
         .card {
             background: #2a2a2a;
             border: 2px solid #555;
             border-radius: 12px;
-            padding: 24px;
-            width: 340px;
+            padding: 20px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-            text-align: center;
         }
         .header {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: bold;
-            color: #d4af37; /* 金色 */
-            letter-spacing: 2px;
-            margin-bottom: 16px;
+            color: #d4af37;
+            letter-spacing: 1px;
             border-bottom: 1px solid #444;
             padding-bottom: 8px;
+            margin-bottom: 12px;
+            text-align: center;
         }
         .icon-box {
-            font-size: 4rem;
-            margin: 10px 0;
-            background: #111;
-            display: inline-block;
-            padding: 10px 20px;
-            border-radius: 50%;
-            border: 2px solid #d4af37;
+            font-size: 3rem;
+            text-align: center;
+            margin: 8px 0;
         }
         .info-group {
-            text-align: left;
-            margin: 16px 0;
-            font-size: 0.9rem;
+            margin: 12px 0;
+            font-size: 0.85rem;
         }
-        .label {
-            color: #888;
-            font-size: 0.8rem;
-        }
-        .value {
-            font-weight: bold;
-            margin-bottom: 8px;
-            word-break: break-all;
-        }
+        .label { color: #888; font-size: 0.75rem; }
+        .value { font-weight: bold; margin-bottom: 6px; word-break: break-all; }
         .badge {
             display: inline-block;
-            background-color: #8b0000; /* 暗い赤 */
+            background-color: #8b0000;
             color: #fff;
-            padding: 4px 12px;
+            padding: 2px 8px;
             border-radius: 4px;
-            font-size: 0.85rem;
-            font-weight: bold;
+            font-size: 0.8rem;
         }
-        .btn-logout {
-            background-color: #444;
-            color: #fff;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
-            cursor: pointer;
+        input {
             width: 100%;
-            margin-top: 16px;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background-color: #333;
+            color: #fff;
+            box-sizing: border-box;
+            margin-top: 4px;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
             font-weight: bold;
+            cursor: pointer;
+            background-color: #d4af37;
+            color: #1a1a1a;
+            font-size: 0.85rem;
         }
-        .btn-logout:hover {
-            background-color: #666;
-        }
+        button:hover { background-color: #f1c40f; }
+        .btn-board { background-color: #2980b9; color: #fff; margin-top: 10px; }
+        .btn-board:hover { background-color: #3498db; }
+        .btn-logout { background-color: #444; color: #ccc; margin-top: 8px; }
+        .btn-logout:hover { background-color: #555; }
+        .secret-tag { color: #e74c3c; font-size: 0.7rem; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <div class="header">村岡王国 国民証</div>
-    
-    <!-- アバターアイコン -->
-    <div class="icon-box" id="avatar">⛏️</div>
-    
-    <div class="info-group">
-        <div class="label">国民ID (Email)</div>
-        <div class="value" id="user-email">読み込み中...</div>
+<div class="container">
+    <!-- 国民証 -->
+    <div class="card">
+        <div class="header">村岡王国 国民証</div>
+        <div class="icon-box">⛏️</div>
+        
+        <div class="info-group">
+            <div class="label">国民ID (Email)</div>
+            <div class="value" id="user-email">-</div>
 
-        <div class="label">現在の称号</div>
-        <div class="value"><span class="badge">鉱山労働奴隷</span></div>
+            <div class="label">現在の称号</div>
+            <div class="value"><span class="badge">鉱山労働奴隷</span></div>
+
+            <div class="label">所持金</div>
+            <div class="value" id="user-gold">0 Gold</div>
+        </div>
+
+        <button onclick="payTax()">💰 本日の納税を行う</button>
+        <button class="btn-board" onclick="location.href='/board'">📜 王国回覧板（掲示板）へ</button>
+    </div>
+
+    <!-- 国民情報編集 -->
+    <div class="card">
+        <div class="header">国民登録情報の変更</div>
+        <div class="label">表のニックネーム (全体公開)</div>
+        <input type="text" id="nickname" placeholder="例: 鉱山ハナコ">
+
+        <div class="label">本名 <span class="secret-tag">※国王のみ知る(完全非公開)</span></div>
+        <input type="text" id="real-name" placeholder="例: 村岡 太郎">
+
+        <button onclick="saveProfile()">情報を保存する</button>
     </div>
 
     <button class="btn-logout" onclick="logout()">王国を離脱（ログアウト）</button>
 </div>
 
 <script>
-    // ログインチェック
     const token = localStorage.getItem("access_token");
-    const email = localStorage.getItem("user_email");
 
     if (!token) {
-        // トークンがなければログイン画面へ追い返す
         window.location.href = "/";
     } else {
-        document.getElementById("user-email").innerText = email || "不明な国民";
+        document.getElementById("user-email").innerText = localStorage.getItem("user_email") || "";
+        loadProfile();
+    }
+
+    async function loadProfile() {
+        const res = await fetch("/api/profile", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById("nickname").value = data.nickname || "";
+            document.getElementById("real-name").value = data.real_name || "";
+            document.getElementById("user-gold").innerText = `${data.gold || 0} Gold`;
+        }
+    }
+
+    async function saveProfile() {
+        const nickname = document.getElementById("nickname").value;
+        const real_name = document.getElementById("real-name").value;
+
+        const res = await fetch("/api/profile", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ nickname, real_name })
+        });
+        const data = await res.json();
+        alert(data.message);
+        loadProfile();
+    }
+
+    async function payTax() {
+        const res = await fetch("/api/pay-tax", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert(data.message);
+            loadProfile();
+        } else {
+            alert(data.detail);
+        }
     }
 
     function logout() {
-        // トークンを消去してログイン画面へ
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("user_email");
-        alert("王国から離脱しました。");
+        localStorage.clear();
         window.location.href = "/";
     }
 </script>
