@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>村岡王国 - 国民証</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background: #2a2a2a;
+            border: 2px solid #555;
+            border-radius: 12px;
+            padding: 24px;
+            width: 340px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .header {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #d4af37; /* 金色 */
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 8px;
+        }
+        .icon-box {
+            font-size: 4rem;
+            margin: 10px 0;
+            background: #111;
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 50%;
+            border: 2px solid #d4af37;
+        }
+        .info-group {
+            text-align: left;
+            margin: 16px 0;
+            font-size: 0.9rem;
+        }
+        .label {
+            color: #888;
+            font-size: 0.8rem;
+        }
+        .value {
+            font-weight: bold;
+            margin-bottom: 8px;
+            word-break: break-all;
+        }
+        .badge {
+            display: inline-block;
+            background-color: #8b0000; /* 暗い赤 */
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .btn-logout {
+            background-color: #444;
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 16px;
+            font-weight: bold;
+        }
+        .btn-logout:hover {
+            background-color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">村岡王国 国民証</div>
+    
+    <!-- アバターアイコン -->
+    <div class="icon-box" id="avatar">⛏️</div>
+    
+    <div class="info-group">
+        <div class="label">国民ID (Email)</div>
+        <div class="value" id="user-email">読み込み中...</div>
+
+        <div class="label">現在の称号</div>
+        <div class="value"><span class="badge">鉱山労働奴隷</span></div>
+    </div>
+
+    <button class="btn-logout" onclick="logout()">王国を離脱（ログアウト）</button>
+</div>
+
+<script>
+    // ログインチェック
+    const token = localStorage.getItem("access_token");
+    const email = localStorage.getItem("user_email");
+
+    if (!token) {
+        // トークンがなければログイン画面へ追い返す
+        window.location.href = "/";
+    } else {
+        document.getElementById("user-email").innerText = email || "不明な国民";
+    }
+
+    function logout() {
+        // トークンを消去してログイン画面へ
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("user_email");
+        alert("王国から離脱しました。");
+        window.location.href = "/";
+    }
+</script>
+
+</body>
+</html>
