@@ -1,4 +1,3 @@
-Main.py
 import os
 import random
 import string
@@ -260,14 +259,13 @@ def get_contracts(authorization: str = Header(None)):
 def create_contract(data: ContractCreate, authorization: str = Header(None)):
     user = get_user_from_token(authorization)
     
-    # クリエイターのニックネーム取得
     prof_res = supabase.table("profiles").select("nickname").eq("id", user.id).execute()
     nickname = prof_res.data[0]["nickname"] if prof_res.data else "名無しの労働奴隷"
 
-    # ウォレットの所有権チェック
+    # 依頼主の支払指定口座の所有権チェック
     wallet_res = supabase.table("wallets").select("*").eq("wallet_id", data.creator_wallet_id).eq("user_id", user.id).execute()
     if not wallet_res.data:
-        raise HTTPException(status_code=400, detail="指定された受取口座が存在しないか、所有権がありません。")
+        raise HTTPException(status_code=400, detail="指定された支払口座が存在しないか、所有権がありません。")
 
     supabase.table("contracts").insert({
         "title": data.title,
@@ -285,7 +283,6 @@ def create_contract(data: ContractCreate, authorization: str = Header(None)):
 def accept_contract(contract_id: int, data: ContractAccept, authorization: str = Header(None)):
     user = get_user_from_token(authorization)
     
-    # 契約書の取得
     c_res = supabase.table("contracts").select("*").eq("id", contract_id).execute()
     if not c_res.data:
         raise HTTPException(status_code=404, detail="契約書が見つかりません。")
@@ -297,18 +294,22 @@ def accept_contract(contract_id: int, data: ContractAccept, authorization: str =
     if contract["creator_user_id"] == user.id:
         raise HTTPException(status_code=400, detail="自分が発行した契約を受注することはできません。")
 
-    # 受約者の支払口座の所有権と残高チェック
+    # 受注者の受取口座の所有権チェック
     w_res = supabase.table("wallets").select("*").eq("wallet_id", data.acceptor_wallet_id).eq("user_id", user.id).execute()
     if not w_res.data:
-        raise HTTPException(status_code=400, detail="指定された支払口座が存在しないか、所有権がありません。")
-    
-    acceptor_wallet = w_res.data[0]
-    if acceptor_wallet["balance"] < contract["amount"]:
-        raise HTTPException(status_code=400, detail="口座残高が不足しています（エスクロー仮預かり失敗）。")
+        raise HTTPException(status_code=400, detail="指定された受取口座が存在しないか、所有権がありません。")
 
-    # エスクロー：購入者の口座から資金を一時引き落とし（残高を減らす）
-    new_balance = acceptor_wallet["balance"] - contract["amount"]
-    supabase.table("wallets").update({"balance": new_balance}).eq("id", acceptor_wallet["id"]).execute()
+    # エスクロー：依頼主の口座から資金を一時引き落とし
+    creator_w_res = supabase.table("wallets").select("*").eq("wallet_id", contract["creator_wallet_id"]).execute()
+    if not creator_w_res.data:
+        raise HTTPException(status_code=400, detail="依頼主の支払口座が見つかりません。")
+    
+    creator_wallet = creator_w_res.data[0]
+    if creator_wallet["balance"] < contract["amount"]:
+        raise HTTPException(status_code=400, detail="依頼主の口座残高が不足しているため、契約を開始できません。")
+
+    new_creator_balance = creator_wallet["balance"] - contract["amount"]
+    supabase.table("wallets").update({"balance": new_creator_balance}).eq("id", creator_wallet["id"]).execute()
 
     # 契約状態を SIGNED (契約締結・履行待ち) に更新
     supabase.table("contracts").update({
@@ -317,7 +318,7 @@ def accept_contract(contract_id: int, data: ContractAccept, authorization: str =
         "status": "SIGNED"
     }).eq("id", contract_id).execute()
 
-    return {"message": "契約に署名し、対価をエスクロー（仮預かり）しました！履行をお待ちください。"}
+    return {"message": "契約を受注しました！依頼主の口座から対価がエスクロー（仮預かり）されました。"}
 
 @app.post("/api/contracts/{contract_id}/complete")
 def complete_contract(contract_id: int, authorization: str = Header(None)):
@@ -331,33 +332,33 @@ def complete_contract(contract_id: int, authorization: str = Header(None)):
     if contract["status"] != "SIGNED":
         raise HTTPException(status_code=400, detail="この契約は署名・履行待ち状態ではありません。")
 
-    # 発行者（依頼主）のみが完了承認できる
+    # 依頼主のみが完了承認できる
     if contract["creator_user_id"] != user.id:
-        raise HTTPException(status_code=403, detail="契約の完了承認は発行者のみが行えます。")
+        raise HTTPException(status_code=403, detail="契約の完了承認は依頼主のみが行えます。")
 
-    # 出品者の受取口座を探して報酬を入金
-    creator_w_res = supabase.table("wallets").select("*").eq("wallet_id", contract["creator_wallet_id"]).execute()
-    if not creator_w_res.data:
-        raise HTTPException(status_code=400, detail="発行者の受取口座が見つかりません。")
+    # 受注者の受取口座を探して報酬を入金
+    acceptor_w_res = supabase.table("wallets").select("*").eq("wallet_id", contract["acceptor_wallet_id"]).execute()
+    if not acceptor_w_res.data:
+        raise HTTPException(status_code=400, detail="受注者の受取口座が見つかりません。")
     
-    creator_wallet = creator_w_res.data[0]
-    new_creator_balance = creator_wallet["balance"] + contract["amount"]
-    supabase.table("wallets").update({"balance": new_creator_balance}).eq("id", creator_wallet["id"]).execute()
+    acceptor_wallet = acceptor_w_res.data[0]
+    new_acceptor_balance = acceptor_wallet["balance"] + contract["amount"]
+    supabase.table("wallets").update({"balance": new_acceptor_balance}).eq("id", acceptor_wallet["id"]).execute()
 
     # ステータスを COMPLETED に更新
     supabase.table("contracts").update({"status": "COMPLETED"}).eq("id", contract_id).execute()
 
-    # 送金履歴にも残す
+    # 送金履歴に記録（依頼主 ➔ 受注者）
     try:
         supabase.table("transfer_logs").insert({
-            "sender_wallet_id": contract["acceptor_wallet_id"],
-            "receiver_wallet_id": contract["creator_wallet_id"],
+            "sender_wallet_id": contract["creator_wallet_id"],
+            "receiver_wallet_id": contract["acceptor_wallet_id"],
             "amount": contract["amount"]
         }).execute()
     except Exception:
         pass
 
-    return {"message": "履行完了を承認しました！エスクローから報酬が出品者へ送金されました。"}
+    return {"message": "履行完了を承認しました！エスクローから報酬が受注者へ送金されました。"}
 
 # 国王専用の介入権限API
 @app.post("/api/contracts/{contract_id}/king-override")
@@ -374,23 +375,24 @@ def king_override_contract(contract_id: int, action: dict, authorization: str = 
     mode = action.get("mode") # "force_complete" または "force_cancel"
 
     if mode == "force_complete":
-        # 強制的に完了扱いにし、出品者に送金
-        creator_w_res = supabase.table("wallets").select("*").eq("wallet_id", contract["creator_wallet_id"]).execute()
-        if creator_w_res.data:
-            cw = creator_w_res.data[0]
-            supabase.table("wallets").update({"balance": cw["balance"] + contract["amount"]}).eq("id", cw["id"]).execute()
-        supabase.table("contracts").update({"status": "COMPLETED"}).eq("id", contract_id).execute()
-        return {"message": "【国王裁定】強制的に契約を完了させ、報酬を送金しました。"}
-
-    elif mode == "force_cancel":
-        # 強制キャンセルし、エスクローされていた分を購入者に全額返金
-        if contract["status"] == "SIGNED" and contract.get("acceptor_wallet_id"):
+        # 強制的に完了扱いにし、受注者に送金
+        if contract.get("acceptor_wallet_id"):
             acc_w_res = supabase.table("wallets").select("*").eq("wallet_id", contract["acceptor_wallet_id"]).execute()
             if acc_w_res.data:
                 aw = acc_w_res.data[0]
                 supabase.table("wallets").update({"balance": aw["balance"] + contract["amount"]}).eq("id", aw["id"]).execute()
+        supabase.table("contracts").update({"status": "COMPLETED"}).eq("id", contract_id).execute()
+        return {"message": "【国王裁定】強制的に契約を完了させ、受注者へ報酬を送金しました。"}
+
+    elif mode == "force_cancel":
+        # 強制キャンセルし、エスクロー資金を依頼主へ返金
+        if contract["status"] == "SIGNED":
+            cr_w_res = supabase.table("wallets").select("*").eq("wallet_id", contract["creator_wallet_id"]).execute()
+            if cr_w_res.data:
+                cw = cr_w_res.data[0]
+                supabase.table("wallets").update({"balance": cw["balance"] + contract["amount"]}).eq("id", cw["id"]).execute()
         supabase.table("contracts").update({"status": "CANCELLED"}).eq("id", contract_id).execute()
-        return {"message": "【国王裁定】強制的に契約を破棄し、エスクロー資金を購入者に返金しました。"}
+        return {"message": "【国王裁定】強制的に契約を破棄し、エスクロー資金を依頼主に返金しました。"}
 
     raise HTTPException(status_code=400, detail="無効な裁定モードです。")
 
