@@ -28,6 +28,10 @@ class ProfileUpdate(BaseModel):
 class ReportCreate(BaseModel):
     content: str
 
+class TransferRequest(BaseModel):
+    receiver_nickname: str
+    amount: int
+
 def get_user_from_token(authorization: str):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="認証トークンがありません")
@@ -125,6 +129,21 @@ def pay_tax(authorization: str = Header(None)):
     }).eq("id", user.id).execute()
 
     return {"message": "納税完了！100ゴールドを獲得しました", "gold": new_gold}
+
+# 送金処理API
+@app.post("/api/transfer")
+def transfer_gold(data: TransferRequest, authorization: str = Header(None)):
+    user = get_user_from_token(authorization)
+    try:
+        # SupabaseのRPC（Database Function）を呼び出し
+        res = supabase.rpc("transfer_gold", {
+            "sender_id": user.id,
+            "receiver_nickname": data.receiver_nickname,
+            "amount": data.amount
+        }).execute()
+        return {"message": f"{data.receiver_nickname} に {data.amount} Gold 送金しました！"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/reports")
 def get_reports():
