@@ -27,7 +27,7 @@
     <!-- 口座一覧 -->
     <div class="card">
         <div class="header">🏦 所持ウォレット一覧</div>
-        <div id="wallets-list"></div>
+        <div id="wallets-list">読み込み中...</div>
     </div>
 
     <!-- 新規口座作成 -->
@@ -58,15 +58,28 @@
 
 <script>
     const token = localStorage.getItem("access_token");
-    if (!token) window.location.href = "/";
-    else loadWallets();
+    if (!token) {
+        window.location.href = "/";
+    } else {
+        loadWallets();
+    }
 
     async function loadWallets() {
-        const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
-        if (res.ok) {
+        try {
+            const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
+            if (!res.ok) {
+                const errData = await res.json();
+                alert("口座の取得に失敗しました: " + (errData.detail || "不明なエラー"));
+                return;
+            }
             const wallets = await res.json();
             
-            // 口座一覧の描画
+            if (wallets.length === 0) {
+                document.getElementById("wallets-list").innerText = "口座が存在しません";
+                return;
+            }
+
+            // 口座一覧描画
             document.getElementById("wallets-list").innerHTML = wallets.map(w => `
                 <div class="wallet-item">
                     <div class="wallet-title">${escapeHtml(w.wallet_name)}</div>
@@ -75,10 +88,14 @@
                 </div>
             `).join('');
 
-            // 送金元のドロップダウン作成
+            // 送金元セレクトボックス描画
             document.getElementById("sender-wallet").innerHTML = wallets.map(w => `
                 <option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} (${w.wallet_id}) - 残高:${w.balance}G</option>
             `).join('');
+
+        } catch (e) {
+            console.error(e);
+            alert("通信エラーが発生しました");
         }
     }
 
@@ -86,15 +103,24 @@
         const wallet_name = document.getElementById("new-wallet-name").value;
         if (!wallet_name) return alert("口座名を入力してください");
 
-        const res = await fetch("/api/wallets", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-            body: JSON.stringify({ wallet_name })
-        });
-        const data = await res.json();
-        alert(data.message);
-        document.getElementById("new-wallet-name").value = "";
-        loadWallets();
+        try {
+            const res = await fetch("/api/wallets", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ wallet_name })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message);
+                document.getElementById("new-wallet-name").value = "";
+                loadWallets();
+            } else {
+                alert("エラー: " + data.detail);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("通信エラーが発生しました");
+        }
     }
 
     async function sendGold() {
@@ -106,7 +132,29 @@
             return alert("送金先ウォレットIDと正の金額を入力してください");
         }
 
-        const res = await fetch("/api/transfer", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-         
+        try {
+            const res = await fetch("/api/transfer", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ sender_wallet_id, receiver_wallet_id, amount })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message);
+                document.getElementById("receiver-wallet-id").value = "";
+                document.getElementById("transfer-amount").value = "";
+                loadWallets();
+            } else {
+                alert(data.detail);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("通信エラーが発生しました");
+        }
+    }
+
+    function escapeHtml(str) { return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
+</script>
+
+</body>
+</html>
