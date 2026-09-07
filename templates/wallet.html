@@ -19,6 +19,16 @@
         .wallet-id { color: #888; font-size: 0.75rem; font-family: monospace; }
         .wallet-balance { font-size: 1.1rem; font-weight: bold; color: #2ecc71; margin-top: 4px; }
         .label { color: #888; font-size: 0.75rem; }
+        
+        /* 履歴表示用のスタイル */
+        .log-item { background: #202020; border-left: 4px solid #555; border-radius: 4px; padding: 8px 10px; margin-bottom: 8px; font-size: 0.8rem; }
+        .log-item.send { border-left-color: #e74c3c; }
+        .log-item.receive { border-left-color: #2ecc71; }
+        .log-type { font-weight: bold; font-size: 0.75rem; margin-bottom: 2px; }
+        .log-type.send { color: #e74c3c; }
+        .log-type.receive { color: #2ecc71; }
+        .log-details { color: #aaa; font-family: monospace; font-size: 0.75rem; }
+        .log-time { color: #666; font-size: 0.65rem; margin-top: 2px; }
     </style>
 </head>
 <body>
@@ -53,6 +63,12 @@
         <button onclick="sendGold()">送金を実行する</button>
     </div>
 
+    <!-- 送金履歴（通帳） -->
+    <div class="card">
+        <div class="header">📖 送金履歴 (通帳)</div>
+        <div id="logs-list">履歴を読み込み中...</div>
+    </div>
+
     <button class="btn-back" onclick="location.href='/dashboard'">◀ 国民証に戻る</button>
 </div>
 
@@ -62,16 +78,13 @@
         window.location.href = "/";
     } else {
         loadWallets();
+        loadTransferLogs();
     }
 
     async function loadWallets() {
         try {
             const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
-            if (!res.ok) {
-                const errData = await res.json();
-                alert("口座の取得に失敗しました: " + (errData.detail || "不明なエラー"));
-                return;
-            }
+            if (!res.ok) return;
             const wallets = await res.json();
             
             if (wallets.length === 0) {
@@ -79,7 +92,6 @@
                 return;
             }
 
-            // 口座一覧描画
             document.getElementById("wallets-list").innerHTML = wallets.map(w => `
                 <div class="wallet-item">
                     <div class="wallet-title">${escapeHtml(w.wallet_name)}</div>
@@ -88,14 +100,44 @@
                 </div>
             `).join('');
 
-            // 送金元セレクトボックス描画
             document.getElementById("sender-wallet").innerHTML = wallets.map(w => `
                 <option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} (${w.wallet_id}) - 残高:${w.balance}G</option>
             `).join('');
 
         } catch (e) {
             console.error(e);
-            alert("通信エラーが発生しました");
+        }
+    }
+
+    async function loadTransferLogs() {
+        try {
+            const res = await fetch("/api/transfer-logs", { headers: { "Authorization": `Bearer ${token}` } });
+            if (!res.ok) return;
+            const data = await res.json();
+            const logs = data.logs || [];
+            const myWallets = data.my_wallets || [];
+
+            if (logs.length === 0) {
+                document.getElementById("logs-list").innerText = "送金履歴はありません";
+                return;
+            }
+
+            document.getElementById("logs-list").innerHTML = logs.map(log => {
+                const isSend = myWallets.includes(log.sender_wallet_id);
+                const typeClass = isSend ? "send" : "receive";
+                const typeText = isSend ? "【出金】" : "【入金】";
+                const dateStr = new Date(log.created_at).toLocaleString('ja-JP');
+
+                return `
+                    <div class="log-item ${typeClass}">
+                        <div class="log-type ${typeClass}">${typeText} ${log.amount} Gold</div>
+                        <div class="log-details">${log.sender_wallet_id} ➔ ${log.receiver_wallet_id}</div>
+                        <div class="log-time">${dateStr}</div>
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {
+            console.error(e);
         }
     }
 
@@ -119,7 +161,6 @@
             }
         } catch (e) {
             console.error(e);
-            alert("通信エラーが発生しました");
         }
     }
 
@@ -144,12 +185,12 @@
                 document.getElementById("receiver-wallet-id").value = "";
                 document.getElementById("transfer-amount").value = "";
                 loadWallets();
+                loadTransferLogs();
             } else {
                 alert(data.detail);
             }
         } catch (e) {
             console.error(e);
-            alert("通信エラーが発生しました");
         }
     }
 
