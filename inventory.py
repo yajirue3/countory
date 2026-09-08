@@ -1,7 +1,8 @@
-name=inventory.py
+import os
 from typing import Optional, Any
 from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel
+from supabase import create_client, Client
 
 router = APIRouter(prefix="/api", tags=["inventory"])
 
@@ -24,24 +25,43 @@ class TransferItemRequest(BaseModel):
     target_email: str
 
 
-# --- 依存取得ヘルパー（循環参照防止） ---
-def get_supabase():
-    from main import supabase
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Supabaseが設定されていません")
-    return supabase
+# --- Supabaseクライアントおよび認証処理（main.pyに依存しない単体実装） ---
+def get_supabase() -> Client:
+    SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+    SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        raise HTTPException(status_code=500, detail="Supabase環境変数が設定されていません")
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def get_current_user_from_header(authorization: str = Header(None)) -> Any:
-    from main import get_user_from_token
-    return get_user_from_token(authorization)
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="認証トークンがありません")
+    token = authorization.split(" ")[1]
+    supabase = get_supabase()
+    try:
+        user_res = supabase.auth.get_user(token)
+        if not user_res.user:
+            raise HTTPException(status_code=401, detail="無効なトークンです")
+        return user_res.user
+    except Exception:
+        raise HTTPException(status_code=401, detail="トークンの検証に失敗しました")
 
 def verify_king_user(authorization: str = Header(None)) -> Any:
-    from main import get_user_from_token, is_king
-    user = get_user_from_token(authorization)
-    if not is_king(user.id):
+    user = get_current_user_from_header(authorization)
+    supabase = get_supabase()
+    try:
+        res = supabase.table("profiles").select("role").eq("id", user.id).execute()
+        if not res.data or res.data[0].get("role") != "king":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="国王専用の操作です"
+            )
+    except HTTPException:
+        raise
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="国王専用の操作です"
+            detail="権限確認処理でエラーが発生しました"
         )
     return user
 
