@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>村岡王国 - アイテムマスター管理</title>
+    <style>
+        body { font-family: sans-serif; background-color: #1a1a1a; color: #e0e0e0; display: flex; justify-content: center; padding: 20px 0; margin: 0; }
+        .container { width: 380px; display: flex; flex-direction: column; gap: 16px; }
+        .card { background: #2a2a2a; border: 2px solid #555; border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        .header { font-size: 1.1rem; font-weight: bold; color: #d4af37; text-align: center; border-bottom: 1px solid #444; padding-bottom: 8px; margin-bottom: 12px; }
+        .label { font-size: 0.8rem; color: #aaa; margin-top: 6px; }
+        input, select, textarea { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #333; color: #fff; box-sizing: border-box; margin-top: 4px; margin-bottom: 10px; font-size: 0.85rem; font-family: sans-serif; }
+        textarea { resize: vertical; height: 60px; }
+        button { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #d4af37; color: #1a1a1a; font-size: 0.85rem; margin-top: 4px; }
+        button:hover { background: #f1c40f; }
+        .btn-back { background: #444; color: #ccc; margin-top: 8px; }
+        .btn-back:hover { background: #555; }
+        .btn-edit { background: #2980b9; color: #fff; margin-top: 6px; }
+        .btn-edit:hover { background: #3498db; }
+        .btn-delete { background: #c0392b; color: #fff; margin-top: 6px; }
+        .btn-delete:hover { background: #e74c3c; }
+
+        .item-card { background: #202020; border: 1px solid #444; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+        .i-title { color: #f39c12; font-weight: bold; font-size: 0.95rem; margin-bottom: 4px; }
+        .i-desc { color: #ccc; font-size: 0.8rem; white-space: pre-wrap; margin-bottom: 8px; background: #181818; padding: 8px; border-radius: 4px; }
+        .i-info { font-size: 0.75rem; color: #888; margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <div class="header">👑 アイテムマスター管理</div>
+        <p style="font-size: 0.75rem; color: #aaa; margin-top: 0; line-height: 1.4;">
+            王国に存在するマスターアイテムの新規追加および管理を行います（国王権限専用）。
+        </p>
+    </div>
+
+    <!-- アイテム作成/編集フォーム -->
+    <div class="card">
+        <div class="header" id="form-header">📦 新規アイテム登録</div>
+        <input type="hidden" id="item-id">
+
+        <div class="label">アイテム名</div>
+        <input type="text" id="item-name" placeholder="例: 王国の薬草">
+
+        <div class="label">説明文</div>
+        <textarea id="item-desc" placeholder="例: 体力を少し回復させる薬草。"></textarea>
+
+        <div class="label">標準売却価格 (Gold)</div>
+        <input type="number" id="item-price" min="0" placeholder="例: 50">
+
+        <button id="btn-submit" onclick="saveItem()">アイテムを登録する</button>
+        <button id="btn-cancel-edit" class="btn-back" style="display: none;" onclick="resetForm()">編集をキャンセル</button>
+    </div>
+
+    <!-- アイテム一覧 -->
+    <div class="card">
+        <div class="header">📜 登録済みアイテム一覧</div>
+        <div id="items-container">読み込み中...</div>
+    </div>
+
+    <button class="btn-back" onclick="location.href='/dashboard'">◀ 国民証に戻る</button>
+</div>
+
+<script>
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+        window.location.href = "/";
+    } else {
+        loadItems();
+    }
+
+    let itemsCache = [];
+
+    async function loadItems() {
+        try {
+            const res = await fetch("/api/admin/items", {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+
+            if (!res.ok) {
+                if (res.status === 403) alert("国王権限が必要です");
+                return;
+            }
+
+            itemsCache = await res.json();
+            const container = document.getElementById("items-container");
+
+            if (itemsCache.length === 0) {
+                container.innerText = "登録されているアイテムはありません";
+                return;
+            }
+
+            container.innerHTML = itemsCache.map(item => `
+                <div class="item-card">
+                    <div class="i-title">${escapeHtml(item.name)} <span style="font-size: 0.75rem; color: #aaa;">(ID: ${item.id})</span></div>
+                    <div class="i-info">標準価格: <b>${item.price} Gold</b></div>
+                    <div class="i-desc">${escapeHtml(item.description || '説明なし')}</div>
+                    <button class="btn-edit" onclick="startEdit(${item.id})">✏️ 編集</button>
+                    <button class="btn-delete" onclick="deleteItem(${item.id})">🗑 削除</button>
+                </div>
+            `).join('');
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function saveItem() {
+        const itemId = document.getElementById("item-id").value;
+        const name = document.getElementById("item-name
