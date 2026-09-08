@@ -93,11 +93,10 @@ def get_wallets(current_user: dict = Depends(get_current_user)):
 
 @app.post("/api/wallets")
 def create_wallet(req: WalletCreate, current_user: dict = Depends(get_current_user)):
-    # 新規口座作成
     new_wallet = {
         "user_id": current_user["id"],
         "wallet_name": req.wallet_name,
-        "balance": 1000  # 初期給付金など
+        "balance": 1000
     }
     res = supabase.table("wallets").insert(new_wallet).execute()
     return {"message": "口座を開設しました", "wallet": res.data[0]}
@@ -108,7 +107,6 @@ def transfer_gold(req: TransferRequest, current_user: dict = Depends(get_current
     if req.amount <= 0:
         raise HTTPException(status_code=400, detail="送金額は1以上を指定してください")
 
-    # DBのRPC関数（transfer_gold_by_wallet）を実行
     try:
         supabase.rpc("transfer_gold_by_wallet", {
             "sender_wallet_id": req.sender_wallet_id,
@@ -119,7 +117,6 @@ def transfer_gold(req: TransferRequest, current_user: dict = Depends(get_current
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"送金失敗: {str(e)}")
 
-    # ログ記録
     supabase.table("transfer_logs").insert({
         "sender_wallet_id": req.sender_wallet_id,
         "receiver_wallet_id": req.receiver_wallet_id,
@@ -130,7 +127,7 @@ def transfer_gold(req: TransferRequest, current_user: dict = Depends(get_current
 
 
 # ==========================================
-# 2. 自由市場 & エスクロー（Contracts）
+# 2. 自由市場 & エスクロー（GET系固定パスを先に定義）
 # ==========================================
 
 @app.get("/api/contracts")
@@ -223,6 +220,8 @@ def create_contract(req: ContractCreate, current_user: dict = Depends(get_curren
 
     return {"message": "契約を作成し、報酬を仮預かりしました", "contract": c_res.data[0]}
 
+
+# --- 動的IDを含むパス ({contract_id}) はここにまとめる ---
 
 @app.post("/api/contracts/{contract_id}/accept")
 def accept_contract(contract_id: int, req: ContractAccept, current_user: dict = Depends(get_current_user)):
@@ -346,10 +345,6 @@ def review_contract(contract_id: int, req: ReviewCreate, current_user: dict = De
     return {"message": "評価を送信しました！"}
 
 
-# ==========================================
-# 3. 国王権限・通報・ログ監視機能
-# ==========================================
-
 @app.post("/api/contracts/{contract_id}/king-override")
 def king_override(contract_id: int, req: KingOverrideRequest, current_user: dict = Depends(get_current_user)):
     if current_user.get("role") != "king":
@@ -387,9 +382,12 @@ def king_override(contract_id: int, req: KingOverrideRequest, current_user: dict
     return {"message": msg}
 
 
+# ==========================================
+# 3. 国王権限・通報・ログ監視機能
+# ==========================================
+
 @app.get("/api/reports")
 def get_reports(current_user: dict = Depends(get_current_user)):
-    # 国王のみが閲覧可能
     if current_user.get("role") != "king":
         raise HTTPException(status_code=403, detail="国王のみ閲覧可能です")
     res = supabase.table("reports").select("*").order("id", desc=True).execute()
@@ -398,7 +396,6 @@ def get_reports(current_user: dict = Depends(get_current_user)):
 
 @app.post("/api/reports")
 def create_report(req: ReportCreate, current_user: dict = Depends(get_current_user)):
-    # 通報・密告作成
     new_report = {
         "reporter_user_id": current_user["id"],
         "target_user_id": req.target_user_id,
@@ -410,6 +407,5 @@ def create_report(req: ReportCreate, current_user: dict = Depends(get_current_us
 
 @app.get("/api/logs")
 def get_transfer_logs(current_user: dict = Depends(get_current_user)):
-    # 直近の取引ログ取得
     res = supabase.table("transfer_logs").select("*").order("id", desc=True).limit(50).execute()
     return res.data or []
