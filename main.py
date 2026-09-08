@@ -124,15 +124,13 @@ def get_casino(request: Request):
 def get_dice(request: Request):
     return templates.TemplateResponse(request=request, name="dice.html")
 
-@app.get("/admininv", response_class=HTMLResponse)
-def get_admininv(request: Request):
-    return templates.TemplateResponse(request=request, name="admininv.html")
-
 @app.get("/inventory", response_class=HTMLResponse)
 def get_inventory(request: Request):
     return templates.TemplateResponse(request=request, name="inventory.html")
 
-
+@app.get("/admin/items", response_class=HTMLResponse)
+async def admin_items_page(request: Request):
+    return templates.TemplateResponse("admin_items.html", {"request": request})
 
 
 # --------------------------------------------------
