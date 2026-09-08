@@ -13,8 +13,6 @@
         input, select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #333; color: #fff; box-sizing: border-box; margin-top: 4px; margin-bottom: 10px; font-size: 0.85rem; }
         button { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #d35400; color: #fff; font-size: 0.85rem; margin-top: 4px; }
         button:hover { background: #e67e22; }
-        .btn-mine { background: linear-gradient(180deg, #f39c12 0%, #d35400 100%); margin-bottom: 8px; }
-        .btn-mine:hover { background: linear-gradient(180deg, #f1c40f 0%, #e67e22 100%); }
         .btn-sell { background: #27ae60; }
         .btn-sell:hover { background: #2ecc71; }
         .btn-transfer { background: #2980b9; }
@@ -33,15 +31,6 @@
 <body>
 
 <div class="container">
-    <!-- 採掘アクション -->
-    <div class="card">
-        <div class="header">⛏️ 王立鉱山（労働）</div>
-        <p style="font-size: 0.75rem; color: #aaa; margin-top: 0; line-height: 1.4;">
-            鉱山で採掘を行いアイテムを獲得します。得られた鉱石などは売却してゴールドにするか、他国民へ譲渡できます。
-        </p>
-        <button class="btn-mine" onclick="mineItem()">⛏️ 採掘を実行する</button>
-    </div>
-
     <!-- 所持品一覧 -->
     <div class="card">
         <div class="header">🎒 所持アイテム一覧</div>
@@ -56,11 +45,15 @@
     if (!token) {
         window.location.href = "/";
     } else {
-        loadWallets();
-        loadInventory();
+        init();
     }
 
     let myWallets = [];
+
+    async function init() {
+        await loadWallets();
+        await loadInventory();
+    }
 
     function escapeHtml(str) { 
         return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; 
@@ -73,21 +66,30 @@
                 myWallets = await res.json();
             }
         } catch (e) {
-            console.error(e);
+            console.error("口座読み込みエラー:", e);
         }
     }
 
     async function loadInventory() {
         try {
             const res = await fetch("/api/inventory", { headers: { "Authorization": `Bearer ${token}` } });
-            if (!res.ok) return;
+            const container = document.getElementById("inventory-container");
+
+            if (!res.ok) {
+                container.innerText = "アイテムの読み込みに失敗しました。";
+                return;
+            }
+
             const items = await res.json();
 
-            const container = document.getElementById("inventory-container");
             if (!items || items.length === 0) {
                 container.innerText = "所持しているアイテムはありません";
                 return;
             }
+
+            const walletOptions = myWallets.length > 0 
+                ? myWallets.map(w => `<option value="${w.wallet_id}">${w.wallet_name} (${w.wallet_id})</option>`).join('')
+                : `<option value="">有効な口座がありません</option>`;
 
             container.innerHTML = items.map(inv => {
                 const item = inv.items;
@@ -102,6 +104,81 @@
 
                         <!-- 売却アクション -->
                         <div class="action-box">
-                            <div class="label">売却数</div>
+                            <div class="label">売却数量</div>
                             <input type="number" id="sell-qty-${item.item_id}" value="1" min="1" max="${inv.quantity}">
-                            <div class="label
+                            <div class="label">入金口座</div>
+                            <select id="sell-wallet-${item.item_id}">
+                                ${walletOptions}
+                            </select>
+                            <button class="btn-sell" onclick="sellItem('${item.item_id}')">売却して入金</button>
+                        </div>
+
+                        <!-- 譲渡アクション -->
+                        <div class="action-box">
+                            <div class="label">譲渡数量</div>
+                            <input type="number" id="transfer-qty-${item.item_id}" value="1" min="1" max="${inv.quantity}">
+                            <div class="label">受取人のメールアドレス</div>
+                            <input type="email" id="transfer-email-${item.item_id}" placeholder="user@example.com">
+                            <button class="btn-transfer" onclick="transferItem('${item.item_id}')">他国民へ譲渡</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {
+            console.error("インベントリ読み込みエラー:", e);
+        }
+    }
+
+    async function sellItem(itemId) {
+        const quantity = parseInt(document.getElementById(`sell-qty-${itemId}`).value, 10);
+        const walletId = document.getElementById(`sell-wallet-${itemId}`).value;
+
+        if (!quantity || quantity <= 0) return alert("正しい個数を入力してください");
+        if (!walletId) return alert("入金口座を選択してください");
+
+        try {
+            const res = await fetch("/api/sell-item", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ item_id: itemId, quantity: quantity, wallet_id: walletId })
+            });
+
+            const data = await res.json();
+            alert(data.message || data.detail);
+            if (res.ok) loadInventory();
+        } catch (e) {
+            alert("売却処理に失敗しました");
+        }
+    }
+
+    async function transferItem(itemId) {
+        const quantity = parseInt(document.getElementById(`transfer-qty-${itemId}`).value, 10);
+        const targetEmail = document.getElementById(`transfer-email-${itemId}`).value.trim();
+
+        if (!quantity || quantity <= 0) return alert("正しい個数を入力してください");
+        if (!targetEmail) return alert("譲渡先のメールアドレスを入力してください");
+
+        try {
+            const res = await fetch("/api/transfer-item", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ item_id: itemId, quantity: quantity, target_email: targetEmail })
+            });
+
+            const data = await res.json();
+            alert(data.message || data.detail);
+            if (res.ok) loadInventory();
+        } catch (e) {
+            alert("譲渡処理に失敗しました");
+        }
+    }
+</script>
+
+</body>
+</html>
