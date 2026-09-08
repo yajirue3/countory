@@ -46,12 +46,14 @@
         </div>
 
         <div class="label">納税報酬の受取口座</div>
-        <select id="tax-wallet-select"></select>
+        <select id="tax-wallet-select">
+            <option value="">口座を読み込み中...</option>
+        </select>
 
         <button onclick="payTax()">💰 本日の納税を行う（+100G）</button>
         <button class="btn-bank" onclick="location.href='/wallet'">🏦 王国中央銀行（資金管理）</button>
         <button class="btn-board" onclick="location.href='/board'">📜 王国回覧板（掲示板）</button>
-        <button class="btn-market" onclick="location.href='/market'">⚖️ 王国自由市場（契約取引）※アプデで動くようにしました</button>
+        <button class="btn-market" onclick="location.href='/market'">⚖️ 王国自由市場（契約取引）</button>
         <button class="btn-casino" onclick="location.href='/casino'">🎰 王国カジノ（一攫千金）</button>
     </div>
 
@@ -70,6 +72,11 @@
 </div>
 
 <script>
+    // エスケープ関数を最上部に定義
+    function escapeHtml(str) { 
+        return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; 
+    }
+
     const token = localStorage.getItem("access_token");
     if (!token) {
         window.location.href = "/";
@@ -89,60 +96,81 @@
     }
 
     async function loadProfile() {
-        const res = await fetch("/api/profile", { headers: { "Authorization": `Bearer ${token}` } });
-        if (res.ok) {
-            const data = await res.json();
-            document.getElementById("nickname").value = data.nickname || "";
-            document.getElementById("real-name").value = data.real_name || "";
+        try {
+            const res = await fetch("/api/profile", { headers: { "Authorization": `Bearer ${token}` } });
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById("nickname").value = data.nickname || "";
+                document.getElementById("real-name").value = data.real_name || "";
+            }
+        } catch (e) {
+            console.error(e);
         }
     }
 
     async function loadWalletsForTax() {
-        const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
-        if (res.ok) {
-            const wallets = await res.json();
-            
-            const totalBalance = wallets.reduce((sum, w) => sum + (w.balance || 0), 0);
-            document.getElementById("user-rank").innerText = getRankName(totalBalance);
+        try {
+            const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
+            if (res.ok) {
+                const wallets = await res.json();
+                
+                const totalBalance = wallets.reduce((sum, w) => sum + (w.balance || 0), 0);
+                document.getElementById("user-rank").innerText = getRankName(totalBalance);
 
-            const select = document.getElementById("tax-wallet-select");
-            select.innerHTML = wallets.map(w => `<option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} (${w.wallet_id})</option>`).join('');
+                const select = document.getElementById("tax-wallet-select");
+                if (wallets.length === 0) {
+                    select.innerHTML = '<option value="">口座がありません</option>';
+                    return;
+                }
+
+                select.innerHTML = wallets.map(w => 
+                    `<option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} (${w.wallet_id}) - 残高:${w.balance}G</option>`
+                ).join('');
+            }
+        } catch (e) {
+            console.error(e);
         }
     }
 
     async function saveProfile() {
         const nickname = document.getElementById("nickname").value;
         const real_name = document.getElementById("real-name").value;
-        const res = await fetch("/api/profile", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-            body: JSON.stringify({ nickname, real_name })
-        });
-        const data = await res.json();
-        alert(data.message);
-        loadProfile();
+        try {
+            const res = await fetch("/api/profile", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ nickname, real_name })
+            });
+            const data = await res.json();
+            alert(data.message);
+            loadProfile();
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     async function payTax() {
         const wallet_id = document.getElementById("tax-wallet-select").value;
         if (!wallet_id) return alert("受取口座を選択してください");
 
-        const res = await fetch("/api/pay-tax", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-            body: JSON.stringify({ wallet_id })
-        });
-        const data = await res.json();
-        alert(res.ok ? data.message : data.detail);
-        if (res.ok) loadWalletsForTax();
+        try {
+            const res = await fetch("/api/pay-tax", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ wallet_id })
+            });
+            const data = await res.json();
+            alert(res.ok ? data.message : "エラー: " + data.detail);
+            if (res.ok) loadWalletsForTax();
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     function logout() {
         localStorage.clear();
         window.location.href = "/";
     }
-
-    function escapeHtml(str) { return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
 </script>
 
 </body>
