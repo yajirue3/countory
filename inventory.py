@@ -1,9 +1,9 @@
-import random
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api", tags=["inventory"])
+
 
 # --- リクエストモデル ---
 class ItemCreateUpdate(BaseModel):
@@ -23,9 +23,8 @@ class TransferItemRequest(BaseModel):
     target_email: str
 
 
-# --- 循環参照を回避するための依存取得ヘルパー ---
+# --- 依存取得ヘルパー（循環参照防止） ---
 def get_supabase():
-    # 関数呼び出し時に main から取得することで循環参照を防止
     from main import supabase
     if not supabase:
         raise HTTPException(status_code=500, detail="Supabaseが設定されていません")
@@ -76,7 +75,7 @@ def delete_admin_item(item_id: str, current_user=Depends(verify_king_user)):
 
 
 # ==========================================
-# 🎒 一般ユーザー用：インベントリ・採掘・売却・譲渡 API
+# 🎒 一般ユーザー用：インベントリ管理 API（参照・売却・譲渡）
 # ==========================================
 
 @router.get("/inventory")
@@ -89,44 +88,6 @@ def get_user_inventory(current_user=Depends(get_current_user_from_header)):
         .gt("quantity", 0) \
         .execute()
     return res.data
-
-
-@router.post("/mine")
-def mine_work(current_user=Depends(get_current_user_from_header)):
-    supabase = get_supabase()
-    user_id = current_user.id
-
-    items_res = supabase.table("items").select("*").execute()
-    if not items_res.data:
-        raise HTTPException(status_code=400, detail="王国に採掘可能なアイテムが存在しません")
-
-    obtained_item = random.choice(items_res.data)
-    item_id = obtained_item["item_id"]
-
-    inv_res = supabase.table("user_inventories") \
-        .select("*") \
-        .eq("user_id", user_id) \
-        .eq("item_id", item_id) \
-        .execute()
-
-    if inv_res.data:
-        current_qty = inv_res.data[0]["quantity"]
-        supabase.table("user_inventories") \
-            .update({"quantity": current_qty + 1}) \
-            .eq("user_id", user_id) \
-            .eq("item_id", item_id) \
-            .execute()
-    else:
-        supabase.table("user_inventories").insert({
-            "user_id": user_id,
-            "item_id": item_id,
-            "quantity": 1
-        }).execute()
-
-    return {
-        "message": f"採掘に成功！「{obtained_item['name']}」を1個獲得しました。",
-        "item": obtained_item
-    }
 
 
 @router.post("/sell-item")
