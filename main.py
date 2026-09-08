@@ -1,40 +1,36 @@
 import os
-import random
-import string
-from pathlib import Path
-from datetime import date
-from fastapi import FastAPI, HTTPException, Request, Header
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from typing import List, Optional
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from supabase import create_client, Client
 
-app = FastAPI(title="村岡王国 ポータル")
-
-BASE_DIR = Path(__file__).resolve().parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
-
+# --- Supabase 初期化 ---
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise ValueError("SUPABASE_URL と SUPABASE_KEY の環境変数を設定してください。")
 
-class UserAuth(BaseModel):
-    email: str
-    password: str
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-class ProfileUpdate(BaseModel):
-    nickname: str
-    real_name: str
+app = FastAPI(title="Muraoka Kingdom API")
 
-class ReportCreate(BaseModel):
-    content: str
+# CORS設定
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
+security = HTTPBearer()
+
+# --- Pydantic リクエストモデル ---
 class WalletCreate(BaseModel):
     wallet_name: str
-
-class PayTaxRequest(BaseModel):
-    wallet_id: str
 
 class TransferRequest(BaseModel):
     sender_wallet_id: str
@@ -50,382 +46,370 @@ class ContractCreate(BaseModel):
 class ContractAccept(BaseModel):
     acceptor_wallet_id: str
 
-def generate_wallet_id():
-    return "MW-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+class KingOverrideRequest(BaseModel):
+    mode: str  # "force_complete" または "force_cancel"
 
-def get_user_from_token(authorization: str):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="認証トークンがありません")
-    token = authorization.split(" ")[1]
+class ReviewCreate(BaseModel):
+    rating: int  # 1 〜 5
+    comment: str = ""
+
+class ReportCreate(BaseModel):
+    target_user_id: str
+    reason: str
+
+
+# --- 認証依存関数 ---
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
     try:
         user_res = supabase.auth.get_user(token)
-        return user_res.user
-    except Exception:
-        raise HTTPException(status_code=401, detail="無効なトークンです")
-
-def is_king(user_id: str) -> bool:
-    try:
-        res = supabase.table("profiles").select("role").eq("id", user_id).execute()
-        if res.data and res.data[0].get("role") == "king":
-            return True
-    except Exception:
-        pass
-    return False
-
-def ensure_default_wallet(user_id: str):
-    try:
-        res = supabase.table("wallets").select("id").eq("user_id", user_id).execute()
-        if not res.data:
-            w_id = generate_wallet_id()
-            supabase.table("wallets").insert({
-                "wallet_id": w_id,
-                "user_id": user_id,
-                "wallet_name": "メイン口座",
-                "balance": 0
-            }).execute()
+        if not user_res or not user_res.user:
+            raise HTTPException(status_code=401, detail="無効なトークンです")
+        
+        user_id = user_res.user.id
+        prof_res = supabase.table("profiles").select("*").eq("id", user_id).execute()
+        if not prof_res.data:
+            raise HTTPException(status_code=404, detail="ユーザープロファイルが見つかりません")
+        
+        return prof_res.data[0]
     except Exception as e:
-        print(f"Default wallet creation error: {e}")
+        raise HTTPException(status_code=401, detail=f"認証エラー: {str(e)}")
 
-# --------------------------------------------------
-# 画面配信
-# --------------------------------------------------
-@app.get("/", response_class=HTMLResponse)
-def get_index(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
 
-@app.get("/dashboard", response_class=HTMLResponse)
-def get_dashboard(request: Request):
-    return templates.TemplateResponse(request=request, name="dashboard.html")
+# ==========================================
+# 1. ユーザー & ウォレット基本機能
+# ==========================================
 
-@app.get("/board", response_class=HTMLResponse)
-def get_board(request: Request):
-    return templates.TemplateResponse(request=request, name="board.html")
-
-@app.get("/wallet", response_class=HTMLResponse)
-def get_wallet(request: Request):
-    return templates.TemplateResponse(request=request, name="wallet.html")
-
-@app.get("/market", response_class=HTMLResponse)
-def get_market(request: Request):
-    return templates.TemplateResponse(request=request, name="market.html")
-
-# --------------------------------------------------
-# 認証API
-# --------------------------------------------------
-@app.post("/signup")
-def signup(user: UserAuth):
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Supabase未設定")
-    try:
-        res = supabase.auth.sign_up({"email": user.email, "password": user.password})
-        if res.user:
-            supabase.table("profiles").insert({"id": res.user.id, "nickname": "名無しの労働奴隷", "role": "slave"}).execute()
-            ensure_default_wallet(res.user.id)
-        return {"message": "国民登録が完了しました！"}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.post("/login")
-def login(user: UserAuth):
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Supabase未設定")
-    try:
-        res = supabase.auth.sign_in_with_password({"email": user.email, "password": user.password})
-        return {
-            "message": "入国が許可されました！",
-            "access_token": res.session.access_token,
-            "email": user.email
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"ログイン失敗: {str(e)}")
-
-# --------------------------------------------------
-# 王国API
-# --------------------------------------------------
 @app.get("/api/profile")
-def get_profile(authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
-    ensure_default_wallet(user.id)
-    res = supabase.table("profiles").select("*").eq("id", user.id).execute()
-    if not res.data:
-        new_prof = {"id": user.id, "nickname": "名無しの労働奴隷", "role": "slave"}
-        supabase.table("profiles").insert(new_prof).execute()
-        return new_prof
-    return res.data[0]
+def get_profile(current_user: dict = Depends(get_current_user)):
+    return current_user
 
-@app.post("/api/profile")
-def update_profile(data: ProfileUpdate, authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
-    supabase.table("profiles").update({
-        "nickname": data.nickname,
-        "real_name": data.real_name
-    }).eq("id", user.id).execute()
-    return {"message": "国民情報を更新しました"}
-
-@app.post("/api/pay-tax")
-def pay_tax(data: PayTaxRequest, authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
-    
-    prof_res = supabase.table("profiles").select("*").eq("id", user.id).execute()
-    today_str = str(date.today())
-
-    if prof_res.data and prof_res.data[0].get("last_tax_date") == today_str:
-        raise HTTPException(status_code=400, detail="本日の納税は完了しています！")
-
-    wallet_res = supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
-    if not wallet_res.data:
-        raise HTTPException(status_code=400, detail="指定された受取口座が存在しないか、所有権がありません。")
-
-    target_wallet = wallet_res.data[0]
-    current_balance = target_wallet.get("balance") or 0
-    new_balance = current_balance + 100
-
-    supabase.table("wallets").update({"balance": new_balance}).eq("id", target_wallet["id"]).execute()
-    supabase.table("profiles").update({"last_tax_date": today_str}).eq("id", user.id).execute()
-
-    return {"message": f"納税完了！「{target_wallet['wallet_name']}」（{target_wallet['wallet_id']}）に100Gold獲得！"}
 
 @app.get("/api/wallets")
-def get_wallets(authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
-    ensure_default_wallet(user.id)
-    res = supabase.table("wallets").select("*").eq("user_id", user.id).order("created_at").execute()
-    return res.data
-
-@app.post("/api/wallets")
-def create_wallet(data: WalletCreate, authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
-    w_id = generate_wallet_id()
-    try:
-        supabase.table("wallets").insert({
-            "wallet_id": w_id,
-            "user_id": user.id,
-            "wallet_name": data.wallet_name or "サブ口座",
-            "balance": 0
-        }).execute()
-        return {"message": f"新規口座「{data.wallet_name}」を開設しました（ID: {w_id}）"}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"口座開設エラー: {str(e)}")
-
-@app.post("/api/transfer")
-def transfer_gold(data: TransferRequest, authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
-    try:
-        supabase.rpc("transfer_gold_by_wallet", {
-            "sender_wallet_id": data.sender_wallet_id,
-            "receiver_wallet_id": data.receiver_wallet_id,
-            "amount": data.amount,
-            "auth_user_id": user.id
-        }).execute()
-
-        supabase.table("transfer_logs").insert({
-            "sender_wallet_id": data.sender_wallet_id,
-            "receiver_wallet_id": data.receiver_wallet_id,
-            "amount": data.amount
-        }).execute()
-
-        return {"message": f"口座 {data.receiver_wallet_id} へ {data.amount} Gold 送金しました！"}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.get("/api/transfer-logs")
-def get_transfer_logs(authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
-    my_wallets_res = supabase.table("wallets").select("wallet_id").eq("user_id", user.id).execute()
-    my_wallet_ids = [w["wallet_id"] for w in my_wallets_res.data] if my_wallets_res.data else []
-
-    if not my_wallet_ids:
-        return {"logs": [], "my_wallets": []}
-
-    filter_str = f"sender_wallet_id.in.({','.join(my_wallet_ids)}),receiver_wallet_id.in.({','.join(my_wallet_ids)})"
-    res = supabase.table("transfer_logs").select("*").or_(filter_str).order("created_at", desc=True).limit(20).execute()
-    
-    return {"logs": res.data, "my_wallets": my_wallet_ids}
-
-# --------------------------------------------------
-# 自由市場（Contracts）API
-# --------------------------------------------------
-
-# 1. 掲示板用：未受注（OPEN）の契約一覧を取得
-@app.get("/api/contracts")
-def get_contracts(authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
-    res = supabase.table("contracts").select("*").eq("status", "OPEN").order("created_at", desc=True).execute()
-    return {
-        "contracts": res.data or [],
-        "current_user_id": user.id,
-        "is_king": is_king(user.id)
-    }
-
-# 2. マイ契約用：自分が関わっているすべての契約を取得
-@app.get("/api/my-contracts")
-def get_my_contracts(authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
-    res = supabase.table("contracts").select("*").or_(
-        f"creator_user_id.eq.{user.id},acceptor_user_id.eq.{user.id}"
-    ).order("created_at", desc=True).execute()
+def get_wallets(current_user: dict = Depends(get_current_user)):
+    res = supabase.table("wallets").select("*").eq("user_id", current_user["id"]).execute()
     return res.data or []
 
-# 3. 契約書の発行（発行時事前引き落とし・エスクロー化）
-@app.post("/api/contracts")
-def create_contract(data: ContractCreate, authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
-    
-    if data.amount <= 0:
-        raise HTTPException(status_code=400, detail="報酬は1以上である必要があります。")
 
-    prof_res = supabase.table("profiles").select("nickname").eq("id", user.id).execute()
-    nickname = prof_res.data[0]["nickname"] if prof_res.data else "名無しの労働奴隷"
+@app.post("/api/wallets")
+def create_wallet(req: WalletCreate, current_user: dict = Depends(get_current_user)):
+    # 新規口座作成
+    new_wallet = {
+        "user_id": current_user["id"],
+        "wallet_name": req.wallet_name,
+        "balance": 1000  # 初期給付金など
+    }
+    res = supabase.table("wallets").insert(new_wallet).execute()
+    return {"message": "口座を開設しました", "wallet": res.data[0]}
 
-    # 支払指定口座の所有権＆残高チェック
-    wallet_res = supabase.table("wallets").select("*").eq("wallet_id", data.creator_wallet_id).eq("user_id", user.id).execute()
-    if not wallet_res.data:
-        raise HTTPException(status_code=400, detail="指定された支払口座が存在しないか、所有権がありません。")
 
-    creator_wallet = wallet_res.data[0]
-    if creator_wallet["balance"] < data.amount:
-        raise HTTPException(status_code=400, detail="残高が不足しているため、契約書を発行できません。")
+@app.post("/api/transfer")
+def transfer_gold(req: TransferRequest, current_user: dict = Depends(get_current_user)):
+    if req.amount <= 0:
+        raise HTTPException(status_code=400, detail="送金額は1以上を指定してください")
 
-    # 発行時点で報酬を仮引き落とし（エスクロー預かり）
-    new_balance = creator_wallet["balance"] - data.amount
-    supabase.table("wallets").update({"balance": new_balance}).eq("id", creator_wallet["id"]).execute()
+    # DBのRPC関数（transfer_gold_by_wallet）を実行
+    try:
+        supabase.rpc("transfer_gold_by_wallet", {
+            "sender_wallet_id": req.sender_wallet_id,
+            "receiver_wallet_id": req.receiver_wallet_id,
+            "amount": req.amount,
+            "auth_user_id": current_user["id"]
+        }).execute()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"送金失敗: {str(e)}")
 
-    supabase.table("contracts").insert({
-        "title": data.title,
-        "description": data.description,
-        "amount": data.amount,
-        "creator_user_id": user.id,
-        "creator_nickname": nickname,
-        "creator_wallet_id": data.creator_wallet_id,
-        "status": "OPEN"
+    # ログ記録
+    supabase.table("transfer_logs").insert({
+        "sender_wallet_id": req.sender_wallet_id,
+        "receiver_wallet_id": req.receiver_wallet_id,
+        "amount": req.amount
     }).execute()
 
-    return {"message": "自由市場に契約書を発行しました（報酬額は預かり状態となりました）。"}
+    return {"message": "送金が完了しました"}
 
-# 4. 契約の受注
-@app.post("/api/contracts/{contract_id}/accept")
-def accept_contract(contract_id: int, data: ContractAccept, authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
+
+# ==========================================
+# 2. 自由市場 & エスクロー（Contracts）
+# ==========================================
+
+@app.get("/api/contracts")
+def get_contracts(current_user: dict = Depends(get_current_user)):
+    res = supabase.table("contracts").select("*").order("id", desc=True).execute()
+    contracts = res.data or []
     
+    contract_ids = [c["id"] for c in contracts]
+    reviews_map = {}
+    if contract_ids:
+        rev_res = supabase.table("contract_reviews").select("*").in_("contract_id", contract_ids).execute()
+        for r in (rev_res.data or []):
+            cid = r["contract_id"]
+            if cid not in reviews_map:
+                reviews_map[cid] = []
+            reviews_map[cid].append(r)
+
+    for c in contracts:
+        c["reviews"] = reviews_map.get(c["id"], [])
+
+    is_king = current_user.get("role") == "king"
+    return {
+        "contracts": contracts,
+        "current_user_id": current_user["id"],
+        "is_king": is_king
+    }
+
+
+@app.get("/api/my-contracts")
+def get_my_contracts(current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    res = supabase.table("contracts").select("*")\
+        .or_(f"creator_user_id.eq.{uid},acceptor_user_id.eq.{uid}")\
+        .order("id", desc=True).execute()
+    
+    contracts = res.data or []
+    contract_ids = [c["id"] for c in contracts]
+    reviews_map = {}
+    if contract_ids:
+        rev_res = supabase.table("contract_reviews").select("*").in_("contract_id", contract_ids).execute()
+        for r in (rev_res.data or []):
+            cid = r["contract_id"]
+            if cid not in reviews_map:
+                reviews_map[cid] = []
+            reviews_map[cid].append(r)
+
+    for c in contracts:
+        c["reviews"] = reviews_map.get(c["id"], [])
+
+    return contracts
+
+
+@app.post("/api/contracts")
+def create_contract(req: ContractCreate, current_user: dict = Depends(get_current_user)):
+    if req.amount <= 0:
+        raise HTTPException(status_code=400, detail="金額は1以上で指定してください")
+
+    w_res = supabase.table("wallets").select("*").eq("wallet_id", req.creator_wallet_id).execute()
+    if not w_res.data:
+        raise HTTPException(status_code=404, detail="指定された支払口座が存在しません")
+    
+    wallet = w_res.data[0]
+    if wallet["user_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="自分の口座のみ指定できます")
+    
+    if wallet["balance"] < req.amount:
+        raise HTTPException(status_code=400, detail="口座の残高が不足しています")
+
+    # 1. エスクロー引き落とし
+    new_balance = wallet["balance"] - req.amount
+    supabase.table("wallets").update({"balance": new_balance}).eq("wallet_id", req.creator_wallet_id).execute()
+
+    # 2. 契約作成
+    new_contract = {
+        "title": req.title,
+        "description": req.description,
+        "amount": req.amount,
+        "creator_user_id": current_user["id"],
+        "creator_nickname": current_user.get("nickname", "名無し"),
+        "creator_wallet_id": req.creator_wallet_id,
+        "status": "OPEN"
+    }
+    c_res = supabase.table("contracts").insert(new_contract).execute()
+
+    supabase.table("transfer_logs").insert({
+        "sender_wallet_id": req.creator_wallet_id,
+        "receiver_wallet_id": "ESCROW_SYSTEM",
+        "amount": req.amount
+    }).execute()
+
+    return {"message": "契約を作成し、報酬を仮預かりしました", "contract": c_res.data[0]}
+
+
+@app.post("/api/contracts/{contract_id}/accept")
+def accept_contract(contract_id: int, req: ContractAccept, current_user: dict = Depends(get_current_user)):
     c_res = supabase.table("contracts").select("*").eq("id", contract_id).execute()
     if not c_res.data:
-        raise HTTPException(status_code=404, detail="契約書が見つかりません。")
+        raise HTTPException(status_code=404, detail="契約が見つかりません")
     contract = c_res.data[0]
 
     if contract["status"] != "OPEN":
-        raise HTTPException(status_code=400, detail="この契約はすでに募集中ではありません。")
+        raise HTTPException(status_code=400, detail="募集中の契約のみ受注できます")
+    if contract["creator_user_id"] == current_user["id"]:
+        raise HTTPException(status_code=400, detail="自分の契約は受注できません")
 
-    if contract["creator_user_id"] == user.id:
-        raise HTTPException(status_code=400, detail="自分が発行した契約を受注することはできません。")
+    w_res = supabase.table("wallets").select("*").eq("wallet_id", req.acceptor_wallet_id).execute()
+    if not w_res.data or w_res.data[0]["user_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="無効な受取口座です")
 
-    # 受注者の受取口座の所有権チェック
-    w_res = supabase.table("wallets").select("*").eq("wallet_id", data.acceptor_wallet_id).eq("user_id", user.id).execute()
-    if not w_res.data:
-        raise HTTPException(status_code=400, detail="指定された受取口座が存在しないか、所有権がありません。")
-
-    # ステータスを SIGNED に更新して受注確定
     supabase.table("contracts").update({
-        "acceptor_user_id": user.id,
-        "acceptor_wallet_id": data.acceptor_wallet_id,
-        "status": "SIGNED"
+        "status": "SIGNED",
+        "acceptor_user_id": current_user["id"],
+        "acceptor_wallet_id": req.acceptor_wallet_id
     }).eq("id", contract_id).execute()
 
-    return {"message": "契約を受注しました！依頼の完了報告を行ってください。"}
+    return {"message": "契約を受注しました！"}
 
-# 5. 履行完了承認
-@app.post("/api/contracts/{contract_id}/complete")
-def complete_contract(contract_id: int, authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
-    
+
+@app.post("/api/contracts/{contract_id}/cancel")
+def cancel_contract(contract_id: int, current_user: dict = Depends(get_current_user)):
     c_res = supabase.table("contracts").select("*").eq("id", contract_id).execute()
     if not c_res.data:
-        raise HTTPException(status_code=404, detail="契約書が見つかりません。")
+        raise HTTPException(status_code=404, detail="契約が見つかりません")
     contract = c_res.data[0]
 
-    if contract["status"] != "SIGNED":
-        raise HTTPException(status_code=400, detail="この契約は署名・履行待ち状態ではありません。")
+    if contract["creator_user_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="自分の作成した契約のみキャンセル可能です")
+    if contract["status"] != "OPEN":
+        raise HTTPException(status_code=400, detail="受注前（OPEN）の契約のみキャンセル可能です")
 
-    # 依頼主のみが完了承認できる
-    if contract["creator_user_id"] != user.id:
-        raise HTTPException(status_code=403, detail="契約の完了承認は依頼主のみが行えます。")
+    w_res = supabase.table("wallets").select("balance").eq("wallet_id", contract["creator_wallet_id"]).execute()
+    if w_res.data:
+        curr_bal = w_res.data[0]["balance"]
+        supabase.table("wallets").update({"balance": curr_bal + contract["amount"]}).eq("wallet_id", contract["creator_wallet_id"]).execute()
 
-    # 受注者の受取口座を探して報酬を入金
-    acceptor_w_res = supabase.table("wallets").select("*").eq("wallet_id", contract["acceptor_wallet_id"]).execute()
-    if not acceptor_w_res.data:
-        raise HTTPException(status_code=400, detail="受注者の受取口座が見つかりません。")
-    
-    acceptor_wallet = acceptor_w_res.data[0]
-    new_acceptor_balance = acceptor_wallet["balance"] + contract["amount"]
-    supabase.table("wallets").update({"balance": new_acceptor_balance}).eq("id", acceptor_wallet["id"]).execute()
+    supabase.table("contracts").update({"status": "CANCELLED"}).eq("id", contract_id).execute()
 
-    # ステータスを COMPLETED に更新
-    supabase.table("contracts").update({"status": "COMPLETED"}).eq("id", contract_id).execute()
-
-    # 送金履歴に記録
-    try:
-        supabase.table("transfer_logs").insert({
-            "sender_wallet_id": contract["creator_wallet_id"],
-            "receiver_wallet_id": contract["acceptor_wallet_id"],
-            "amount": contract["amount"]
-        }).execute()
-    except Exception:
-        pass
-
-    return {"message": "履行完了を承認しました！報酬が受注者へ送金されました。"}
-
-# 6. 国王専用の介入権限API
-@app.post("/api/contracts/{contract_id}/king-override")
-def king_override_contract(contract_id: int, action: dict, authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
-    if not is_king(user.id):
-        raise HTTPException(status_code=403, detail="権限がありません（国王専用コマンド）")
-
-    c_res = supabase.table("contracts").select("*").eq("id", contract_id).execute()
-    if not c_res.data:
-        raise HTTPException(status_code=404, detail="契約書が見つかりません。")
-    contract = c_res.data[0]
-
-    mode = action.get("mode") # "force_complete" または "force_cancel"
-
-    if mode == "force_complete":
-        if contract.get("acceptor_wallet_id"):
-            acc_w_res = supabase.table("wallets").select("*").eq("wallet_id", contract["acceptor_wallet_id"]).execute()
-            if acc_w_res.data:
-                aw = acc_w_res.data[0]
-                supabase.table("wallets").update({"balance": aw["balance"] + contract["amount"]}).eq("id", aw["id"]).execute()
-        supabase.table("contracts").update({"status": "COMPLETED"}).eq("id", contract_id).execute()
-        return {"message": "【国王裁定】強制的に契約を完了させ、受注者へ報酬を送金しました。"}
-
-    elif mode == "force_cancel":
-        # 返金処理（OPENまたはSIGNEDのいずれの場合もエスクロー資金を返金）
-        cr_w_res = supabase.table("wallets").select("*").eq("wallet_id", contract["creator_wallet_id"]).execute()
-        if cr_w_res.data:
-            cw = cr_w_res.data[0]
-            supabase.table("wallets").update({"balance": cw["balance"] + contract["amount"]}).eq("id", cw["id"]).execute()
-            
-        supabase.table("contracts").update({"status": "CANCELLED"}).eq("id", contract_id).execute()
-        return {"message": "【国王裁定】強制的に契約を破棄し、預かり資金を依頼主に返金しました。"}
-
-    raise HTTPException(status_code=400, detail="無効な裁定モードです。")
-
-# --------------------------------------------------
-# 掲示板API
-# --------------------------------------------------
-@app.get("/api/reports")
-def get_reports():
-    res = supabase.table("reports").select("id, nickname, content, created_at").order("id", desc=True).limit(10).execute()
-    return res.data
-
-@app.post("/api/reports")
-def create_report(data: ReportCreate, authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
-    prof_res = supabase.table("profiles").select("nickname").eq("id", user.id).execute()
-    nickname = prof_res.data[0]["nickname"] if prof_res.data else "名無しの労働奴隷"
-
-    supabase.table("reports").insert({
-        "user_id": user.id,
-        "nickname": nickname,
-        "content": data.content
+    supabase.table("transfer_logs").insert({
+        "sender_wallet_id": "ESCROW_SYSTEM",
+        "receiver_wallet_id": contract["creator_wallet_id"],
+        "amount": contract["amount"]
     }).execute()
 
-    return {"message": "労働報告を提出しました"}
+    return {"message": "契約を取り消し、仮預かり金を返金しました"}
+
+
+@app.post("/api/contracts/{contract_id}/complete")
+def complete_contract(contract_id: int, current_user: dict = Depends(get_current_user)):
+    c_res = supabase.table("contracts").select("*").eq("id", contract_id).execute()
+    if not c_res.data:
+        raise HTTPException(status_code=404, detail="契約が見つかりません")
+    contract = c_res.data[0]
+
+    if contract["creator_user_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="依頼主（作成者）のみが完了承認できます")
+    if contract["status"] != "SIGNED":
+        raise HTTPException(status_code=400, detail="履行中（SIGNED）の契約のみ承認可能です")
+
+    a_wallet_res = supabase.table("wallets").select("balance").eq("wallet_id", contract["acceptor_wallet_id"]).execute()
+    if not a_wallet_res.data:
+        raise HTTPException(status_code=404, detail="受注者の口座が見つかりません")
+    
+    a_balance = a_wallet_res.data[0]["balance"]
+    supabase.table("wallets").update({"balance": a_balance + contract["amount"]}).eq("wallet_id", contract["acceptor_wallet_id"]).execute()
+    supabase.table("contracts").update({"status": "COMPLETED"}).eq("id", contract_id).execute()
+
+    supabase.table("transfer_logs").insert({
+        "sender_wallet_id": "ESCROW_SYSTEM",
+        "receiver_wallet_id": contract["acceptor_wallet_id"],
+        "amount": contract["amount"]
+    }).execute()
+
+    return {"message": "履行完了を承認し、受注者へ送金しました！"}
+
+
+@app.post("/api/contracts/{contract_id}/review")
+def review_contract(contract_id: int, req: ReviewCreate, current_user: dict = Depends(get_current_user)):
+    if req.rating < 1 or req.rating > 5:
+        raise HTTPException(status_code=400, detail="評価は1〜5の間で指定してください")
+
+    c_res = supabase.table("contracts").select("*").eq("id", contract_id).execute()
+    if not c_res.data:
+        raise HTTPException(status_code=404, detail="契約が見つかりません")
+    contract = c_res.data[0]
+
+    if contract["status"] != "COMPLETED":
+        raise HTTPException(status_code=400, detail="完了した契約のみ評価できます")
+
+    is_creator = contract["creator_user_id"] == current_user["id"]
+    is_acceptor = contract["acceptor_user_id"] == current_user["id"]
+    if not (is_creator or is_acceptor):
+        raise HTTPException(status_code=403, detail="この契約の当事者のみ評価可能です")
+
+    target_user_id = contract["acceptor_user_id"] if is_creator else contract["creator_user_id"]
+
+    rev_check = supabase.table("contract_reviews")\
+        .select("*")\
+        .eq("contract_id", contract_id)\
+        .eq("reviewer_user_id", current_user["id"])\
+        .execute()
+    
+    if rev_check.data:
+        raise HTTPException(status_code=400, detail="この契約は既に評価済みです")
+
+    supabase.table("contract_reviews").insert({
+        "contract_id": contract_id,
+        "reviewer_user_id": current_user["id"],
+        "target_user_id": target_user_id,
+        "rating": req.rating,
+        "comment": req.comment
+    }).execute()
+
+    return {"message": "評価を送信しました！"}
+
+
+# ==========================================
+# 3. 国王権限・通報・ログ監視機能
+# ==========================================
+
+@app.post("/api/contracts/{contract_id}/king-override")
+def king_override(contract_id: int, req: KingOverrideRequest, current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "king":
+        raise HTTPException(status_code=403, detail="国王のみが実行可能な権限です")
+
+    c_res = supabase.table("contracts").select("*").eq("id", contract_id).execute()
+    if not c_res.data:
+        raise HTTPException(status_code=404, detail="契約が見つかりません")
+    contract = c_res.data[0]
+
+    if contract["status"] in ["COMPLETED", "CANCELLED"]:
+        raise HTTPException(status_code=400, detail="既に終了した契約です")
+
+    if req.mode == "force_complete":
+        if not contract["acceptor_wallet_id"]:
+            raise HTTPException(status_code=400, detail="受注者が未確定の契約は強制完了できません")
+        
+        a_w = supabase.table("wallets").select("balance").eq("wallet_id", contract["acceptor_wallet_id"]).execute()
+        if a_w.data:
+            supabase.table("wallets").update({"balance": a_w.data[0]["balance"] + contract["amount"]}).eq("wallet_id", contract["acceptor_wallet_id"]).execute()
+        
+        supabase.table("contracts").update({"status": "COMPLETED"}).eq("id", contract_id).execute()
+        msg = "👑 国王裁定: 契約を【強制完了】し、受注者へ送金しました"
+
+    elif req.mode == "force_cancel":
+        c_w = supabase.table("wallets").select("balance").eq("wallet_id", contract["creator_wallet_id"]).execute()
+        if c_w.data:
+            supabase.table("wallets").update({"balance": c_w.data[0]["balance"] + contract["amount"]}).eq("wallet_id", contract["creator_wallet_id"]).execute()
+        
+        supabase.table("contracts").update({"status": "CANCELLED"}).eq("id", contract_id).execute()
+        msg = "👑 国王裁定: 契約を【強制破棄】し、依頼主へ全額返金しました"
+    else:
+        raise HTTPException(status_code=400, detail="無効なモードです")
+
+    return {"message": msg}
+
+
+@app.get("/api/reports")
+def get_reports(current_user: dict = Depends(get_current_user)):
+    # 国王のみが閲覧可能
+    if current_user.get("role") != "king":
+        raise HTTPException(status_code=403, detail="国王のみ閲覧可能です")
+    res = supabase.table("reports").select("*").order("id", desc=True).execute()
+    return res.data or []
+
+
+@app.post("/api/reports")
+def create_report(req: ReportCreate, current_user: dict = Depends(get_current_user)):
+    # 通報・密告作成
+    new_report = {
+        "reporter_user_id": current_user["id"],
+        "target_user_id": req.target_user_id,
+        "reason": req.reason
+    }
+    res = supabase.table("reports").insert(new_report).execute()
+    return {"message": "密告（通報）を受理しました。国王の裁定をお待ちください。"}
+
+
+@app.get("/api/logs")
+def get_transfer_logs(current_user: dict = Depends(get_current_user)):
+    # 直近の取引ログ取得
+    res = supabase.table("transfer_logs").select("*").order("id", desc=True).limit(50).execute()
+    return res.data or []
