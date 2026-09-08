@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from supabase import create_client, Client
+from casino import router as casino_router
 
 app = FastAPI(title="村岡王国 ポータル")
 
@@ -528,3 +529,8 @@ def create_report(data: ReportCreate, authorization: str = Header(None)):
     }).execute()
 
     return {"message": "労働報告を提出しました"}
+
+# --------------------------------------------------
+# カジノモジュールの登録
+# --------------------------------------------------
+app.include_router(casino_router) 
