@@ -53,6 +53,14 @@
             box-shadow: 0 0 18px rgba(255, 87, 51, 0.6);
         }
         .btn-roll:disabled { background: #555; box-shadow: none; cursor: not-allowed; }
+
+        .btn-auto {
+            background: linear-gradient(180deg, #27ae60 0%, #1e8449 100%);
+            color: #fff;
+            margin-top: 8px;
+        }
+        .btn-auto:hover { background: linear-gradient(180deg, #2ecc71 0%, #25a25a 100%); }
+        .btn-auto.active { background: #c0392b; }
         
         .btn-back { background: #333; color: #aaa; margin-top: 8px; border: 1px solid #555; }
         .btn-back:hover { background: #444; color: #fff; }
@@ -75,6 +83,14 @@
         .mode-selector { display: flex; gap: 8px; margin-bottom: 10px; }
         .mode-btn { flex: 1; padding: 8px; font-size: 0.8rem; background: #333; color: #aaa; border: 1px solid #444; border-radius: 6px; cursor: pointer; text-align: center; }
         .mode-btn.active { background: #2980b9; color: #fff; border-color: #3498db; font-weight: bold; }
+
+        /* オプション設定パネル */
+        .option-box { background: #222; border: 1px solid #444; border-radius: 8px; padding: 10px; margin-top: 10px; margin-bottom: 10px; }
+        .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: #ddd; cursor: pointer; margin: 0; }
+        .checkbox-label input[type=checkbox] { width: auto; margin: 0; }
+        .auto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+        .auto-grid .label { margin-top: 2px; font-size: 0.7rem; }
+        .auto-grid input { margin-bottom: 4px; }
     </style>
 </head>
 <body>
@@ -126,8 +142,39 @@
         </div>
         <input type="range" id="target-slider" min="100" max="9500" step="50" value="5000">
 
+        <!-- 設定パネル（演出スキップ＆自動ベット条件） -->
+        <div class="option-box">
+            <label class="checkbox-label">
+                <input type="checkbox" id="skip-anim">
+                <span>⚡ 演出をスキップ（即時判定）</span>
+            </label>
+
+            <div style="border-top: 1px dashed #444; margin: 8px 0;"></div>
+
+            <div style="font-size: 0.75rem; font-weight: bold; color: #ffd700;">🤖 自動ベット設定</div>
+            <div class="auto-grid">
+                <div>
+                    <span class="label">実行回数 (0で無制限)</span>
+                    <input type="number" id="auto-count" value="10" min="0" placeholder="例: 10">
+                </div>
+                <div>
+                    <span class="label">間隔 (ミリ秒 / 最低500)</span>
+                    <input type="number" id="auto-interval" value="600" min="500" step="100" placeholder="600">
+                </div>
+                <div>
+                    <span class="label">損切り (以下で停止)</span>
+                    <input type="number" id="stop-loss" value="0" min="0" placeholder="0">
+                </div>
+                <div>
+                    <span class="label">利確 (以上で停止)</span>
+                    <input type="number" id="take-profit" value="0" min="0" placeholder="0">
+                </div>
+            </div>
+        </div>
+
         <!-- ベットボタン -->
         <button id="roll-btn" class="btn-roll">🎲 サイコロを振る</button>
+        <button id="auto-btn" class="btn-auto">▶ 自動賭けスタート</button>
     </div>
 
     <!-- 戻るボタン -->
@@ -144,17 +191,27 @@
     }
 
     let currentMode = "UNDER";
+    let isAutoRunning = false;
+    let autoTimer = null;
+    let executedCount = 0;
+    let myWalletsData = [];
 
     async function loadWallets() {
         try {
             const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
             if (!res.ok) return;
-            const myWalletsList = await res.json();
+            myWalletsData = await res.json();
             
             const select = document.getElementById("wallet-select");
-            select.innerHTML = myWalletsList.map(w => `
+            const currentSelected = select.value;
+
+            select.innerHTML = myWalletsData.map(w => `
                 <option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} (${w.wallet_id}) - 残高:${w.balance}G</option>
             `).join('');
+
+            if (currentSelected && myWalletsData.some(w => w.wallet_id === currentSelected)) {
+                select.value = currentSelected;
+            }
 
             calculateStats();
         } catch (e) {
@@ -167,10 +224,12 @@
         document.getElementById("mode-over").addEventListener("click", () => setMode("OVER"));
         document.getElementById("target-slider").addEventListener("input", onSliderChange);
         document.getElementById("bet-amount").addEventListener("input", calculateStats);
-        document.getElementById("roll-btn").addEventListener("click", playDice);
+        document.getElementById("roll-btn").addEventListener("click", () => playDice(false));
+        document.getElementById("auto-btn").addEventListener("click", toggleAutoBet);
     }
 
     function setMode(mode) {
+        if (isAutoRunning) return;
         currentMode = mode;
         document.getElementById("mode-under").classList.toggle("active", mode === "UNDER");
         document.getElementById("mode-over").classList.toggle("active", mode === "OVER");
@@ -202,28 +261,125 @@
         document.getElementById("stat-chance").innerText = winChancePercent.toFixed(2) + "%";
     }
 
-    async function playDice() {
+    function toggleAutoBet() {
+        if (isAutoRunning) {
+            stopAutoBet("ユーザーによって停止されました");
+        } else {
+            startAutoBet();
+        }
+    }
+
+    function startAutoBet() {
         const wallet_id = document.getElementById("wallet-select").value;
         const amount = parseInt(document.getElementById("bet-amount").value, 10);
-        const target = parseInt(document.getElementById("target-slider").value, 10);
 
         if (!wallet_id) return alert("口座を選択してください");
         if (!amount || amount <= 0) return alert("賭け金を正しく入力してください");
+
+        isAutoRunning = true;
+        executedCount = 0;
+
+        const autoBtn = document.getElementById("auto-btn");
+        autoBtn.innerText = "■ 自動賭けを停止";
+        autoBtn.classList.add("active");
+        
+        toggleInputsDisabled(true);
+        runAutoLoop();
+    }
+
+    function stopAutoBet(reason) {
+        isAutoRunning = false;
+        if (autoTimer) clearTimeout(autoTimer);
+
+        const autoBtn = document.getElementById("auto-btn");
+        autoBtn.innerText = "▶ 自動賭けスタート";
+        autoBtn.classList.remove("active");
+
+        toggleInputsDisabled(false);
+
+        if (reason) {
+            const statusEl = document.getElementById("dice-status");
+            statusEl.innerText = `[自動賭け終了] ${reason}`;
+            statusEl.style.color = "#f39c12";
+        }
+    }
+
+    function toggleInputsDisabled(disabled) {
+        document.getElementById("roll-btn").disabled = disabled;
+        document.getElementById("wallet-select").disabled = disabled;
+        document.getElementById("bet-amount").disabled = disabled;
+        document.getElementById("target-slider").disabled = disabled;
+        document.getElementById("skip-anim").disabled = disabled;
+        document.getElementById("auto-count").disabled = disabled;
+        document.getElementById("auto-interval").disabled = disabled;
+        document.getElementById("stop-loss").disabled = disabled;
+        document.getElementById("take-profit").disabled = disabled;
+    }
+
+    async function runAutoLoop() {
+        if (!isAutoRunning) return;
+
+        const wallet_id = document.getElementById("wallet-select").value;
+        const currentWallet = myWalletsData.find(w => w.wallet_id === wallet_id);
+        const currentBalance = currentWallet ? currentWallet.balance : 0;
+
+        const maxCount = parseInt(document.getElementById("auto-count").value, 10) || 0;
+        const stopLoss = parseInt(document.getElementById("stop-loss").value, 10) || 0;
+        const takeProfit = parseInt(document.getElementById("take-profit").value, 10) || 0;
+
+        // 回数制限チェック
+        if (maxCount > 0 && executedCount >= maxCount) {
+            stopAutoBet(`指定回数 (${maxCount}回) に達しました`);
+            return;
+        }
+
+        // 損切りチェック
+        if (stopLoss > 0 && currentBalance <= stopLoss) {
+            stopAutoBet(`損切りライン (${stopLoss}G 以下) に達しました`);
+            return;
+        }
+
+        // 利確チェック
+        if (takeProfit > 0 && currentBalance >= takeProfit) {
+            stopAutoBet(`利確ライン (${takeProfit}G 以上) に達しました`);
+            return;
+        }
+
+        const success = await playDice(true);
+        if (!success || !isAutoRunning) return;
+
+        executedCount++;
+
+        let interval = parseInt(document.getElementById("auto-interval").value, 10) || 600;
+        if (interval < 500) interval = 500; // サーバー保護用最低500ms設定
+
+        autoTimer = setTimeout(runAutoLoop, interval);
+    }
+
+    async function playDice(isAutoCall = false) {
+        const wallet_id = document.getElementById("wallet-select").value;
+        const amount = parseInt(document.getElementById("bet-amount").value, 10);
+        const target = parseInt(document.getElementById("target-slider").value, 10);
+        const skipAnim = document.getElementById("skip-anim").checked;
+
+        if (!wallet_id) { alert("口座を選択してください"); return false; }
+        if (!amount || amount <= 0) { alert("賭け金を正しく入力してください"); return false; }
 
         const rollBtn = document.getElementById("roll-btn");
         const diceNumEl = document.getElementById("dice-num");
         const statusEl = document.getElementById("dice-status");
 
-        rollBtn.disabled = true;
+        if (!isAutoCall) rollBtn.disabled = true;
         statusEl.style.color = "#aaa";
         statusEl.innerText = "サイコロを振っています...";
 
-        let animCount = 0;
-        const animInterval = setInterval(() => {
-            diceNumEl.innerText = Math.floor(Math.random() * 10001);
-            diceNumEl.style.color = "#888";
-            animCount++;
-        }, 50);
+        let animInterval = null;
+        if (!skipAnim) {
+            animInterval = setInterval(() => {
+                diceNumEl.innerText = Math.floor(Math.random() * 10001);
+                diceNumEl.style.color = "#888";
+            }, 50);
+        }
 
         try {
             const res = await fetch("/api/dice/play", {
@@ -233,38 +389,45 @@
             });
 
             const data = await res.json();
+            const delay = skipAnim ? 0 : 500;
 
-            setTimeout(() => {
-                clearInterval(animInterval);
-                rollBtn.disabled = false;
+            return await new Promise((resolve) => {
+                setTimeout(async () => {
+                    if (animInterval) clearInterval(animInterval);
+                    if (!isAutoCall && !isAutoRunning) rollBtn.disabled = false;
 
-                if (!res.ok) {
-                    diceNumEl.innerText = "----";
-                    statusEl.style.color = "#e74c3c";
-                    statusEl.innerText = "エラー: " + data.detail;
-                    return;
-                }
+                    if (!res.ok) {
+                        diceNumEl.innerText = "----";
+                        statusEl.style.color = "#e74c3c";
+                        statusEl.innerText = "エラー: " + data.detail;
+                        if (isAutoRunning) stopAutoBet("エラーが発生したため停止しました");
+                        resolve(false);
+                        return;
+                    }
 
-                diceNumEl.innerText = data.roll;
+                    diceNumEl.innerText = data.roll;
 
-                if (data.is_win) {
-                    diceNumEl.style.color = "#2ecc71";
-                    statusEl.style.color = "#2ecc71";
-                    statusEl.innerText = `🎉 勝利！ +${data.payout} Gold 獲得！`;
-                } else {
-                    diceNumEl.style.color = "#e74c3c";
-                    statusEl.style.color = "#e74c3c";
-                    statusEl.innerText = `💀 敗北... ${amount} Gold 没収`;
-                }
+                    if (data.is_win) {
+                        diceNumEl.style.color = "#2ecc71";
+                        statusEl.style.color = "#2ecc71";
+                        statusEl.innerText = `🎉 勝利！ +${data.payout} Gold 獲得！`;
+                    } else {
+                        diceNumEl.style.color = "#e74c3c";
+                        statusEl.style.color = "#e74c3c";
+                        statusEl.innerText = `💀 敗北... ${amount} Gold 没収`;
+                    }
 
-                loadWallets();
-            }, 600);
+                    await loadWallets();
+                    resolve(true);
+                }, delay);
+            });
 
         } catch (e) {
-            clearInterval(animInterval);
-            rollBtn.disabled = false;
+            if (animInterval) clearInterval(animInterval);
+            if (!isAutoCall && !isAutoRunning) rollBtn.disabled = false;
             console.error(e);
-            alert("通信エラーが発生しました");
+            if (isAutoRunning) stopAutoBet("通信エラーのため停止しました");
+            resolve(false);
         }
     }
 
