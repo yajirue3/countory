@@ -3,341 +3,417 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>村岡王国 - 王国自由市場</title>
+    <title>村岡王国 - 自由市場（エスクロー取引）</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; background-color: #1a1a1a; color: #e0e0e0; display: flex; justify-content: center; padding: 20px 0; margin: 0; }
-        .container { width: 380px; display: flex; flex-direction: column; gap: 16px; }
-        .card { background: #2a2a2a; border: 2px solid #555; border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
-        .header { font-size: 1.1rem; font-weight: bold; color: #8e44ad; text-align: center; border-bottom: 1px solid #444; padding-bottom: 8px; margin-bottom: 12px; }
-        input, select, textarea { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #333; color: #fff; box-sizing: border-box; margin-top: 4px; margin-bottom: 10px; font-size: 0.85rem; font-family: sans-serif; }
-        textarea { resize: vertical; height: 70px; }
-        button { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #8e44ad; color: #fff; font-size: 0.85rem; margin-top: 4px; }
-        button:hover { background: #9b59b6; }
-        
-        /* タブ切替スタイル */
-        .tab-container { display: flex; gap: 8px; margin-bottom: 12px; }
-        .tab-btn { flex: 1; padding: 8px; background: #333; color: #aaa; border: 1px solid #444; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
-        .tab-btn.active { background: #8e44ad; color: #fff; border-color: #8e44ad; }
-
-        .btn-back { background: #444; color: #ccc; margin-top: 8px; }
-        .btn-back:hover { background: #555; }
-        .btn-complete { background: #27ae60; }
-        .btn-complete:hover { background: #2ecc71; }
-        .btn-king-complete { background: #d4af37; color: #1a1a1a; margin-bottom: 4px; }
-        .btn-king-cancel { background: #c0392b; }
-        
-        .contract-card { background: #202020; border: 1px solid #444; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
-        .c-title { color: #f39c12; font-weight: bold; font-size: 0.95rem; margin-bottom: 4px; }
-        .c-desc { color: #ccc; font-size: 0.8rem; white-space: pre-wrap; margin-bottom: 8px; background: #181818; padding: 8px; border-radius: 4px; }
-        .c-info { font-size: 0.75rem; color: #888; margin-bottom: 6px; }
-        .status-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
-        .status-OPEN { background: #2980b9; color: #fff; }
-        .status-SIGNED { background: #d35400; color: #fff; }
-        .status-COMPLETED { background: #27ae60; color: #fff; }
-        .status-CANCELLED { background: #7f8c8d; color: #fff; }
-        .king-box { border-top: 1px dashed #555; margin-top: 8px; padding-top: 8px; }
+        body { background-color: #f8f9fa; }
+        .contract-card { transition: transform 0.2s; border-left: 5px solid #6c757d; }
+        .contract-card.status-OPEN { border-left-color: #0d6efd; }
+        .contract-card.status-SIGNED { border-left-color: #ffc107; }
+        .contract-card.status-COMPLETED { border-left-color: #198754; }
+        .contract-card.status-CANCELLED { border-left-color: #dc3545; }
+        .star-rating { color: #ffc107; font-size: 1.2rem; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <!-- 市場の概要 -->
-    <div class="card">
-        <div class="header">⚖️ 王国自由市場（契約広場）</div>
-        <p style="font-size: 0.75rem; color: #aaa; margin-top: 0; line-height: 1.4;">
-            ここでは国民同士が条件付きの契約（仕事・依頼）を行えます。発行時に指定口座から代金が仮預かり（エスクロー）され、履行完了後に受注者へ安全に支払われます。
-        </p>
-    </div>
-
-    <!-- 新規契約書の出品 -->
-    <div class="card">
-        <div class="header">📝 新規契約書の作成（仕事の発行）</div>
-        <div class="label">契約タイトル（依頼内容の要約）</div>
-        <input type="text" id="c-title" placeholder="例: Discord Botのカスタマイズ代行">
-
-        <div class="label">契約条件・詳細内容</div>
-        <textarea id="c-desc" placeholder="例: 週末までに指定の機能を実装すること。"></textarea>
-
-        <div class="label">報酬 Gold</div>
-        <input type="number" id="c-amount" min="1" placeholder="例: 300">
-
-        <div class="label">報酬の支払指定口座（依頼主）</div>
-        <select id="creator-wallet-select"></select>
-
-        <button onclick="createContract()">市場に契約書を掲示する</button>
-    </div>
-
-    <!-- 契約一覧（タブ表示） -->
-    <div class="card">
-        <div class="header">📜 契約一覧</div>
-        <div class="tab-container">
-            <button class="tab-btn active" id="tab-market" onclick="switchTab('market')">自由市場（募集中）</button>
-            <button class="tab-btn" id="tab-my" onclick="switchTab('my')">自分の契約管理</button>
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>⚖️ 村岡王国 自由市場</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createContractModal">＋ 新規契約発行</button>
         </div>
-        <div id="contracts-container">読み込み中...</div>
+
+        <!-- タブ切り替え -->
+        <ul class="nav nav-tabs mb-4" id="marketTabs">
+            <li class="nav-item">
+                <button class="nav-link active" onclick="switchTab('all')">全契約一覧</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="switchTab('my')">マイ契約管理</button>
+            </li>
+        </ul>
+
+        <!-- 契約カード表示エリア -->
+        <div id="contractsContainer" class="row g-3">
+            <div class="text-center text-muted py-5">データを読み込み中...</div>
+        </div>
     </div>
 
-    <button class="btn-back" onclick="location.href='/dashboard'">◀ 国民証に戻る</button>
-</div>
+    <!-- 契約新規作成 modal -->
+    <div class="modal fade" id="createContractModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新規契約の発行（エスクロー仮預かり）</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createContractForm">
+                        <div class="mb-3">
+                            <label class="form-label">契約タイトル</label>
+                            <input type="text" id="cTitle" class="form-control" required placeholder="例: 王国の畑の草むしり">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">依頼内容の詳細</label>
+                            <textarea id="cDesc" class="form-control" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">報酬金額 (Gold)</label>
+                            <input type="number" id="cAmount" class="form-control" min="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">支払元ウォレット</label>
+                            <select id="cWalletSelect" class="form-select" required></select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">発行して仮預かり実行</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<script>
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-        window.location.href = "/";
-    } else {
-        loadWallets();
-        loadContracts();
-    }
+    <!-- 受注 modal -->
+    <div class="modal fade" id="acceptContractModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">契約の受注</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="acceptContractForm">
+                        <input type="hidden" id="acceptContractId">
+                        <div class="mb-3">
+                            <label class="form-label">報酬受取先ウォレットを選択</label>
+                            <select id="acceptWalletSelect" class="form-select" required></select>
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100">契約を締結・受注する</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    let myWalletsList = [];
-    let currentTab = "market";
+    <!-- レビュー投稿 modal -->
+    <div class="modal fade" id="reviewModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">取引の評価・レビュー送信</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="reviewForm">
+                        <input type="hidden" id="reviewContractId">
+                        <div class="mb-3">
+                            <label class="form-label">評価（星1〜5）</label>
+                            <select id="reviewRating" class="form-select" required>
+                                <option value="5">★★★★★ (5 - 最高)</option>
+                                <option value="4">★★★★☆ (4 - 良い)</option>
+                                <option value="3">★★★☆☆ (3 - 普通)</option>
+                                <option value="2">★★☆☆☆ (2 - 微妙)</option>
+                                <option value="1">★☆☆☆☆ (1 - 悪い)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">コメント（任意）</label>
+                            <textarea id="reviewComment" class="form-control" rows="3" placeholder="迅速かつ丁寧な対応でした。"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">評価を送信する</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    function escapeHtml(str) {
-        if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_URL = ""; // 同一ドメイン運用の場合は空、別ドメインの場合は "http://localhost:8000" 等
+        let token = localStorage.getItem("access_token");
+        let currentTab = "all";
+        let userWallets = [];
+        let currentUserId = "";
+        let isKing = false;
 
-    function switchTab(tab) {
-        currentTab = tab;
-        document.getElementById("tab-market").classList.toggle("active", tab === 'market');
-        document.getElementById("tab-my").classList.toggle("active", tab === 'my');
-        loadContracts();
-    }
-
-    async function loadWallets() {
-        try {
-            const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
-            if (!res.ok) return;
-            myWalletsList = await res.json();
-            
-            const select = document.getElementById("creator-wallet-select");
-            select.innerHTML = myWalletsList.map(w => `
-                <option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} (${w.wallet_id}) - 残高:${w.balance}G</option>
-            `).join('');
-        } catch (e) {
-            console.error(e);
-        }
-    }
-
-    async function loadContracts() {
-        const container = document.getElementById("contracts-container");
-        const endpoint = currentTab === "market" ? "/api/contracts" : "/api/my-contracts";
-
-        try {
-            const res = await fetch(endpoint, { headers: { "Authorization": `Bearer ${token}` } });
-            if (!res.ok) {
-                container.innerHTML = `<p style="font-size:0.8rem; color:#888;">データの取得に失敗しました</p>`;
+        async function init() {
+            if (!token) {
+                alert("ログインが必要です");
                 return;
             }
+            await loadWallets();
+            await loadContracts();
+        }
+
+        async function fetchAPI(endpoint, options = {}) {
+            options.headers = {
+                ...options.headers,
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            };
+            const res = await fetch(`${API_URL}${endpoint}`, options);
+            if (res.status === 401) {
+                alert("セッションが切れました。ログインし直してください。");
+                return null;
+            }
+            return res;
+        }
+
+        async function loadWallets() {
+            const res = await fetchAPI("/api/wallets");
+            if (!res || !res.ok) return;
+            userWallets = await res.json();
+
+            const cSelect = document.getElementById("cWalletSelect");
+            const aSelect = document.getElementById("acceptWalletSelect");
+            cSelect.innerHTML = "";
+            aSelect.innerHTML = "";
+
+            userWallets.forEach(w => {
+                const opt = `<option value="${w.wallet_id}">${w.wallet_name} (残高: ${w.balance} Gold)</option>`;
+                cSelect.innerHTML += opt;
+                aSelect.innerHTML += opt;
+            });
+        }
+
+        async function loadContracts() {
+            const endpoint = currentTab === "all" ? "/api/contracts" : "/api/my-contracts";
+            const res = await fetchAPI(endpoint);
+            if (!res || !res.ok) return;
+
+            const container = document.getElementById("contractsContainer");
+            container.innerHTML = "";
 
             let contracts = [];
-            let currentUserId = "";
-            let isKing = false;
-
-            if (currentTab === "market") {
+            if (currentTab === "all") {
                 const data = await res.json();
-                contracts = data.contracts || [];
+                contracts = data.contracts;
                 currentUserId = data.current_user_id;
                 isKing = data.is_king;
             } else {
                 contracts = await res.json();
-                // マイ契約タブ用のプロファイル確認
-                const profRes = await fetch("/api/profile", { headers: { "Authorization": `Bearer ${token}` } });
-                if (profRes.ok) {
-                    const profData = await profRes.json();
-                    currentUserId = profData.id;
-                    isKing = profData.role === "king";
-                }
             }
 
             if (contracts.length === 0) {
-                const emptyMsg = currentTab === "market" 
-                    ? "現在募集中の契約はありません。" 
-                    : "あなたが関わっている契約履歴はありません。";
-                container.innerHTML = `<p style="font-size:0.8rem; color:#888; text-align:center;">${emptyMsg}</p>`;
+                container.innerHTML = '<div class="text-center text-muted py-5">該当する契約はありません</div>';
                 return;
             }
 
-            container.innerHTML = contracts.map(c => {
-                const isCreator = c.creator_user_id === currentUserId;
-                const isAcceptor = c.acceptor_user_id === currentUserId;
+            contracts.forEach(c => {
+                container.innerHTML += renderContractCard(c);
+            });
+        }
 
-                let statusText = "";
-                if (c.status === "OPEN") statusText = '<span class="status-badge status-OPEN">募集中</span>';
-                else if (c.status === "SIGNED") statusText = '<span class="status-badge status-SIGNED">履行待ち(仮預かり中)</span>';
-                else if (c.status === "COMPLETED") statusText = '<span class="status-badge status-COMPLETED">完了・決済済</span>';
-                else if (c.status === "CANCELLED") statusText = '<span class="status-badge status-CANCELLED">キャンセル・破棄</span>';
+        function renderContractCard(c) {
+            const isCreator = c.creator_user_id === currentUserId;
+            const isAcceptor = c.acceptor_user_id === currentUserId;
+            const isParty = isCreator || isAcceptor;
 
-                let actionHtml = "";
+            let statusBadge = "";
+            if (c.status === "OPEN") statusBadge = '<span class="badge bg-primary">募集中</span>';
+            else if (c.status === "SIGNED") statusBadge = '<span class="badge bg-warning text-dark">履行中</span>';
+            else if (c.status === "COMPLETED") statusBadge = '<span class="badge bg-success">完了</span>';
+            else if (c.status === "CANCELLED") statusBadge = '<span class="badge bg-danger">キャンセル済</span>';
 
-                // OPEN状態で自分が作成者でない場合 ➔ 受注ボタン表示
-                if (c.status === "OPEN") {
-                    if (isCreator) {
-                        actionHtml = `<div style="font-size:0.75rem; color:#888; margin-top:6px;">あなたが発行した契約です（受注待ち）</div>`;
-                    } else {
-                        actionHtml = `
-                            <div style="margin-top: 10px;">
-                                <div class="label" style="font-size:0.75rem;">報酬を受け取る口座（受注者）</div>
-                                <select id="accept-wallet-${c.id}">
-                                    ${myWalletsList.map(w => `<option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} (${w.wallet_id})</option>`).join('')}
-                                </select>
-                                <button onclick="acceptContract(${c.id})">✍️ 契約を受注する</button>
-                            </div>
-                        `;
-                    }
-                }
+            // レビューのレンダリング
+            let reviewsHtml = "";
+            let hasMyReview = false;
+            if (c.reviews && c.reviews.length > 0) {
+                reviewsHtml = '<div class="mt-2 pt-2 border-top"><small class="text-muted fw-bold">取引レビュー:</small>';
+                c.reviews.forEach(r => {
+                    if (r.reviewer_user_id === currentUserId) hasMyReview = true;
+                    const stars = "★".repeat(r.rating) + "☆".repeat(5 - r.rating);
+                    reviewsHtml += `<div class="small"><span class="star-rating">${stars}</span> ${r.comment || ''}</div>`;
+                });
+                reviewsHtml += '</div>';
+            }
 
-                // SIGNED状態で自分が作成者（依頼主）の場合 ➔ 完了承認ボタン表示
-                if (c.status === "SIGNED") {
-                    if (isCreator) {
-                        actionHtml = `
-                            <div style="margin-top: 10px;">
-                                <button class="btn-complete" onclick="completeContract(${c.id})">✅ 履行完了を確認して報酬を送金</button>
-                            </div>
-                        `;
-                    } else if (isAcceptor) {
-                        actionHtml = `<div style="font-size:0.75rem; color:#f39c12; margin-top:6px;">現在履行中です。作業完了後、依頼主の承認を待ってください。</div>`;
-                    }
-                }
+            // ボタンの出し分け
+            let actionButtons = "";
 
-                // 国王権限による強制介入ボタン
-                let kingHtml = "";
-                if (isKing && c.status !== "COMPLETED" && c.status !== "CANCELLED") {
-                    kingHtml = `
-                        <div class="king-box">
-                            <div class="label" style="color: #d4af37;">👑 国王専用裁定</div>
-                            <button class="btn-king-complete" onclick="kingOverride(${c.id}, 'force_complete')">【強制完了】受注者へ報酬支給</button>
-                            <button class="btn-king-cancel" onclick="kingOverride(${c.id}, 'force_cancel')">【強制破棄】契約破棄して返金</button>
-                        </div>
-                    `;
-                }
+            // 1. キャンセルボタン (OPENかつ作成者)
+            if (c.status === "OPEN" && isCreator) {
+                actionButtons += `<button class="btn btn-outline-danger btn-sm me-1" onclick="cancelContract(${c.id})">キャンセル・返金</button>`;
+            }
 
-                return `
-                    <div class="contract-card">
-                        <div class="c-title">${escapeHtml(c.title)}</div>
-                        <div class="c-info">依頼主: ${escapeHtml(c.creator_nickname)} | 報酬: <b>${c.amount} Gold</b></div>
-                        <div style="margin-bottom: 6px;">${statusText}</div>
-                        <div class="c-desc">${escapeHtml(c.description)}</div>
-                        <div class="c-info" style="font-family: monospace;">支払口座: ${c.creator_wallet_id}</div>
-                        ${actionHtml}
-                        ${kingHtml}
+            // 2. 受注ボタン (OPENかつ作成者以外)
+            if (c.status === "OPEN" && !isCreator) {
+                actionButtons += `<button class="btn btn-warning btn-sm me-1" onclick="openAcceptModal(${c.id})">受注する</button>`;
+            }
+
+            // 3. 完了承認ボタン (SIGNEDかつ作成者)
+            if (c.status === "SIGNED" && isCreator) {
+                actionButtons += `<button class="btn btn-success btn-sm me-1" onclick="completeContract(${c.id})">履行完了を承認(送金)</button>`;
+            }
+
+            // 4. レビュー投稿ボタン (COMPLETEDかつ当事者かつ未評価)
+            if (c.status === "COMPLETED" && isParty && !hasMyReview) {
+                actionButtons += `<button class="btn btn-outline-success btn-sm me-1" onclick="openReviewModal(${c.id})">★ 評価を投稿</button>`;
+            }
+
+            // 5. 国王の強制介入ボタン
+            if (isKing && (c.status === "OPEN" || c.status === "SIGNED")) {
+                actionButtons += `
+                    <div class="dropdown d-inline-block ms-1">
+                        <button class="btn btn-dark btn-sm dropdown-toggle" data-bs-toggle="dropdown">👑 国王裁定</button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item text-success" href="#" onclick="kingOverride(${c.id}, 'force_complete')">強制完了（受注者へ送金）</a></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="kingOverride(${c.id}, 'force_cancel')">強制破棄（依頼主へ返金）</a></li>
+                        </ul>
                     </div>
                 `;
-            }).join('');
-
-        } catch (e) {
-            console.error(e);
-            container.innerHTML = `<p style="font-size:0.8rem; color:#888;">読み込みエラーが発生しました</p>`;
-        }
-    }
-
-    async function createContract() {
-        const title = document.getElementById("c-title").value.trim();
-        const description = document.getElementById("c-desc").value.trim();
-        const amount = parseInt(document.getElementById("c-amount").value, 10);
-        const creator_wallet_id = document.getElementById("creator-wallet-select").value;
-
-        if (!title || !description || !amount || amount <= 0 || !creator_wallet_id) {
-            return alert("すべての項目を正しく入力してください");
-        }
-
-        try {
-            const res = await fetch("/api/contracts", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                body: JSON.stringify({ title, description, amount, creator_wallet_id })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                alert(data.message);
-                document.getElementById("c-title").value = "";
-                document.getElementById("c-desc").value = "";
-                document.getElementById("c-amount").value = "";
-                loadContracts();
-                loadWallets();
-            } else {
-                alert("エラー: " + data.detail);
             }
-        } catch (e) {
-            console.error(e);
+
+            return `
+                <div class="col-md-6 col-lg-4">
+                    <div class="card contract-card status-${c.status} h-100 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title mb-0">${c.title}</h5>
+                                ${statusBadge}
+                            </div>
+                            <p class="card-text text-secondary small">${c.description}</p>
+                            <div class="p-2 bg-light rounded mb-2">
+                                <div class="fw-bold text-primary">報酬: ${c.amount} Gold</div>
+                                <div class="small text-muted">依頼主: ${c.creator_nickname}</div>
+                            </div>
+                            ${reviewsHtml}
+                            <div class="mt-3 text-end">
+                                ${actionButtons}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
-    }
 
-    async function acceptContract(contractId) {
-        const selectEl = document.getElementById(`accept-wallet-${contractId}`);
-        const acceptor_wallet_id = selectEl ? selectEl.value : null;
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll("#marketTabs .nav-link").forEach(el => el.classList.remove("active"));
+            event.target.classList.add("active");
+            loadContracts();
+        }
 
-        if (!acceptor_wallet_id) return alert("受取口座を選択してください");
+        // --- 契約作成 ---
+        document.getElementById("createContractForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const body = {
+                title: document.getElementById("cTitle").value,
+                description: document.getElementById("cDesc").value,
+                amount: parseInt(document.getElementById("cAmount").value),
+                creator_wallet_id: document.getElementById("cWalletSelect").value
+            };
 
-        if (!confirm("この契約を受注しますか？")) return;
-
-        try {
-            const res = await fetch(`/api/contracts/${contractId}/accept`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                body: JSON.stringify({ acceptor_wallet_id })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                alert(data.message);
-                loadContracts();
-                loadWallets();
+            const res = await fetchAPI("/api/contracts", { method: "POST", body: JSON.stringify(body) });
+            if (res && res.ok) {
+                alert("契約を発行し、報酬をエスクローに預け入れました！");
+                bootstrap.Modal.getInstance(document.getElementById("createContractModal")).hide();
+                document.getElementById("createContractForm").reset();
+                await loadWallets();
+                await loadContracts();
             } else {
-                alert("エラー: " + data.detail);
+                const err = await res.json();
+                alert(`エラー: ${err.detail}`);
             }
-        } catch (e) {
-            console.error(e);
+        });
+
+        // --- 受注処理 ---
+        function openAcceptModal(contractId) {
+            document.getElementById("acceptContractId").value = contractId;
+            new bootstrap.Modal(document.getElementById("acceptContractModal")).show();
         }
-    }
 
-    async function completeContract(contractId) {
-        if (!confirm("現実での履行が完了していることを確認しましたか？承認すると仮預かりされていた資金が受注者へ送金されます。")) return;
+        document.getElementById("acceptContractForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const contractId = document.getElementById("acceptContractId").value;
+            const body = { acceptor_wallet_id: document.getElementById("acceptWalletSelect").value };
 
-        try {
-            const res = await fetch(`/api/contracts/${contractId}/complete`, {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            const data = await res.json();
-            if (res.ok) {
-                alert(data.message);
-                loadContracts();
-                loadWallets();
+            const res = await fetchAPI(`/api/contracts/${contractId}/accept`, { method: "POST", body: JSON.stringify(body) });
+            if (res && res.ok) {
+                alert("契約を正式に受注しました！");
+                bootstrap.Modal.getInstance(document.getElementById("acceptContractModal")).hide();
+                await loadContracts();
             } else {
-                alert("エラー: " + data.detail);
+                const err = await res.json();
+                alert(`エラー: ${err.detail}`);
             }
-        } catch (e) {
-            console.error(e);
+        });
+
+        // --- キャンセル処理 ---
+        async function cancelContract(contractId) {
+            if (!confirm("この契約を取り消しますか？預けた報酬は全額返金されます。")) return;
+            const res = await fetchAPI(`/api/contracts/${contractId}/cancel`, { method: "POST" });
+            if (res && res.ok) {
+                alert("契約をキャンセルし、返金を受け取りました。");
+                await loadWallets();
+                await loadContracts();
+            } else {
+                const err = await res.json();
+                alert(`エラー: ${err.detail}`);
+            }
         }
-    }
 
-    async function kingOverride(contractId, mode) {
-        if (!confirm("【国王権限】強制裁定を実行しますか？")) return;
+        // --- 完了承認処理 ---
+        async function completeContract(contractId) {
+            if (!confirm("履行完了を承認し、エスクローから受注者へ送金しますか？")) return;
+            const res = await fetchAPI(`/api/contracts/${contractId}/complete`, { method: "POST" });
+            if (res && res.ok) {
+                alert("承認が完了し、受注者へ報酬が支払われました！");
+                await loadWallets();
+                await loadContracts();
+            } else {
+                const err = await res.json();
+                alert(`エラー: ${err.detail}`);
+            }
+        }
 
-        try {
-            const res = await fetch(`/api/contracts/${contractId}/king-override`, {
+        // --- レビュー処理 ---
+        function openReviewModal(contractId) {
+            document.getElementById("reviewContractId").value = contractId;
+            new bootstrap.Modal(document.getElementById("reviewModal")).show();
+        }
+
+        document.getElementById("reviewForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const contractId = document.getElementById("reviewContractId").value;
+            const body = {
+                rating: parseInt(document.getElementById("reviewRating").value),
+                comment: document.getElementById("reviewComment").value
+            };
+
+            const res = await fetchAPI(`/api/contracts/${contractId}/review`, { method: "POST", body: JSON.stringify(body) });
+            if (res && res.ok) {
+                alert("評価を送信しました！");
+                bootstrap.Modal.getInstance(document.getElementById("reviewModal")).hide();
+                document.getElementById("reviewForm").reset();
+                await loadContracts();
+            } else {
+                const err = await res.json();
+                alert(`エラー: ${err.detail}`);
+            }
+        });
+
+        // --- 国王強制介入 ---
+        async function kingOverride(contractId, mode) {
+            const actionName = mode === "force_complete" ? "【強制完了】" : "【強制破棄】";
+            if (!confirm(`👑 国王権限を行使しますか？\n処理: ${actionName}`)) return;
+
+            const res = await fetchAPI(`/api/contracts/${contractId}/king-override`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                 body: JSON.stringify({ mode })
             });
-            const data = await res.json();
-            if (res.ok) {
-                alert(data.message);
-                loadContracts();
-                loadWallets();
-            } else {
-                alert("エラー: " + data.detail);
-            }
-        } catch (e) {
-            console.error(e);
-        }
-    }
-</script>
 
+            if (res && res.ok) {
+                const data = await res.json();
+                alert(data.message);
+                await loadWallets();
+                await loadContracts();
+            } else {
+                const err = await res.json();
+                alert(`エラー: ${err.detail}`);
+            }
+        }
+
+        // 初期化実行
+        init();
+    </script>
 </body>
 </html>
