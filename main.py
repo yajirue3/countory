@@ -126,12 +126,12 @@ def get_dice(request: Request):
 
 @app.get("/inventory", response_class=HTMLResponse)
 def get_inventory(request: Request):
-    return templates.TemplateResponse(request=request, name="inventory.html")
+    return templates.TemplateResponse(request=request, name="inventory")
+
 
 @app.get("/admin/items", response_class=HTMLResponse)
-async def admin_items_page(request: Request):
-    return templates.TemplateResponse("admin_items.html", {"request": request})
-
+def admin_items_page(request: Request):
+    return templates.TemplateResponse(request=request, name="admin_items.html")
 
 # --------------------------------------------------
 # 認証API
