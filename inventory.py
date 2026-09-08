@@ -1,11 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
-from typing import Optional
 import random
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Header, status
+from pydantic import BaseModel
 
-# 既存の認証依存関数やSupabaseクライアントのインポート
-from auth import get_current_user
-from database import supabase
+# main.py からSupabaseクライアントと認証関数をインポート
+from main import supabase, get_user_from_token, is_king
 
 router = APIRouter(prefix="/api", tags=["inventory"])
 
@@ -28,9 +27,13 @@ class TransferItemRequest(BaseModel):
     target_email: str
 
 
-# --- 国王判定ヘルパー ---
-async def verify_king(user: dict = Depends(get_current_user)):
-    if not user.get("is_king") and user.get("role") != "king":
+# --- ユーザー・国王検証ヘルパー ---
+def get_current_user_from_header(authorization: str = Header(None)):
+    return get_user_from_token(authorization)
+
+def verify_king_user(authorization: str = Header(None)):
+    user = get_user_from_token(authorization)
+    if not is_king(user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="国王専用の操作です"
@@ -43,12 +46,12 @@ async def verify_king(user: dict = Depends(get_current_user)):
 # ==========================================
 
 @router.get("/admin/items")
-async def get_admin_items(current_user: dict = Depends(verify_king)):
+def get_admin_items(current_user=Depends(verify_king_user)):
     res = supabase.table("items").select("*").order("created_at").execute()
     return res.data
 
 @router.post("/admin/items")
-async def upsert_admin_item(item: ItemCreateUpdate, current_user: dict = Depends(verify_king)):
+def upsert_admin_item(item: ItemCreateUpdate, current_user=Depends(verify_king_user)):
     data = {
         "item_id": item.item_id,
         "name": item.name,
@@ -59,7 +62,7 @@ async def upsert_admin_item(item: ItemCreateUpdate, current_user: dict = Depends
     return {"message": "アイテム情報を更新しました", "data": res.data}
 
 @router.delete("/admin/items/{item_id}")
-async def delete_admin_item(item_id: str, current_user: dict = Depends(verify_king)):
+def delete_admin_item(item_id: str, current_user=Depends(verify_king_user)):
     supabase.table("items").delete().eq("item_id", item_id).execute()
     return {"message": f"アイテム({item_id})を削除しました"}
 
@@ -69,8 +72,8 @@ async def delete_admin_item(item_id: str, current_user: dict = Depends(verify_ki
 # ==========================================
 
 @router.get("/inventory")
-async def get_user_inventory(current_user: dict = Depends(get_current_user)):
-    user_id = current_user["id"]
+def get_user_inventory(current_user=Depends(get_current_user_from_header)):
+    user_id = current_user.id
     res = supabase.table("user_inventories") \
         .select("quantity, updated_at, items(item_id, name, description, base_price)") \
         .eq("user_id", user_id) \
@@ -80,8 +83,8 @@ async def get_user_inventory(current_user: dict = Depends(get_current_user)):
 
 
 @router.post("/mine")
-async def mine_work(current_user: dict = Depends(get_current_user)):
-    user_id = current_user["id"]
+def mine_work(current_user=Depends(get_current_user_from_header)):
+    user_id = current_user.id
 
     items_res = supabase.table("items").select("*").execute()
     if not items_res.data:
@@ -117,8 +120,8 @@ async def mine_work(current_user: dict = Depends(get_current_user)):
 
 
 @router.post("/sell-item")
-async def sell_item(req: SellItemRequest, current_user: dict = Depends(get_current_user)):
-    user_id = current_user["id"]
+def sell_item(req: SellItemRequest, current_user=Depends(get_current_user_from_header)):
+    user_id = current_user.id
 
     if req.quantity <= 0:
         raise HTTPException(status_code=400, detail="個数は1以上を指定してください")
@@ -159,7 +162,7 @@ async def sell_item(req: SellItemRequest, current_user: dict = Depends(get_curre
     new_balance = wallet["balance"] + total_earned
     supabase.table("wallets") \
         .update({"balance": new_balance}) \
-        .eq("wallet_id", req.wallet_id) \
+        .eq("id", wallet["id"]) \
         .execute()
 
     return {
@@ -168,8 +171,8 @@ async def sell_item(req: SellItemRequest, current_user: dict = Depends(get_curre
 
 
 @router.post("/transfer-item")
-async def transfer_item(req: TransferItemRequest, current_user: dict = Depends(get_current_user)):
-    sender_id = current_user["id"]
+def transfer_item(req: TransferItemRequest, current_user=Depends(get_current_user_from_header)):
+    sender_id = current_user.id
 
     if req.quantity <= 0:
         raise HTTPException(status_code=400, detail="個数は1以上を指定してください")
@@ -184,16 +187,22 @@ async def transfer_item(req: TransferItemRequest, current_user: dict = Depends(g
     if not sender_inv.data or sender_inv.data[0]["quantity"] < req.quantity:
         raise HTTPException(status_code=400, detail="指定のアイテムを十分に所持していません")
 
-    # 2. 譲渡先ユーザーの検索
-    target_res = supabase.rpc("get_user_id_by_email", {"email_input": req.target_email}).execute()
-    if not target_res.data:
-        # RPCがない場合の直接検索バックアップ
-        target_res = supabase.table("profiles").select("id").eq("email", req.target_email).execute()
-        if not target_res.data:
-            raise HTTPException(status_code=444 if False else 404, detail="指定された受取人の国民が見つかりません")
-        target_id = target_res.data[0]["id"]
-    else:
-        target_id = target_res.data
+    # 2. 譲渡先ユーザーの検索（profiles等からの検索）
+    target_id = None
+    try:
+        rpc_res = supabase.rpc("get_user_id_by_email", {"email_input": req.target_email}).execute()
+        if rpc_res.data:
+            target_id = rpc_res.data
+    except Exception:
+        pass
+
+    if not target_id:
+        prof_res = supabase.table("profiles").select("id").eq("email", req.target_email).execute()
+        if prof_res.data:
+            target_id = prof_res.data[0]["id"]
+
+    if not target_id:
+        raise HTTPException(status_code=404, detail="指定された受取人の国民が見つかりません")
 
     if sender_id == target_id:
         raise HTTPException(status_code=400, detail="自分自身にアイテムを譲渡することはできません")
