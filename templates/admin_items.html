@@ -40,7 +40,9 @@
     <!-- アイテム作成/編集フォーム -->
     <div class="card">
         <div class="header" id="form-header">📦 新規アイテム登録</div>
-        <input type="hidden" id="item-id">
+
+        <div class="label">アイテムID（半角英数字・一意）</div>
+        <input type="text" id="item-id" placeholder="例: potion_01">
 
         <div class="label">アイテム名</div>
         <input type="text" id="item-name" placeholder="例: 王国の薬草">
@@ -51,7 +53,7 @@
         <div class="label">標準売却価格 (Gold)</div>
         <input type="number" id="item-price" min="0" placeholder="例: 50">
 
-        <button id="btn-submit" onclick="saveItem()">アイテムを登録する</button>
+        <button id="btn-submit" onclick="saveItem()">アイテムを保存する</button>
         <button id="btn-cancel-edit" class="btn-back" style="display: none;" onclick="resetForm()">編集をキャンセル</button>
     </div>
 
@@ -95,11 +97,11 @@
 
             container.innerHTML = itemsCache.map(item => `
                 <div class="item-card">
-                    <div class="i-title">${escapeHtml(item.name)} <span style="font-size: 0.75rem; color: #aaa;">(ID: ${item.id})</span></div>
-                    <div class="i-info">標準価格: <b>${item.price} Gold</b></div>
+                    <div class="i-title">${escapeHtml(item.name)} <span style="font-size: 0.75rem; color: #aaa;">(ID: ${escapeHtml(item.item_id)})</span></div>
+                    <div class="i-info">標準価格: <b>${item.base_price} Gold</b></div>
                     <div class="i-desc">${escapeHtml(item.description || '説明なし')}</div>
-                    <button class="btn-edit" onclick="startEdit(${item.id})">✏️ 編集</button>
-                    <button class="btn-delete" onclick="deleteItem(${item.id})">🗑 削除</button>
+                    <button class="btn-edit" onclick="startEdit('${escapeHtml(item.item_id)}')">✏️ 編集</button>
+                    <button class="btn-delete" onclick="deleteItem('${escapeHtml(item.item_id)}')">🗑 削除</button>
                 </div>
             `).join('');
         } catch (e) {
@@ -108,5 +110,88 @@
     }
 
     async function saveItem() {
-        const itemId = document.getElementById("item-id").value;
-        const name = document.getElementById("item-name
+        const itemId = document.getElementById("item-id").value.trim();
+        const name = document.getElementById("item-name").value.trim();
+        const description = document.getElementById("item-desc").value.trim();
+        const base_price = parseInt(document.getElementById("item-price").value, 10);
+
+        if (!itemId || !name || isNaN(base_price) || base_price < 0) {
+            return alert("すべての項目を正しく入力してください");
+        }
+
+        try {
+            const res = await fetch("/api/admin/items", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ item_id: itemId, name, description, base_price })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message || "保存しました");
+                resetForm();
+                loadItems();
+            } else {
+                alert("エラー: " + data.detail);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function startEdit(itemId) {
+        const item = itemsCache.find(i => i.item_id === itemId);
+        if (!item) return;
+
+        document.getElementById("item-id").value = item.item_id;
+        document.getElementById("item-id").readOnly = true; // IDの変更を不可にする
+        document.getElementById("item-name").value = item.name;
+        document.getElementById("item-desc").value = item.description || "";
+        document.getElementById("item-price").value = item.base_price;
+
+        document.getElementById("form-header").innerText = "✏️ アイテム編集";
+        document.getElementById("btn-submit").innerText = "更新を保存する";
+        document.getElementById("btn-cancel-edit").style.display = "block";
+    }
+
+    function resetForm() {
+        document.getElementById("item-id").value = "";
+        document.getElementById("item-id").readOnly = false;
+        document.getElementById("item-name").value = "";
+        document.getElementById("item-desc").value = "";
+        document.getElementById("item-price").value = "";
+
+        document.getElementById("form-header").innerText = "📦 新規アイテム登録";
+        document.getElementById("btn-submit").innerText = "アイテムを保存する";
+        document.getElementById("btn-cancel-edit").style.display = "none";
+    }
+
+    async function deleteItem(itemId) {
+        if (!confirm(`アイテム(${itemId})をマスターから削除しますか？`)) return;
+
+        try {
+            const res = await fetch(`/api/admin/items/${itemId}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message || "削除しました");
+                loadItems();
+            } else {
+                alert("エラー: " + data.detail);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function escapeHtml(str) { return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
+</script>
+
+</body>
+</html>
