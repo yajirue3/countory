@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>村岡王国 - 王国カジノ</title>
+    <style>
+        body { font-family: sans-serif; background-color: #1a1a1a; color: #e0e0e0; display: flex; justify-content: center; padding: 20px 0; margin: 0; }
+        .container { width: 360px; display: flex; flex-direction: column; gap: 16px; }
+        .card { background: #2a2a2a; border: 2px solid #555; border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        .header { font-size: 1.1rem; font-weight: bold; color: #d4af37; text-align: center; border-bottom: 1px solid #444; padding-bottom: 8px; margin-bottom: 12px; }
+        .game-card { background: #333; border: 1px solid #444; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+        .game-title { font-weight: bold; color: #d4af37; font-size: 1rem; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+        .game-desc { font-size: 0.8rem; color: #aaa; margin-bottom: 10px; line-height: 1.4; }
+        button { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #d4af37; color: #1a1a1a; font-size: 0.85rem; }
+        button:hover { background: #f1c40f; }
+        .btn-play { background: #c0392b; color: #fff; }
+        .btn-play:hover { background: #e74c3c; }
+        .btn-back { background: #444; color: #ccc; margin-top: 8px; }
+        .btn-back:hover { background: #555; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <div class="header">🎰 王国カジノ（地下娯楽場）</div>
+        
+        <!-- ゲーム一覧 -->
+        <div class="game-card">
+            <div class="game-title">🎲 サイコロ勝負（Dice）</div>
+            <div class="game-desc">出目を予想してGoldを賭けるシンプルなダイスゲーム。一獲千金を狙え！</div>
+            <button class="btn-play" onclick="location.href='/dice'">ゲームをプレイする</button>
+        </div>
+
+        <!-- 今後追加予定のゲーム領域（ダミー） -->
+        <div class="game-card" style="opacity: 0.5;">
+            <div class="game-title">🃏 ブラックジャック（準備中）</div>
+            <div class="game-desc">ディーラーとの勝負。王国アプデをお待ちください。</div>
+            <button disabled style="cursor: not-allowed; background: #555; color: #888;">準備中</button>
+        </div>
+
+        <button class="btn-back" onclick="location.href='/dashboard'">ダッシュボードへ戻る</button>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+        window.location.href = "/";
+    }
+</script>
+
+</body>
+</html>
