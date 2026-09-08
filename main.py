@@ -113,6 +113,10 @@ def get_wallet(request: Request):
 def get_market(request: Request):
     return templates.TemplateResponse(request=request, name="market.html")
 
+@app.get("/casino", response_class=HTMLResponse)
+def get_casino(request: Request):
+    return templates.TemplateResponse(request=request, name="casino.html")
+
 # --------------------------------------------------
 # 認証API
 # --------------------------------------------------
