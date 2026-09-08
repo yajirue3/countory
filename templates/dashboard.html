@@ -15,16 +15,28 @@
         .value { font-weight: bold; margin-bottom: 6px; word-break: break-all; }
         .badge { display: inline-block; background-color: #8b0000; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
         input, select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #333; color: #fff; box-sizing: border-box; margin-top: 4px; margin-bottom: 10px; font-size: 0.85rem; }
+        
         button { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #d4af37; color: #1a1a1a; font-size: 0.85rem; margin-top: 6px; }
         button:hover { background: #f1c40f; }
+
+        /* ナビゲーション用のグリッドレイアウト */
+        .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .nav-grid button { margin-top: 0; padding: 12px 6px; font-size: 0.8rem; line-height: 1.2; }
+
+        .btn-tax { background: linear-gradient(180deg, #f39c12 0%, #d35400 100%); color: #fff; margin-top: 6px; }
+        .btn-tax:hover { background: linear-gradient(180deg, #f1c40f 0%, #e67e22 100%); }
+
         .btn-bank { background: #27ae60; color: #fff; }
         .btn-bank:hover { background: #2ecc71; }
+        .btn-inventory { background: #d35400; color: #fff; }
+        .btn-inventory:hover { background: #e67e22; }
         .btn-board { background: #2980b9; color: #fff; }
         .btn-board:hover { background: #3498db; }
         .btn-market { background: #8e44ad; color: #fff; }
         .btn-market:hover { background: #9b59b6; }
-        .btn-casino { background: #c0392b; color: #fff; }
+        .btn-casino { background: #c0392b; color: #fff; grid-column: span 2; }
         .btn-casino:hover { background: #e74c3c; }
+
         .btn-logout { background: #444; color: #ccc; }
         .btn-logout:hover { background: #555; }
         .secret-tag { color: #e74c3c; font-size: 0.7rem; }
@@ -50,11 +62,16 @@
             <option value="">口座を読み込み中...</option>
         </select>
 
-        <button onclick="payTax()">💰 本日の納税を行う（+100G）</button>
-        <button class="btn-bank" onclick="location.href='/wallet'">🏦 王国中央銀行（資金管理）</button>
-        <button class="btn-board" onclick="location.href='/board'">📜 王国回覧板（掲示板）</button>
-        <button class="btn-market" onclick="location.href='/market'">⚖️ 王国自由市場（契約取引）</button>
-        <button class="btn-casino" onclick="location.href='/casino'">🎰 王国カジノ（一攫千金）</button>
+        <button class="btn-tax" onclick="payTax()">💰 本日の納税を行う（+100G）</button>
+
+        <!-- メニューボタン（2列グリッド化） -->
+        <div class="nav-grid">
+            <button class="btn-bank" onclick="location.href='/wallet'">🏦 王国中央銀行</button>
+            <button class="btn-inventory" onclick="location.href='/inventory'">🎒 所持品（バッグ）</button>
+            <button class="btn-board" onclick="location.href='/board'">📜 王国回覧板</button>
+            <button class="btn-market" onclick="location.href='/market'">⚖️ 王国自由市場</button>
+            <button class="btn-casino" onclick="location.href='/casino'">🎰 王国カジノ（一攫千金）</button>
+        </div>
     </div>
 
     <div class="card">
