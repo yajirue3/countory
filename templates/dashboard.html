@@ -37,6 +37,10 @@
         .btn-casino { background: #c0392b; color: #fff; grid-column: span 2; }
         .btn-casino:hover { background: #e74c3c; }
 
+        /* 国王専用ボタン */
+        .btn-admin { background: linear-gradient(180deg, #d4af37 0%, #8a7322 100%); color: #1a1a1a; grid-column: span 2; border: 1px solid #ffd700; margin-top: 4px; display: none; }
+        .btn-admin:hover { background: linear-gradient(180deg, #ffd700 0%, #a68a28 100%); }
+
         .btn-logout { background: #444; color: #ccc; }
         .btn-logout:hover { background: #555; }
         .secret-tag { color: #e74c3c; font-size: 0.7rem; }
@@ -71,6 +75,9 @@
             <button class="btn-board" onclick="location.href='/board'">📜 王国回覧板</button>
             <button class="btn-market" onclick="location.href='/market'">⚖️ 王国自由市場</button>
             <button class="btn-casino" onclick="location.href='/casino'">🎰 王国カジノ（一攫千金）</button>
+            
+            <!-- 国王専用ボタン（初期状態は非表示） -->
+            <button id="btn-admin-items" class="btn-admin" onclick="location.href='/admin/items'">👑 アイテム管理（国王専用）</button>
         </div>
     </div>
 
@@ -119,6 +126,11 @@
                 const data = await res.json();
                 document.getElementById("nickname").value = data.nickname || "";
                 document.getElementById("real-name").value = data.real_name || "";
+
+                // 国王権限チェック（is_king または role === 'king' 等の判定）
+                if (data.is_king || data.role === "king") {
+                    document.getElementById("btn-admin-items").style.display = "block";
+                }
             }
         } catch (e) {
             console.error(e);
