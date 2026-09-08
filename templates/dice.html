@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>村岡王国 - サイコロ勝負 (Dice)</title>
+    <style>
+        body { font-family: sans-serif; background-color: #1a1a1a; color: #e0e0e0; display: flex; justify-content: center; padding: 20px 0; margin: 0; }
+        .container { width: 380px; display: flex; flex-direction: column; gap: 16px; }
+        .card { background: #2a2a2a; border: 2px solid #555; border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        .header { font-size: 1.1rem; font-weight: bold; color: #d4af37; text-align: center; border-bottom: 1px solid #444; padding-bottom: 8px; margin-bottom: 12px; }
+        
+        .label { font-size: 0.8rem; color: #aaa; margin-top: 6px; display: block; }
+        input, select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #333; color: #fff; box-sizing: border-box; margin-top: 4px; margin-bottom: 10px; font-size: 0.85rem; font-family: sans-serif; }
+        
+        button { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #d4af37; color: #1a1a1a; font-size: 0.9rem; margin-top: 4px; }
+        button:hover { background: #f1c40f; }
+        
+        .btn-roll { background: #c0392b; color: #fff; font-size: 1.0rem; padding: 12px; }
+        .btn-roll:hover { background: #e74c3c; }
+        
+        .btn-back { background: #444; color: #ccc; margin-top: 8px; }
+        .btn-back:hover { background: #555; }
+
+        /* ダイス結果ディスプレイ */
+        .dice-display { background: #151515; border: 2px dashed #444; border-radius: 10px; padding: 16px; text-align: center; margin-bottom: 12px; }
+        .dice-number { font-size: 2.8rem; font-weight: bold; font-family: monospace; color: #888; letter-spacing: 2px; }
+        .dice-status { font-size: 0.85rem; margin-top: 4px; height: 20px; font-weight: bold; }
+        
+        /* 確率・倍率ステータスボード */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #202020; border-radius: 8px; padding: 10px; margin-bottom: 12px; border: 1px solid #333; }
+        .stat-box { text-align: center; }
+        .stat-label { font-size: 0.7rem; color: #888; }
+        .stat-val { font-size: 1.0rem; font-weight: bold; color: #f39c12; margin-top: 2px; }
+
+        /* スライダー */
+        input[type=range] { width: 100%; height: 8px; border-radius: 4px; background: #444; outline: none; margin: 8px 0 12px 0; }
+        
+        /* モード切り替えボタン */
+        .mode-selector { display: flex; gap: 8px; margin-bottom: 10px; }
+        .mode-btn { flex: 1; padding: 8px; font-size: 0.8rem; background: #333; color: #aaa; border: 1px solid #444; border-radius: 6px; cursor: pointer; text-align: center; }
+        .mode-btn.active { background: #2980b9; color: #fff; border-color: #3498db; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <div class="header">🎲 ハイローラー・ダイス（Dice）</div>
+        <p style="font-size: 0.75rem; color: #aaa; margin-top: 0; line-height: 1.4; text-align: center;">
+            0 〜 10000 の出目を予想せよ！目標数値を設定して一獲千金を狙え！
+        </p>
+
+        <!-- 出目・結果表示エリア -->
+        <div class="dice-display">
+            <div id="dice-num" class="dice-number">????</div>
+            <div id="dice-status" class="dice-status" style="color: #aaa;">ベットしてサイコロを振ってください</div>
+        </div>
+
+        <!-- 確率・倍率表示エリア -->
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">配当倍率</div>
+                <div id="stat-multiplier" class="stat-val">1.80x</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">勝利確率</div>
+                <div id="stat-chance" class="stat-val">50.00%</div>
+            </div>
+        </div>
+
+        <!-- 口座選択 -->
+        <div class="label">支払口座を選択</div>
+        <select id="wallet-select">
+            <option value="">口座を読み込み中...</option>
+        </select>
+
+        <!-- 賭け金入力 -->
+        <div class="label">賭け金 (Gold)</div>
+        <input type="number" id="bet-amount" min="10" value="100" placeholder="例: 100">
+
+        <!-- 判定モード切り替え -->
+        <div class="label">勝利条件</div>
+        <div class="mode-selector">
+            <div id="mode-under" class="mode-btn active">UNDER (未満)</div>
+            <div id="mode-over" class="mode-btn">OVER (超え)</div>
+        </div>
+
+        <!-- ターゲット値設定スライダー -->
+        <div class="label" style="display: flex; justify-content: space-between;">
+            <span>ターゲット値: <b id="target-val-text" style="color: #f39c12;">5000</b></span>
+            <span id="condition-desc" style="color: #3498db;">5000 未満で勝利</span>
+        </div>
+        <input type="range" id="target-slider" min="100" max="9500" step="50" value="5000">
+
+        <!-- ベットボタン -->
+        <button id="roll-btn" class="btn-roll">🎲 サイコロを振る</button>
+    </div>
+
+    <!-- 戻るボタン -->
+    <button class="btn-back" onclick="location.href='/casino'">◀ カジノ一覧に戻る</button>
+</div>
+
+</body>
+</html>
