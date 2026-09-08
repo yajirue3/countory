@@ -117,6 +117,11 @@ def get_market(request: Request):
 def get_casino(request: Request):
     return templates.TemplateResponse(request=request, name="casino.html")
 
+@app.get("/dice", response_class=HTMLResponse)
+def get_dice(request: Request):
+    return templates.TemplateResponse(request=request, name="dice.html")
+
+
 # --------------------------------------------------
 # 認証API
 # --------------------------------------------------
