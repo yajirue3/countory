@@ -3,11 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel
 
-# main.py からSupabaseクライアントと認証関数をインポート
-from main import supabase, get_user_from_token, is_king
-
 router = APIRouter(prefix="/api", tags=["inventory"])
-
 
 # --- リクエストモデル ---
 class ItemCreateUpdate(BaseModel):
@@ -27,11 +23,20 @@ class TransferItemRequest(BaseModel):
     target_email: str
 
 
-# --- ユーザー・国王検証ヘルパー ---
+# --- 循環参照を回避するための依存取得ヘルパー ---
+def get_supabase():
+    # 関数呼び出し時に main から取得することで循環参照を防止
+    from main import supabase
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabaseが設定されていません")
+    return supabase
+
 def get_current_user_from_header(authorization: str = Header(None)):
+    from main import get_user_from_token
     return get_user_from_token(authorization)
 
 def verify_king_user(authorization: str = Header(None)):
+    from main import get_user_from_token, is_king
     user = get_user_from_token(authorization)
     if not is_king(user.id):
         raise HTTPException(
@@ -47,11 +52,13 @@ def verify_king_user(authorization: str = Header(None)):
 
 @router.get("/admin/items")
 def get_admin_items(current_user=Depends(verify_king_user)):
+    supabase = get_supabase()
     res = supabase.table("items").select("*").order("created_at").execute()
     return res.data
 
 @router.post("/admin/items")
 def upsert_admin_item(item: ItemCreateUpdate, current_user=Depends(verify_king_user)):
+    supabase = get_supabase()
     data = {
         "item_id": item.item_id,
         "name": item.name,
@@ -63,6 +70,7 @@ def upsert_admin_item(item: ItemCreateUpdate, current_user=Depends(verify_king_u
 
 @router.delete("/admin/items/{item_id}")
 def delete_admin_item(item_id: str, current_user=Depends(verify_king_user)):
+    supabase = get_supabase()
     supabase.table("items").delete().eq("item_id", item_id).execute()
     return {"message": f"アイテム({item_id})を削除しました"}
 
@@ -73,6 +81,7 @@ def delete_admin_item(item_id: str, current_user=Depends(verify_king_user)):
 
 @router.get("/inventory")
 def get_user_inventory(current_user=Depends(get_current_user_from_header)):
+    supabase = get_supabase()
     user_id = current_user.id
     res = supabase.table("user_inventories") \
         .select("quantity, updated_at, items(item_id, name, description, base_price)") \
@@ -84,6 +93,7 @@ def get_user_inventory(current_user=Depends(get_current_user_from_header)):
 
 @router.post("/mine")
 def mine_work(current_user=Depends(get_current_user_from_header)):
+    supabase = get_supabase()
     user_id = current_user.id
 
     items_res = supabase.table("items").select("*").execute()
@@ -121,6 +131,7 @@ def mine_work(current_user=Depends(get_current_user_from_header)):
 
 @router.post("/sell-item")
 def sell_item(req: SellItemRequest, current_user=Depends(get_current_user_from_header)):
+    supabase = get_supabase()
     user_id = current_user.id
 
     if req.quantity <= 0:
@@ -172,6 +183,7 @@ def sell_item(req: SellItemRequest, current_user=Depends(get_current_user_from_h
 
 @router.post("/transfer-item")
 def transfer_item(req: TransferItemRequest, current_user=Depends(get_current_user_from_header)):
+    supabase = get_supabase()
     sender_id = current_user.id
 
     if req.quantity <= 0:
@@ -187,7 +199,7 @@ def transfer_item(req: TransferItemRequest, current_user=Depends(get_current_use
     if not sender_inv.data or sender_inv.data[0]["quantity"] < req.quantity:
         raise HTTPException(status_code=400, detail="指定のアイテムを十分に所持していません")
 
-    # 2. 譲渡先ユーザーの検索（profiles等からの検索）
+    # 2. 譲渡先ユーザーの検索
     target_id = None
     try:
         rpc_res = supabase.rpc("get_user_id_by_email", {"email_input": req.target_email}).execute()
