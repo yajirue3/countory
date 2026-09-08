@@ -5,10 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>村岡王国 - サイコロ勝負 (Dice)</title>
     <style>
-        body { font-family: sans-serif; background-color: #1a1a1a; color: #e0e0e0; display: flex; justify-content: center; padding: 20px 0; margin: 0; }
+        body { 
+            font-family: sans-serif; 
+            background: radial-gradient(circle at center, #221a0f 0%, #0d0d0d 100%); 
+            color: #e0e0e0; 
+            display: flex; 
+            justify-content: center; 
+            padding: 20px 0; 
+            margin: 0; 
+            min-height: 100vh;
+        }
         .container { width: 380px; display: flex; flex-direction: column; gap: 16px; }
-        .card { background: #2a2a2a; border: 2px solid #555; border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
-        .header { font-size: 1.1rem; font-weight: bold; color: #d4af37; text-align: center; border-bottom: 1px solid #444; padding-bottom: 8px; margin-bottom: 12px; }
+        .card { 
+            background: rgba(35, 30, 25, 0.95); 
+            border: 2px solid #d4af37; 
+            border-radius: 16px; 
+            padding: 20px; 
+            box-shadow: 0 0 25px rgba(212, 175, 55, 0.25), inset 0 0 10px rgba(0,0,0,0.8); 
+        }
+        .header { 
+            font-size: 1.1rem; 
+            font-weight: bold; 
+            color: #ffd700; 
+            text-align: center; 
+            border-bottom: 2px solid #d4af37; 
+            padding-bottom: 8px; 
+            margin-bottom: 12px; 
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
         
         .label { font-size: 0.8rem; color: #aaa; margin-top: 6px; display: block; }
         input, select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #333; color: #fff; box-sizing: border-box; margin-top: 4px; margin-bottom: 10px; font-size: 0.85rem; font-family: sans-serif; }
@@ -16,14 +40,25 @@
         button { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #d4af37; color: #1a1a1a; font-size: 0.9rem; margin-top: 4px; }
         button:hover { background: #f1c40f; }
         
-        .btn-roll { background: #c0392b; color: #fff; font-size: 1.0rem; padding: 12px; }
-        .btn-roll:hover { background: #e74c3c; }
+        .btn-roll { 
+            background: linear-gradient(180deg, #e74c3c 0%, #900c3f 100%); 
+            color: #fff; 
+            font-size: 1.0rem; 
+            padding: 12px; 
+            box-shadow: 0 0 12px rgba(231, 76, 60, 0.4);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        .btn-roll:hover { 
+            background: linear-gradient(180deg, #ff5733 0%, #a00d40 100%); 
+            box-shadow: 0 0 18px rgba(255, 87, 51, 0.6);
+        }
+        .btn-roll:disabled { background: #555; box-shadow: none; cursor: not-allowed; }
         
-        .btn-back { background: #444; color: #ccc; margin-top: 8px; }
-        .btn-back:hover { background: #555; }
+        .btn-back { background: #333; color: #aaa; margin-top: 8px; border: 1px solid #555; }
+        .btn-back:hover { background: #444; color: #fff; }
 
         /* ダイス結果ディスプレイ */
-        .dice-display { background: #151515; border: 2px dashed #444; border-radius: 10px; padding: 16px; text-align: center; margin-bottom: 12px; }
+        .dice-display { background: #151515; border: 2px dashed #d4af37; border-radius: 10px; padding: 16px; text-align: center; margin-bottom: 12px; }
         .dice-number { font-size: 2.8rem; font-weight: bold; font-family: monospace; color: #888; letter-spacing: 2px; }
         .dice-status { font-size: 0.85rem; margin-top: 4px; height: 20px; font-weight: bold; }
         
@@ -71,9 +106,7 @@
 
         <!-- 口座選択 -->
         <div class="label">支払口座を選択</div>
-        <select id="wallet-select">
-            <option value="">口座を読み込み中...</option>
-        </select>
+        <select id="wallet-select"></select>
 
         <!-- 賭け金入力 -->
         <div class="label">賭け金 (Gold)</div>
@@ -100,6 +133,143 @@
     <!-- 戻るボタン -->
     <button class="btn-back" onclick="location.href='/casino'">◀ カジノ一覧に戻る</button>
 </div>
+
+<script>
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+        window.location.href = "/";
+    } else {
+        loadWallets();
+        setupEventListeners();
+    }
+
+    let currentMode = "UNDER";
+
+    async function loadWallets() {
+        try {
+            const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
+            if (!res.ok) return;
+            const myWalletsList = await res.json();
+            
+            const select = document.getElementById("wallet-select");
+            select.innerHTML = myWalletsList.map(w => `
+                <option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} (${w.wallet_id}) - 残高:${w.balance}G</option>
+            `).join('');
+
+            calculateStats();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function setupEventListeners() {
+        document.getElementById("mode-under").addEventListener("click", () => setMode("UNDER"));
+        document.getElementById("mode-over").addEventListener("click", () => setMode("OVER"));
+        document.getElementById("target-slider").addEventListener("input", onSliderChange);
+        document.getElementById("bet-amount").addEventListener("input", calculateStats);
+        document.getElementById("roll-btn").addEventListener("click", playDice);
+    }
+
+    function setMode(mode) {
+        currentMode = mode;
+        document.getElementById("mode-under").classList.toggle("active", mode === "UNDER");
+        document.getElementById("mode-over").classList.toggle("active", mode === "OVER");
+        calculateStats();
+    }
+
+    function onSliderChange() {
+        const val = document.getElementById("target-slider").value;
+        document.getElementById("target-val-text").innerText = val;
+        calculateStats();
+    }
+
+    function calculateStats() {
+        const target = parseInt(document.getElementById("target-slider").value, 10);
+        let winChancePercent = 0;
+
+        if (currentMode === "UNDER") {
+            winChancePercent = (target / 10000) * 100;
+            document.getElementById("condition-desc").innerText = `${target} 未満で勝利`;
+        } else {
+            winChancePercent = ((10000 - target) / 10000) * 100;
+            document.getElementById("condition-desc").innerText = `${target} 超えで勝利`;
+        }
+
+        let multiplier = (90 / winChancePercent);
+        if (multiplier < 1.01) multiplier = 1.01;
+
+        document.getElementById("stat-multiplier").innerText = multiplier.toFixed(2) + "x";
+        document.getElementById("stat-chance").innerText = winChancePercent.toFixed(2) + "%";
+    }
+
+    async function playDice() {
+        const wallet_id = document.getElementById("wallet-select").value;
+        const amount = parseInt(document.getElementById("bet-amount").value, 10);
+        const target = parseInt(document.getElementById("target-slider").value, 10);
+
+        if (!wallet_id) return alert("口座を選択してください");
+        if (!amount || amount <= 0) return alert("賭け金を正しく入力してください");
+
+        const rollBtn = document.getElementById("roll-btn");
+        const diceNumEl = document.getElementById("dice-num");
+        const statusEl = document.getElementById("dice-status");
+
+        rollBtn.disabled = true;
+        statusEl.style.color = "#aaa";
+        statusEl.innerText = "サイコロを振っています...";
+
+        let animCount = 0;
+        const animInterval = setInterval(() => {
+            diceNumEl.innerText = Math.floor(Math.random() * 10001);
+            diceNumEl.style.color = "#888";
+            animCount++;
+        }, 50);
+
+        try {
+            const res = await fetch("/api/dice/play", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ wallet_id, amount, target, mode: currentMode })
+            });
+
+            const data = await res.json();
+
+            setTimeout(() => {
+                clearInterval(animInterval);
+                rollBtn.disabled = false;
+
+                if (!res.ok) {
+                    diceNumEl.innerText = "----";
+                    statusEl.style.color = "#e74c3c";
+                    statusEl.innerText = "エラー: " + data.detail;
+                    return;
+                }
+
+                diceNumEl.innerText = data.roll;
+
+                if (data.is_win) {
+                    diceNumEl.style.color = "#2ecc71";
+                    statusEl.style.color = "#2ecc71";
+                    statusEl.innerText = `🎉 勝利！ +${data.payout} Gold 獲得！`;
+                } else {
+                    diceNumEl.style.color = "#e74c3c";
+                    statusEl.style.color = "#e74c3c";
+                    statusEl.innerText = `💀 敗北... ${amount} Gold 没収`;
+                }
+
+                loadWallets();
+            }, 600);
+
+        } catch (e) {
+            clearInterval(animInterval);
+            rollBtn.disabled = false;
+            console.error(e);
+            alert("通信エラーが発生しました");
+        }
+    }
+
+    function escapeHtml(str) { return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
+</script>
 
 </body>
 </html>
