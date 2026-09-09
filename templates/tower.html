@@ -52,6 +52,7 @@
             background: linear-gradient(180deg, #ff5733 0%, #a00d40 100%); 
             box-shadow: 0 0 18px rgba(255, 87, 51, 0.6);
         }
+        .btn-start:disabled { background: #555; box-shadow: none; cursor: not-allowed; }
 
         .btn-cashout {
             background: linear-gradient(180deg, #27ae60 0%, #1e8449 100%);
@@ -69,7 +70,7 @@
 
         /* ステータス表示エリア */
         .status-display { background: #151515; border: 2px dashed #d4af37; border-radius: 10px; padding: 12px; text-align: center; margin-bottom: 12px; }
-        .status-text { font-size: 0.9rem; font-weight: bold; color: #ffd700; }
+        .status-text { font-size: 0.85rem; font-weight: bold; color: #ffd700; min-height: 20px; }
         
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #202020; border-radius: 8px; padding: 10px; margin-bottom: 12px; border: 1px solid #333; }
         .stat-box { text-align: center; }
@@ -93,7 +94,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            opacity: 0.4;
+            opacity: 0.3;
             padding: 4px;
             border-radius: 6px;
             background: #1e1e1e;
@@ -111,7 +112,7 @@
             font-size: 0.75rem;
             font-weight: bold;
             color: #888;
-            width: 24px;
+            width: 28px;
             text-align: center;
         }
         .tiles-group {
@@ -187,22 +188,25 @@
 
 <script>
     const token = localStorage.getItem("access_token");
+    
+    // UIを初期生成（非同期処理前にまずレンダリング）
+    const TOTAL_FLOORS = 15;
+    const RTP = 0.99;
+    
+    let myWalletsData = [];
+    let currentFloor = 0; // 0: 開始前, 1〜15: 進行中
+    let isPlaying = false;
+    let serverTraps = [];
+    let activeBetAmount = 0;
+
+    initTowerUI();
+
     if (!token) {
         window.location.href = "/";
     } else {
         loadWallets();
-        initTowerUI();
         setupEventListeners();
     }
-
-    const TOTAL_FLOORS = 15;
-    const RTP = 0.99; // 還元率99%
-
-    let myWalletsData = [];
-    let currentFloor = 0; // 0: 開始前、1〜15: プレイ中
-    let isPlaying = false;
-    let serverTraps = [];
-    let activeBetAmount = 0;
 
     // 倍率計算: (1.5 ^ floor) * 0.99
     function getMultiplier(floor) {
@@ -226,7 +230,9 @@
             if (currentSelected && myWalletsData.some(w => w.wallet_id === currentSelected)) {
                 select.value = currentSelected;
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     function initTowerUI() {
@@ -274,6 +280,9 @@
             const data = await res.json();
             if (!res.ok) return alert(data.detail || "エラーが発生しました");
 
+            // UIリセット
+            initTowerUI();
+
             serverTraps = data.traps;
             activeBetAmount = amount;
             currentFloor = 1;
@@ -282,8 +291,9 @@
             await loadWallets();
             updateUIState();
 
-            document.getElementById("game-status").innerText = "1階のブロックを1つ選んでください！";
-            document.getElementById("game-status").style.color = "#ffd700";
+            const statusEl = document.getElementById("game-status");
+            statusEl.innerText = "1階のブロックを1つ選んでください！";
+            statusEl.style.color = "#ffd700";
 
         } catch (e) {
             console.error(e);
@@ -299,31 +309,37 @@
         const buttons = row.querySelectorAll(".tile-btn");
 
         if (tileIndex === trapTile) {
-            // 罠を踏んだ（ゲームオーバー）
+            // 罠を踏んだ
             buttons[tileIndex].innerText = "💣";
             buttons[tileIndex].classList.add("trap");
             
-            document.getElementById("game-status").innerText = `💀 罠を踏みました！ゲームオーバー... (-${activeBetAmount} G)`;
-            document.getElementById("game-status").style.color = "#e74c3c";
+            const statusEl = document.getElementById("game-status");
+            statusEl.innerText = `💀 罠を踏みました！ゲームオーバー... (-${activeBetAmount} G)`;
+            statusEl.style.color = "#e74c3c";
             
             endGame(false, 0);
         } else {
-            // 安全！
+            // 安全
             buttons[tileIndex].innerText = "💎";
             buttons[tileIndex].classList.add("safe");
 
             if (currentFloor === TOTAL_FLOORS) {
-                // 15階完走！
+                // 全フロアクリア
                 const finalMult = getMultiplier(TOTAL_FLOORS);
                 const finalPayout = Math.floor(activeBetAmount * finalMult);
-                document.getElementById("game-status").innerText = `🎉 タワー制覇！！ ${finalPayout} Gold 獲得！`;
-                document.getElementById("game-status").style.color = "#2ecc71";
+                
+                const statusEl = document.getElementById("game-status");
+                statusEl.innerText = `🎉 タワー完全制覇！！ +${finalPayout} Gold 獲得！`;
+                statusEl.style.color = "#2ecc71";
+                
                 endGame(true, finalPayout);
             } else {
-                // 次の階へ
                 currentFloor++;
                 updateUIState();
-                document.getElementById("game-status").innerText = `安全！${currentFloor}階に進みます。`;
+                
+                const statusEl = document.getElementById("game-status");
+                statusEl.innerText = `安全！${currentFloor}階に進みます。`;
+                statusEl.style.color = "#ffd700";
             }
         }
     }
@@ -334,8 +350,9 @@
         const mult = getMultiplier(currentFloor - 1);
         const payout = Math.floor(activeBetAmount * mult);
 
-        document.getElementById("game-status").innerText = `💰 キャッシュアウト成功！ +${payout} Gold 獲得！`;
-        document.getElementById("game-status").style.color = "#2ecc71";
+        const statusEl = document.getElementById("game-status");
+        statusEl.innerText = `💰 キャッシュアウト成功！ +${payout} Gold 獲得！`;
+        statusEl.style.color = "#2ecc71";
 
         endGame(true, payout);
     }
@@ -351,29 +368,32 @@
                 body: JSON.stringify({ wallet_id, payout })
             });
             await loadWallets();
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+        }
 
         updateUIState();
     }
 
     function updateUIState() {
-        // ボタンの活性/非活性
+        // 入力フォーム制御
         document.getElementById("start-btn").disabled = isPlaying;
         document.getElementById("wallet-select").disabled = isPlaying;
         document.getElementById("bet-amount").disabled = isPlaying;
         document.getElementById("cashout-btn").disabled = !isPlaying || currentFloor <= 1;
 
-        // 倍率と見込み獲得額の表示
+        // 倍率・見込み配当表示
         const mult = isPlaying && currentFloor > 1 ? getMultiplier(currentFloor - 1) : (isPlaying ? 1.0 : 0);
         const payout = Math.floor(activeBetAmount * mult);
         document.getElementById("stat-multiplier").innerText = mult.toFixed(2) + "x";
         document.getElementById("stat-payout").innerText = payout + " G";
 
-        // タワー各行のインタラクティブ制御
+        // タワーの各行とボタンの有効化/無効化
         for (let f = 1; f <= TOTAL_FLOORS; f++) {
             const row = document.getElementById(`floor-row-${f}`);
+            if (!row) continue;
+            
             const buttons = row.querySelectorAll(".tile-btn");
-
             row.classList.remove("active", "cleared");
 
             if (f === currentFloor && isPlaying) {
@@ -390,7 +410,9 @@
         }
     }
 
-    function escapeHtml(str) { return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
+    function escapeHtml(str) { 
+        return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; 
+    }
 </script>
 
 </body>
