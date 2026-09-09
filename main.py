@@ -126,7 +126,7 @@ def get_dice(request: Request):
 
 @app.get("/inventory", response_class=HTMLResponse)
 def get_inventory(request: Request):
-    return templates.TemplateResponse(request=request, name="inventory")
+    return templates.TemplateResponse(request=request, name="inventory.html")
 
 
 @app.get("/admin/items", response_class=HTMLResponse)
