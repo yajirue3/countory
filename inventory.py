@@ -25,7 +25,7 @@ class TransferItemRequest(BaseModel):
     target_email: str
 
 
-# --- Supabaseクライアントおよび認証処理（main.pyに依存しない単体実装） ---
+# --- Supabaseクライアントおよび認証処理 ---
 def get_supabase() -> Client:
     SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
     SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
@@ -103,8 +103,9 @@ def delete_admin_item(item_id: str, current_user: Any = Depends(verify_king_user
 def get_user_inventory(current_user: Any = Depends(get_current_user_from_header)):
     supabase = get_supabase()
     user_id = current_user.id
+    # id (インベントリID) をselectに追加
     res = supabase.table("user_inventories") \
-        .select("quantity, updated_at, items(item_id, name, description, base_price)") \
+        .select("id, item_id, quantity, updated_at, items(item_id, name, description, base_price)") \
         .eq("user_id", user_id) \
         .gt("quantity", 0) \
         .execute()
