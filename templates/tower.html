@@ -147,7 +147,7 @@
     <div class="card">
         <div class="header">🏰 王国タワー（Tower）</div>
         <p style="font-size: 0.75rem; color: #aaa; margin-top: 0; line-height: 1.4; text-align: center;">
-            3つのブロックから安全な道を選べ！罠を避けて登るほど配当アップ！（還元率 99%）
+            3つのブロックから唯一の宝を選べ！成功率 33.3% の激ムズタワー！（最大50倍）
         </p>
 
         <!-- ステータスエリア -->
@@ -189,14 +189,12 @@
 <script>
     const token = localStorage.getItem("access_token");
     
-    // UIを初期生成（非同期処理前にまずレンダリング）
     const TOTAL_FLOORS = 15;
-    const RTP = 0.99;
     
     let myWalletsData = [];
     let currentFloor = 0; // 0: 開始前, 1〜15: 進行中
     let isPlaying = false;
-    let serverTraps = [];
+    let serverSafeTiles = [];
     let activeBetAmount = 0;
 
     initTowerUI();
@@ -208,10 +206,16 @@
         setupEventListeners();
     }
 
-    // 倍率計算: (1.5 ^ floor) * 0.99
+    // 序盤低め・15階で最大50倍に到達する指数傾斜計算
     function getMultiplier(floor) {
         if (floor <= 0) return 1.0;
-        return Math.pow(1.5, floor) * RTP;
+        const maxMult = 50.0;
+        const startMult = 1.2;
+        
+        // 1階で1.2x、15階で50xとなる計算式
+        const rate = Math.pow(maxMult / startMult, 1 / (TOTAL_FLOORS - 1));
+        const val = startMult * Math.pow(rate, floor - 1);
+        return Math.floor(val * 100) / 100;
     }
 
     async function loadWallets() {
@@ -283,7 +287,7 @@
             // UIリセット
             initTowerUI();
 
-            serverTraps = data.traps;
+            serverSafeTiles = data.safe_tiles;
             activeBetAmount = amount;
             currentFloor = 1;
             isPlaying = true;
@@ -304,28 +308,17 @@
     async function selectTile(floor, tileIndex) {
         if (!isPlaying || floor !== currentFloor) return;
 
-        const trapTile = serverTraps[floor - 1];
+        const safeTile = serverSafeTiles[floor - 1];
         const row = document.getElementById(`floor-row-${floor}`);
         const buttons = row.querySelectorAll(".tile-btn");
 
-        if (tileIndex === trapTile) {
-            // 罠を踏んだ（ゲームオーバー）
-            buttons[tileIndex].innerText = "💣";
-            buttons[tileIndex].classList.add("trap");
-            
-            const statusEl = document.getElementById("game-status");
-            statusEl.innerText = `💀 罠を踏みました！ゲームオーバー... (-${activeBetAmount} G)`;
-            statusEl.style.color = "#e74c3c";
-            
-            // 0Gでバックエンド精算を通す
-            await endGame(false, 0);
-        } else {
-            // 安全
+        if (tileIndex === safeTile) {
+            // 安全（当たり）
             buttons[tileIndex].innerText = "💎";
             buttons[tileIndex].classList.add("safe");
 
             if (currentFloor === TOTAL_FLOORS) {
-                // 全フロアクリア
+                // 全フロアクリア（50倍）
                 const finalMult = getMultiplier(TOTAL_FLOORS);
                 const finalPayout = Math.floor(activeBetAmount * finalMult);
                 
@@ -339,9 +332,19 @@
                 updateUIState();
                 
                 const statusEl = document.getElementById("game-status");
-                statusEl.innerText = `安全！${currentFloor}階に進みます。`;
+                statusEl.innerText = `見事命中！${currentFloor}階に進みます。`;
                 statusEl.style.color = "#ffd700";
             }
+        } else {
+            // 罠を踏んだ（ハズレ・ゲームオーバー）
+            buttons[tileIndex].innerText = "💣";
+            buttons[tileIndex].classList.add("trap");
+            
+            const statusEl = document.getElementById("game-status");
+            statusEl.innerText = `💀 罠を踏みました！ゲームオーバー... (-${activeBetAmount} G)`;
+            statusEl.style.color = "#e74c3c";
+            
+            await endGame(false, 0);
         }
     }
 
