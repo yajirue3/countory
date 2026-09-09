@@ -96,20 +96,33 @@ def delete_admin_item(item_id: str, current_user: Any = Depends(verify_king_user
 
 
 # ==========================================
-# 🎒 一般ユーザー用：インベントリ管理 API（参照・売却・譲渡）
+# 🎒 一般ユーザー用：インベントリ管理 API
 # ==========================================
 
 @router.get("/inventory")
 def get_user_inventory(current_user: Any = Depends(get_current_user_from_header)):
     supabase = get_supabase()
     user_id = current_user.id
-    # id (インベントリID) をselectに追加
-    res = supabase.table("user_inventories") \
-        .select("id, item_id, quantity, updated_at, items(item_id, name, description, base_price)") \
+
+    # ユーザー権限確認（is_king 判定用）
+    is_king = False
+    prof_res = supabase.table("profiles").select("role").eq("id", user_id).execute()
+    if prof_res.data and prof_res.data[0].get("role") == "king":
+        is_king = True
+
+    # インベントリデータ取得
+    inv_res = supabase.table("user_inventories") \
+        .select("id, item_id, quantity, updated_at, items!inner(item_id, name, description, base_price)") \
         .eq("user_id", user_id) \
         .gt("quantity", 0) \
         .execute()
-    return res.data
+
+    # market.html と同様にメタデータを含めたレスポンス形式構造
+    return {
+        "current_user_id": user_id,
+        "is_king": is_king,
+        "inventory": inv_res.data
+    }
 
 
 @router.post("/sell-item")
@@ -121,7 +134,7 @@ def sell_item(req: SellItemRequest, current_user: Any = Depends(get_current_user
         raise HTTPException(status_code=400, detail="個数は1以上を指定してください")
 
     inv_res = supabase.table("user_inventories") \
-        .select("*, items(base_price, name)") \
+        .select("*, items!inner(base_price, name)") \
         .eq("user_id", user_id) \
         .eq("item_id", req.item_id) \
         .execute()
@@ -144,13 +157,18 @@ def sell_item(req: SellItemRequest, current_user: Any = Depends(get_current_user
 
     wallet = wallet_res.data[0]
 
-    # インベントリ減算
+    # 残量が0になる場合はレコード削除、残る場合は主キー(id)で数量減算
     new_qty = inventory_item["quantity"] - req.quantity
-    supabase.table("user_inventories") \
-        .update({"quantity": new_qty}) \
-        .eq("user_id", user_id) \
-        .eq("item_id", req.item_id) \
-        .execute()
+    if new_qty > 0:
+        supabase.table("user_inventories") \
+            .update({"quantity": new_qty}) \
+            .eq("id", inventory_item["id"]) \
+            .execute()
+    else:
+        supabase.table("user_inventories") \
+            .delete() \
+            .eq("id", inventory_item["id"]) \
+            .execute()
 
     # 口座残高加算
     new_balance = wallet["balance"] + total_earned
@@ -174,7 +192,7 @@ def transfer_item(req: TransferItemRequest, current_user: Any = Depends(get_curr
 
     # 1. 差出人の所持チェック
     sender_inv = supabase.table("user_inventories") \
-        .select("*, items(name)") \
+        .select("*, items!inner(name)") \
         .eq("user_id", sender_id) \
         .eq("item_id", req.item_id) \
         .execute()
@@ -202,13 +220,19 @@ def transfer_item(req: TransferItemRequest, current_user: Any = Depends(get_curr
     if sender_id == target_id:
         raise HTTPException(status_code=400, detail="自分自身にアイテムを譲渡することはできません")
 
-    # 3. 差出人のインベントリ減算
+    # 3. 差出人のインベントリ減算または削除
     sender_item = sender_inv.data[0]
-    supabase.table("user_inventories") \
-        .update({"quantity": sender_item["quantity"] - req.quantity}) \
-        .eq("user_id", sender_id) \
-        .eq("item_id", req.item_id) \
-        .execute()
+    new_qty = sender_item["quantity"] - req.quantity
+    if new_qty > 0:
+        supabase.table("user_inventories") \
+            .update({"quantity": new_qty}) \
+            .eq("id", sender_item["id"]) \
+            .execute()
+    else:
+        supabase.table("user_inventories") \
+            .delete() \
+            .eq("id", sender_item["id"]) \
+            .execute()
 
     # 4. 譲渡先のインベントリ加算
     target_inv = supabase.table("user_inventories") \
@@ -220,8 +244,7 @@ def transfer_item(req: TransferItemRequest, current_user: Any = Depends(get_curr
     if target_inv.data:
         supabase.table("user_inventories") \
             .update({"quantity": target_inv.data[0]["quantity"] + req.quantity}) \
-            .eq("user_id", target_id) \
-            .eq("item_id", req.item_id) \
+            .eq("id", target_inv.data[0]["id"]) \
             .execute()
     else:
         supabase.table("user_inventories").insert({
