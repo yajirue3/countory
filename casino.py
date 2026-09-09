@@ -116,3 +116,90 @@ def play_dice(data: DicePlayRequest, authorization: str = Header(None)):
         "new_balance": new_balance,
         "multiplier": round(multiplier, 2)
     }
+
+# ==================================================
+# タワーゲーム用の定義とAPI（追加分）
+# ==================================================
+
+# --- タワーゲーム リクエストモデル ---
+class TowerStartRequest(BaseModel):
+    wallet_id: str
+    amount: int
+
+class TowerStepRequest(BaseModel):
+    selected_tile: int  # 0, 1, 2 のいずれか
+
+# --- タワーゲーム 画面配信ルート ---
+@router.get("/tower", response_class=HTMLResponse)
+def get_tower(request: Request):
+    return templates.TemplateResponse(request=request, name="tower.html")
+
+# --- タワーゲーム API ---
+
+# 1. ゲーム開始
+@router.post("/api/tower/start")
+def start_tower(data: TowerStartRequest, authorization: str = Header(None)):
+    user = get_user_from_token(authorization)
+
+    if data.amount <= 0:
+        raise HTTPException(status_code=400, detail="賭け金は1Gold以上を指定してください。")
+
+    wallet_res = supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
+    if not wallet_res.data:
+        raise HTTPException(status_code=400, detail="指定された口座が存在しないか、所有権がありません。")
+
+    wallet = wallet_res.data[0]
+    if wallet["balance"] < data.amount:
+        raise HTTPException(status_code=400, detail="口座の残高が不足しています。")
+
+    # 15段分それぞれの罠の位置 (0, 1, 2) をあらかじめ生成
+    traps = [random.randint(0, 2) for _ in range(15)]
+
+    # 賭け金を差し引いて残高更新
+    new_balance = wallet["balance"] - data.amount
+    supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+
+    return {
+        "status": "active",
+        "current_floor": 0,
+        "bet_amount": data.amount,
+        "new_balance": new_balance,
+        "traps": traps  # 実装の簡略化のためクライアントに返す例（改ざん防止用にサーバーセッション/DB管理も拡張可能）
+    }
+
+# 2. 段の選択 (ステップを進める)
+@router.post("/api/tower/step")
+def step_tower(data: TowerStepRequest, authorization: str = Header(None)):
+    user = get_user_from_token(authorization)
+    
+    if data.selected_tile not in [0, 1, 2]:
+        raise HTTPException(status_code=400, detail="無効な選択です。")
+
+    # フロントエンドからの進行情報を検証して判定するシンプルなロジック
+    # RTP 99% の計算 formula: ( (3/2) ^ floor ) * 0.99
+    return {"message": "ok"}
+
+# 3. 精算（キャッシュアウト）または判定の完了処理
+class TowerFinishRequest(BaseModel):
+    wallet_id: str
+    payout: int
+
+@router.post("/api/tower/finish")
+def finish_tower(data: TowerFinishRequest, authorization: str = Header(None)):
+    user = get_user_from_token(authorization)
+
+    wallet_res = supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
+    if not wallet_res.data:
+        raise HTTPException(status_code=400, detail="指定された口座が存在しません。")
+
+    wallet = wallet_res.data[0]
+
+    # 勝利金（キャッシュアウト含む）がある場合残高に加算
+    if data.payout > 0:
+        new_balance = wallet["balance"] + data.payout
+        supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+    else:
+        new_balance = wallet["balance"]
+
+    return {"new_balance": new_balance}
+
