@@ -301,7 +301,7 @@
         }
     }
 
-    function selectTile(floor, tileIndex) {
+    async function selectTile(floor, tileIndex) {
         if (!isPlaying || floor !== currentFloor) return;
 
         const trapTile = serverTraps[floor - 1];
@@ -309,7 +309,7 @@
         const buttons = row.querySelectorAll(".tile-btn");
 
         if (tileIndex === trapTile) {
-            // 罠を踏んだ
+            // 罠を踏んだ（ゲームオーバー）
             buttons[tileIndex].innerText = "💣";
             buttons[tileIndex].classList.add("trap");
             
@@ -317,7 +317,8 @@
             statusEl.innerText = `💀 罠を踏みました！ゲームオーバー... (-${activeBetAmount} G)`;
             statusEl.style.color = "#e74c3c";
             
-            endGame(false, 0);
+            // 0Gでバックエンド精算を通す
+            await endGame(false, 0);
         } else {
             // 安全
             buttons[tileIndex].innerText = "💎";
@@ -332,7 +333,7 @@
                 statusEl.innerText = `🎉 タワー完全制覇！！ +${finalPayout} Gold 獲得！`;
                 statusEl.style.color = "#2ecc71";
                 
-                endGame(true, finalPayout);
+                await endGame(true, finalPayout);
             } else {
                 currentFloor++;
                 updateUIState();
@@ -354,7 +355,7 @@
         statusEl.innerText = `💰 キャッシュアウト成功！ +${payout} Gold 獲得！`;
         statusEl.style.color = "#2ecc71";
 
-        endGame(true, payout);
+        await endGame(true, payout);
     }
 
     async function endGame(isWin, payout) {
