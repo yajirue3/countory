@@ -133,6 +133,11 @@ def get_inventory(request: Request):
 def admin_items_page(request: Request):
     return templates.TemplateResponse(request=request, name="admin_items.html")
 
+@app.get("/tower", response_class=HTMLResponse)
+def get_tower(request: Request):
+    return templates.TemplateResponse(request=request, name="tower.html")
+
+
 # --------------------------------------------------
 # 認証API
 # --------------------------------------------------
