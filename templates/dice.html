@@ -19,9 +19,9 @@
             font-family: 'M PLUS 1p', 'Black Ops One', sans-serif; 
             background: #000;
             background-image: 
-                radial-gradient(circle at 50% 20%, #15001f 0%, #000000 80%),
-                linear-gradient(0deg, rgba(255, 0, 127, 0.08) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 243, 255, 0.08) 1px, transparent 1px);
+                radial-gradient(circle at 50% 20%, #220033 0%, #000000 80%),
+                linear-gradient(0deg, rgba(255, 0, 127, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
             background-size: 100% 100%, 20px 20px, 20px 20px;
             color: #fff; 
             display: flex; 
@@ -44,24 +44,24 @@
         }
 
         .card { 
-            background: rgba(15, 5, 25, 0.92); 
+            background: rgba(15, 5, 25, 0.95); 
             border: 2px solid var(--neon-pink); 
             border-radius: 20px; 
             padding: 14px; 
-            box-shadow: 0 0 15px rgba(255, 0, 127, 0.4); 
+            box-shadow: 0 0 20px rgba(255, 0, 127, 0.5); 
             position: relative;
             overflow: hidden;
         }
 
         .header { 
-            font-size: 1.25rem; 
+            font-size: 1.3rem; 
             font-weight: 900; 
             color: var(--neon-yellow); 
             text-align: center; 
             border-bottom: 2px solid var(--neon-cyan); 
             padding-bottom: 4px; 
             margin-bottom: 6px; 
-            text-shadow: 0 0 8px var(--neon-yellow);
+            text-shadow: 0 0 10px var(--neon-yellow);
             letter-spacing: 1px;
         }
         
@@ -88,7 +88,6 @@
             font-weight: bold;
             font-family: inherit; 
             outline: none;
-            transition: border-color 0.15s, box-shadow 0.15s;
         }
 
         input:focus, select:focus {
@@ -107,27 +106,31 @@
             color: #000; 
             font-size: 0.95rem; 
             margin-top: 4px; 
-            box-shadow: 0 0 10px var(--neon-yellow);
-            transition: transform 0.08s ease, filter 0.1s ease;
+            box-shadow: 0 0 12px var(--neon-yellow);
             user-select: none;
         }
 
-        /* 🔥 ボタン押し込みエフェクト */
         button:active:not(:disabled) {
-            transform: scale(0.96) translateY(2px) !important;
-            filter: brightness(1.2);
-            box-shadow: 0 0 5px var(--neon-yellow);
+            transform: scale(0.95);
+            filter: brightness(1.3);
         }
         
         .btn-roll { 
             background: linear-gradient(135deg, #ff0055 0%, #ff00a0 50%, #7928ca 100%); 
             color: #fff; 
-            font-size: 1.15rem; 
-            padding: 12px; 
+            font-size: 1.2rem; 
+            padding: 14px; 
             border-radius: 14px;
-            box-shadow: 0 0 18px var(--neon-pink);
-            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            box-shadow: 0 0 25px var(--neon-pink);
+            text-shadow: 0 0 5px #fff;
             border: 2px solid #fff;
+            animation: pulse-btn 1.5s infinite;
+        }
+
+        @keyframes pulse-btn {
+            0% { box-shadow: 0 0 15px var(--neon-pink); }
+            50% { box-shadow: 0 0 30px var(--neon-pink), 0 0 10px var(--neon-cyan); }
+            100% { box-shadow: 0 0 15px var(--neon-pink); }
         }
 
         .btn-roll:disabled { 
@@ -136,6 +139,7 @@
             cursor: not-allowed; 
             border: none;
             color: #666;
+            animation: none;
             transform: none !important;
         }
 
@@ -144,13 +148,19 @@
             color: #000;
             font-size: 0.95rem;
             margin-top: 8px;
-            box-shadow: 0 0 10px var(--neon-green);
+            box-shadow: 0 0 12px var(--neon-green);
         }
 
         .btn-auto.active { 
             background: linear-gradient(135deg, #ff003c 0%, #990000 100%); 
             color: #fff;
-            box-shadow: 0 0 15px var(--neon-red);
+            box-shadow: 0 0 20px var(--neon-red);
+            animation: pulse-auto 0.6s infinite alternate;
+        }
+
+        @keyframes pulse-auto {
+            from { filter: brightness(1); }
+            to { filter: brightness(1.4); }
         }
         
         .btn-back { 
@@ -171,23 +181,25 @@
             padding: 10px 8px; 
             text-align: center; 
             margin-bottom: 8px; 
-            box-shadow: inset 0 0 12px rgba(0, 243, 255, 0.4);
+            box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.4);
             position: relative;
+            will-change: transform;
         }
 
         .dice-number { 
-            font-size: 2.6rem; 
+            font-size: 3rem; 
             font-weight: 900; 
             font-family: 'Black Ops One', monospace; 
             color: var(--neon-yellow); 
             letter-spacing: 2px; 
-            text-shadow: 0 0 12px var(--neon-yellow);
+            text-shadow: 0 0 15px var(--neon-yellow);
             line-height: 1.1;
             margin: 2px 0;
+            will-change: color, text-shadow;
         }
 
         .dice-status { 
-            font-size: 0.82rem; 
+            font-size: 0.85rem; 
             margin-top: 2px; 
             min-height: 20px; 
             font-weight: 900; 
@@ -203,7 +215,6 @@
             border-radius: 12px; 
             padding: 6px; 
             margin-bottom: 8px; 
-            border: 1fr solid rgba(255, 255, 255, 0.1); 
         }
 
         .stat-box { 
@@ -253,18 +264,13 @@
             border-radius: 10px; 
             cursor: pointer; 
             text-align: center; 
-            transition: all 0.15s;
-        }
-
-        .mode-btn:active {
-            transform: scale(0.95);
         }
 
         .mode-btn.active { 
             background: linear-gradient(135deg, #00f3ff 0%, #0066ff 100%); 
             color: #fff; 
             border-color: #fff; 
-            box-shadow: 0 0 10px var(--neon-cyan);
+            box-shadow: 0 0 12px var(--neon-cyan);
         }
 
         /* ⚙️ オプション設定パネル */
@@ -284,7 +290,7 @@
             font-weight: bold;
             color: #fff; 
             cursor: pointer; 
-            margin: 0; 
+            margin-bottom: 4px;
         }
 
         .checkbox-label input[type=checkbox] { 
@@ -298,28 +304,51 @@
         .auto-grid .label { margin-top: 0; font-size: 0.65rem; color: #bbb; }
         .auto-grid input { margin-bottom: 0; padding: 6px; font-size: 0.8rem; }
 
-        /* 🔥 軽量ヒットアニメーション */
-        .win-shake {
-            animation: win-pop 0.3s ease-out;
-            border-color: var(--neon-yellow) !important;
-            box-shadow: 0 0 20px var(--neon-yellow) !important;
+        /* 🌈 脳汁ドバドバ！勝ったら虹色に光り揺れる演出 🌈 */
+        .win-rainbow-shake {
+            animation: rainbow-glow 0.4s linear infinite, win-shake-anim 0.2s ease-in-out infinite alternate;
+        }
+
+        .win-rainbow-noshake {
+            animation: rainbow-glow 0.4s linear infinite;
+        }
+
+        .win-text-rainbow {
+            animation: rainbow-text 0.2s linear infinite;
         }
 
         .lose-shake {
-            animation: lose-pop 0.25s ease-out;
+            animation: lose-shake-anim 0.2s ease-in-out 2;
             border-color: var(--neon-red) !important;
         }
 
-        @keyframes win-pop {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.03); }
-            100% { transform: scale(1); }
+        @keyframes rainbow-glow {
+            0% { border-color: #ff0000; box-shadow: 0 0 25px #ff0000, inset 0 0 15px #ff0000; }
+            20% { border-color: #ffff00; box-shadow: 0 0 25px #ffff00, inset 0 0 15px #ffff00; }
+            40% { border-color: #00ff00; box-shadow: 0 0 25px #00ff00, inset 0 0 15px #00ff00; }
+            60% { border-color: #00ffff; box-shadow: 0 0 25px #00ffff, inset 0 0 15px #00ffff; }
+            80% { border-color: #ff00ff; box-shadow: 0 0 25px #ff00ff, inset 0 0 15px #ff00ff; }
+            100% { border-color: #ff0000; box-shadow: 0 0 25px #ff0000, inset 0 0 15px #ff0000; }
         }
 
-        @keyframes lose-pop {
+        @keyframes rainbow-text {
+            0% { color: #ff0055; text-shadow: 0 0 15px #ff0055; }
+            25% { color: #ffe600; text-shadow: 0 0 15px #ffe600; }
+            50% { color: #00ff66; text-shadow: 0 0 15px #00ff66; }
+            75% { color: #00f3ff; text-shadow: 0 0 15px #00f3ff; }
+            100% { color: #ff00a0; text-shadow: 0 0 15px #ff00a0; }
+        }
+
+        @keyframes win-shake-anim {
+            0% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.05) rotate(-1.5deg); }
+            100% { transform: scale(1.05) rotate(1.5deg); }
+        }
+
+        @keyframes lose-shake-anim {
             0% { transform: translateX(0); }
-            25% { transform: translateX(-4px); }
-            75% { transform: translateX(4px); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
             100% { transform: translateX(0); }
         }
     </style>
@@ -328,15 +357,15 @@
 
 <div class="container">
     <div class="card" id="main-card">
-        <div class="header">🔥 脳汁炸裂！DICE 🔥</div>
+        <div class="header">🚨 脳汁全開！DICE 🚨</div>
         <p style="font-size: 0.75rem; color: #00f3ff; font-weight: bold; margin: 0 0 6px 0; text-align: center; text-shadow: 0 0 4px #00f3ff;">
-            ⚡ 0〜10000の神引きを狙え！脳汁ドバドバ一獲千金 ⚡
+            ⚡ 神引き連発！全財産溶かして脳汁を出せ！ ⚡
         </p>
 
         <!-- 1. 出目・結果表示エリア -->
         <div class="dice-display" id="dice-display-box">
             <div id="dice-num" class="dice-number">????</div>
-            <div id="dice-status" class="dice-status" style="color: #00f3ff;">💰 ベットして運命のダイスを振れ！！</div>
+            <div id="dice-status" class="dice-status" style="color: #00f3ff;">💰 ぶち込んで運命のダイスを回せ！！</div>
         </div>
 
         <!-- 2. 確率・倍率表示エリア -->
@@ -372,10 +401,15 @@
         <input type="number" id="bet-amount" min="10" value="10" placeholder="例: 10">
 
         <!-- 5. ベットアクションボタン -->
-        <button id="roll-btn" class="btn-roll">🎲 運命のダイスを振る！！</button>
+        <button id="roll-btn" class="btn-roll">🎲 脳汁ダイスを回転！！</button>
 
         <!-- 6. 詳細オプション・自動設定パネル -->
         <div class="option-box">
+            <label class="checkbox-label">
+                <input type="checkbox" id="disable-shake">
+                <span>🚫 画面の揺れ演出をオフにする</span>
+            </label>
+
             <label class="checkbox-label">
                 <input type="checkbox" id="skip-anim">
                 <span>⚡ 爆速演出スキップ（即時判定）</span>
@@ -390,8 +424,8 @@
                     <input type="number" id="auto-count" value="10" min="0" placeholder="例: 10">
                 </div>
                 <div>
-                    <span class="label">速度 (ms/最低500)</span>
-                    <input type="number" id="auto-interval" value="600" min="500" step="100" placeholder="600">
+                    <span class="label">速度 (ms/最低100)</span>
+                    <input type="number" id="auto-interval" value="200" min="100" step="50" placeholder="200">
                 </div>
                 <div>
                     <span class="label">損切りストップ</span>
@@ -403,7 +437,7 @@
                 </div>
             </div>
 
-            <button id="auto-btn" class="btn-auto">▶ 自動ベット爆走スタート</button>
+            <button id="auto-btn" class="btn-auto">▶ 超高速・自動ベット爆走スタート</button>
         </div>
     </div>
 
@@ -522,7 +556,7 @@
         if (autoTimer) clearTimeout(autoTimer);
 
         const autoBtn = document.getElementById("auto-btn");
-        autoBtn.innerText = "▶ 自動ベット爆走スタート";
+        autoBtn.innerText = "▶ 超高速・自動ベット爆走スタート";
         autoBtn.classList.remove("active");
 
         toggleInputsDisabled(false);
@@ -540,6 +574,7 @@
         document.getElementById("bet-amount").disabled = disabled;
         document.getElementById("target-slider").disabled = disabled;
         document.getElementById("skip-anim").disabled = disabled;
+        document.getElementById("disable-shake").disabled = disabled;
         document.getElementById("auto-count").disabled = disabled;
         document.getElementById("auto-interval").disabled = disabled;
         document.getElementById("stop-loss").disabled = disabled;
@@ -568,7 +603,7 @@
         }
 
         if (takeProfit > 0 && currentBalance >= takeProfit) {
-            stopAutoBet(`利確ライン (${takeProfit}G 以上) に達しました`);
+            stopAutoBet(`利確ストップ (${takeProfit}G 以上) に達しました`);
             return;
         }
 
@@ -577,8 +612,8 @@
 
         executedCount++;
 
-        let interval = parseInt(document.getElementById("auto-interval").value, 10) || 600;
-        if (interval < 500) interval = 500;
+        let interval = parseInt(document.getElementById("auto-interval").value, 10) || 200;
+        if (interval < 50) interval = 50;
 
         autoTimer = setTimeout(runAutoLoop, interval);
     }
@@ -588,6 +623,7 @@
         const amount = parseInt(document.getElementById("bet-amount").value, 10);
         const target = parseInt(document.getElementById("target-slider").value, 10);
         const skipAnim = document.getElementById("skip-anim").checked;
+        const disableShake = document.getElementById("disable-shake").checked;
 
         if (!wallet_id) { alert("口座を選択してください"); return false; }
         if (!amount || amount <= 0) { alert("賭け金を正しく入力してください"); return false; }
@@ -598,18 +634,21 @@
         const displayBox = document.getElementById("dice-display-box");
 
         // アニメーション初期化
-        displayBox.classList.remove("win-shake", "lose-shake");
+        displayBox.className = "dice-display";
+        diceNumEl.className = "dice-number";
 
         if (!isAutoCall) rollBtn.disabled = true;
         statusEl.style.color = "#00f3ff";
         statusEl.innerText = "🎲 激アツ！ダイス回転中...！";
 
-        let animInterval = null;
+        let animFrameId = null;
         if (!skipAnim) {
-            animInterval = setInterval(() => {
+            const updateFastAnim = () => {
                 diceNumEl.innerText = Math.floor(Math.random() * 10001);
                 diceNumEl.style.color = "#00ff66";
-            }, 60); // アニメーション描画間隔を少し伸ばして軽量化
+                animFrameId = requestAnimationFrame(updateFastAnim);
+            };
+            animFrameId = requestAnimationFrame(updateFastAnim);
         }
 
         try {
@@ -620,11 +659,11 @@
             });
 
             const data = await res.json();
-            const delay = skipAnim ? 0 : 400;
+            const delay = skipAnim ? 0 : 250;
 
             return await new Promise((resolve) => {
                 setTimeout(async () => {
-                    if (animInterval) clearInterval(animInterval);
+                    if (animFrameId) cancelAnimationFrame(animFrameId);
                     if (!isAutoCall && !isAutoRunning) rollBtn.disabled = false;
 
                     if (!res.ok) {
@@ -639,15 +678,22 @@
                     diceNumEl.innerText = data.roll;
 
                     if (data.is_win) {
-                        diceNumEl.style.color = "#ffe600";
+                        diceNumEl.classList.add("win-text-rainbow");
                         statusEl.style.color = "#00ff66";
-                        statusEl.innerText = `🎉 大勝利！！ +${data.payout} Gold ゲット！！ 🎉`;
-                        displayBox.classList.add("win-shake");
+                        statusEl.innerText = `🌈👑 脳汁大噴射！！ +${data.payout} Gold 獲得！！ 👑🌈`;
+                        
+                        if (disableShake) {
+                            displayBox.classList.add("win-rainbow-noshake");
+                        } else {
+                            displayBox.classList.add("win-rainbow-shake");
+                        }
                     } else {
                         diceNumEl.style.color = "#ff003c";
                         statusEl.style.color = "#ff003c";
-                        statusEl.innerText = `💀 敗北... ${amount} Gold 没収！！`;
-                        displayBox.classList.add("lose-shake");
+                        statusEl.innerText = `💀 爆死... ${amount} Gold 没収！！`;
+                        if (!disableShake) {
+                            displayBox.classList.add("lose-shake");
+                        }
                     }
 
                     await loadWallets();
@@ -656,7 +702,7 @@
             });
 
         } catch (e) {
-            if (animInterval) clearInterval(animInterval);
+            if (animFrameId) cancelAnimationFrame(animFrameId);
             if (!isAutoCall && !isAutoRunning) rollBtn.disabled = false;
             console.error(e);
             if (isAutoRunning) stopAutoBet("通信エラーのため停止しました");
