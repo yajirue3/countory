@@ -133,6 +133,34 @@ def play_dice(data: DicePlayRequest, authorization: str = Header(None)):
 # --------------------------------------------------
 # カジノAPI：タワーゲーム実行
 # --------------------------------------------------
+# --- リクエストモデルに追加・変更 ---
+import uuid
+
+# セッション保持用辞書 (メモリ管理)
+TOWER_SESSIONS = {}
+
+class TowerStartRequest(BaseModel):
+    wallet_id: str
+    amount: int
+
+class TowerStepRequest(BaseModel):
+    game_id: str
+    floor: int
+    tile_index: int
+
+class TowerCashoutRequest(BaseModel):
+    game_id: str
+
+# 還元率 90.0% (ハウスエッジ 10.0%) の倍率計算関数
+def get_tower_multiplier(floor: int) -> float:
+    if floor <= 0:
+        return 1.0
+    return round((2.70) ** floor, 2)
+
+
+# --------------------------------------------------
+# カジノAPI：タワーゲーム（イカサマ防止 & RTP 90.0%）
+# --------------------------------------------------
 @router.post("/api/tower/start")
 def start_tower(data: TowerStartRequest, authorization: str = Header(None)):
     user = get_user_from_token(authorization)
@@ -152,33 +180,109 @@ def start_tower(data: TowerStartRequest, authorization: str = Header(None)):
     new_balance = wallet["balance"] - data.amount
     supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
 
-    # 当たる確率 33.3%（3択のうち safe は 1つ、trap は 2つ）
-    # 各階（全15階）の安全なブロック位置 (0, 1, 2) をサーバー側で決定
+    # 正解データをサーバー側でのみ保持 (レスポンスには含めない)
     safe_tiles = [random.randint(0, 2) for _ in range(15)]
+    game_id = str(uuid.uuid4())
+
+    TOWER_SESSIONS[game_id] = {
+        "user_id": str(user.id),
+        "wallet_id": data.wallet_id,
+        "bet_amount": data.amount,
+        "current_floor": 1,
+        "safe_tiles": safe_tiles,
+        "is_active": True
+    }
 
     return {
-        "safe_tiles": safe_tiles,
+        "game_id": game_id,
         "new_balance": new_balance
     }
 
 
-@router.post("/api/tower/finish")
-def finish_tower(data: TowerFinishRequest, authorization: str = Header(None)):
+@router.post("/api/tower/step")
+def step_tower(data: TowerStepRequest, authorization: str = Header(None)):
     user = get_user_from_token(authorization)
 
-    wallet_res = supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
-    if not wallet_res.data:
-        raise HTTPException(status_code=400, detail="指定された口座が存在しないか、所有権がありません。")
+    session = TOWER_SESSIONS.get(data.game_id)
+    if not session or not session["is_active"]:
+        raise HTTPException(status_code=400, detail="無効または終了したゲームセッションです。")
+    if session["user_id"] != str(user.id):
+        raise HTTPException(status_code=403, detail="不正な操作です。")
+    if data.floor != session["current_floor"]:
+        raise HTTPException(status_code=400, detail="不正な階数指定です。")
+    if data.tile_index not in [0, 1, 2]:
+        raise HTTPException(status_code=400, detail="無効な選択肢です。")
 
-    wallet = wallet_res.data[0]
+    safe_tile = session["safe_tiles"][data.floor - 1]
+    is_safe = (data.tile_index == safe_tile)
 
-    # 勝利金（キャッシュアウト時または制覇時）を付与
-    if data.payout > 0:
-        new_balance = wallet["balance"] + data.payout
-        supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+    if is_safe:
+        multiplier = get_tower_multiplier(data.floor)
+        current_payout = int(session["bet_amount"] * multiplier)
+
+        # 15階全制覇時
+        if data.floor == 15:
+            session["is_active"] = False
+            wallet_res = supabase.table("wallets").select("*").eq("wallet_id", session["wallet_id"]).execute()
+            wallet = wallet_res.data[0]
+            new_balance = wallet["balance"] + current_payout
+            supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+
+            return {
+                "is_safe": True,
+                "safe_tile": safe_tile,
+                "is_cleared": True,
+                "multiplier": multiplier,
+                "payout": current_payout,
+                "new_balance": new_balance
+            }
+        else:
+            session["current_floor"] += 1
+            return {
+                "is_safe": True,
+                "safe_tile": safe_tile,
+                "is_cleared": False,
+                "multiplier": multiplier,
+                "payout": current_payout,
+                "next_floor": session["current_floor"]
+            }
     else:
-        new_balance = wallet["balance"]
+        # 罠を踏んでゲームオーバー
+        session["is_active"] = False
+        return {
+            "is_safe": False,
+            "safe_tile": safe_tile,
+            "is_cleared": False,
+            "multiplier": 0,
+            "payout": 0
+        }
+
+
+@router.post("/api/tower/cashout")
+def cashout_tower(data: TowerCashoutRequest, authorization: str = Header(None)):
+    user = get_user_from_token(authorization)
+
+    session = TOWER_SESSIONS.get(data.game_id)
+    if not session or not session["is_active"]:
+        raise HTTPException(status_code=400, detail="無効または終了したゲームセッションです。")
+    if session["user_id"] != str(user.id):
+        raise HTTPException(status_code=403, detail="不正な操作です。")
+
+    cleared_floor = session["current_floor"] - 1
+    if cleared_floor < 1:
+        raise HTTPException(status_code=400, detail="1階もクリアしていないため引き出せません。")
+
+    multiplier = get_tower_multiplier(cleared_floor)
+    payout = int(session["bet_amount"] * multiplier)
+
+    session["is_active"] = False
+
+    wallet_res = supabase.table("wallets").select("*").eq("wallet_id", session["wallet_id"]).execute()
+    wallet = wallet_res.data[0]
+    new_balance = wallet["balance"] + payout
+    supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
 
     return {
+        "payout": payout,
         "new_balance": new_balance
     }
