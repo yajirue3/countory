@@ -7,9 +7,6 @@ from typing import Dict, Any, Optional
 
 router = APIRouter(prefix="/api/factory", tags=["factory"])
 
-# -------------------------------------------------------------------
-# メモリ保持データ
-# -------------------------------------------------------------------
 factory_sessions: Dict[str, Dict[str, Any]] = {}
 
 factory_metrics: Dict[str, int] = {
@@ -26,9 +23,6 @@ PROCESS_STEPS = [
     "⑤ 最終精度検査および出荷シリアル発行"
 ]
 
-# -------------------------------------------------------------------
-# リクエスト / レスポンス モデル
-# -------------------------------------------------------------------
 class ProcessAction(BaseModel):
     step: int
     answer: Any
@@ -40,9 +34,6 @@ class SystemDiagnostics(BaseModel):
     total_units_produced: int
     error_count: int
 
-# -------------------------------------------------------------------
-# 補助関数
-# -------------------------------------------------------------------
 def generate_serial_number() -> str:
     prefix = "MRK-SYS"
     timestamp = int(time.time()) % 100000
@@ -58,9 +49,6 @@ def reset_session(user_id: str) -> Dict[str, Any]:
     factory_sessions[user_id]["serial_number"] = generate_serial_number()
     return factory_sessions[user_id]
 
-# -------------------------------------------------------------------
-# エンドポイント
-# -------------------------------------------------------------------
 @router.get("/status")
 def get_factory_status(authorization: str = Header(None)):
     user = main.get_user_from_token(authorization)
@@ -97,7 +85,6 @@ def process_step(data: ProcessAction, authorization: str = Header(None)):
             detail="[ERROR: DESYNC] 工程シーケンスが不整合です。ラインを再読み込みしてください。"
         )
 
-    # 各工程のバリデーション
     if data.step == 1:
         if data.answer != session["target_part"]:
             factory_metrics["total_calibration_errors"] += 1
@@ -108,32 +95,48 @@ def process_step(data: ProcessAction, authorization: str = Header(None)):
             )
 
     elif data.step == 2:
-        if data.answer != session["math_answer"]:
+        # 整数値として正解を比較
+        try:
+            user_ans = int(data.answer)
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=400, detail="[ERROR: INVALID INPUT] 整数を入力してください。")
+
+        if user_ans != session["math_answer"]:
             factory_metrics["total_calibration_errors"] += 1
             log_system_event("error", f"Calibration error by User: {user.id}")
             raise HTTPException(
                 status_code=400, 
-                detail=f"[ERROR: CALIBRATION FAILED] 抵抗値演算エラー。算出値: {data.answer} Ω"
+                detail=f"[ERROR: CALIBRATION FAILED] 抵抗値演算エラー。算出値: {user_ans} Ω"
             )
 
     elif data.step == 3:
-        if not (45 <= data.answer <= 55):
+        # トルクメーターの範囲チェック（整数値）
+        try:
+            val = int(data.answer)
+        except (ValueError, TypeError):
+            val = 0
+
+        if not (45 <= val <= 55):
             factory_metrics["total_calibration_errors"] += 1
             log_system_event("error", f"Torque limit out of range by User: {user.id}")
             raise HTTPException(
                 status_code=400, 
-                detail=f"[ERROR: TOLERANCE EXCEEDED] トルク公差外（{data.answer} Nm）。規定値: 50±5 Nm"
+                detail=f"[ERROR: TOLERANCE EXCEEDED] トルク公差外（{val} Nm）。規定値: 50±5 Nm"
             )
 
     elif data.step == 4:
-        if data.answer < 10:
+        try:
+            val = int(data.answer)
+        except (ValueError, TypeError):
+            val = 0
+
+        if val < 10:
             factory_metrics["total_calibration_errors"] += 1
             raise HTTPException(
                 status_code=400, 
-                detail=f"[ERROR: PRESSURE LOW] 油圧不足（{data.answer} Bar）。規定圧 10 Bar 未満です。"
+                detail=f"[ERROR: PRESSURE LOW] 油圧不足（{val} Bar）。規定圧 10 Bar 未満です。"
             )
 
-    # 最終出荷工程（報酬反映）
     if data.step == 5:
         if not data.wallet_id:
             raise HTTPException(
@@ -143,77 +146,7 @@ def process_step(data: ProcessAction, authorization: str = Header(None)):
 
         reward_gold = random.randint(15, 25)
         
-        # Supabaseのwalletsテーブルを参照
         w_res = main.supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
         if not w_res.data:
             raise HTTPException(
-                status_code=400, 
-                detail="[ERROR: INVALID ACCOUNT] 指定された口座が存在しないかアクセス権がありません。"
-            )
-
-        current_balance = w_res.data[0]["balance"]
-        main.supabase.table("wallets").update({"balance": current_balance + reward_gold}).eq("id", w_res.data[0]["id"]).execute()
-
-        factory_metrics["total_units_produced"] += 1
-        completed_serial = session.get("serial_number", "UNKNOWN")
-        log_system_event("info", f"Unit completed. Serial: {completed_serial}, Reward: {reward_gold} G")
-
-        next_session = reset_session(user.id)
-        
-        return {
-            "completed": True,
-            "reward": reward_gold,
-            "serial": completed_serial,
-            "message": f"[SYSTEM] 製品出荷完了。SERIAL: {completed_serial} | ＋{reward_gold} Gold 獲得。",
-            "next_step": next_session
-        }
-
-    # 次の工程へ進行
-    next_step = data.step + 1
-    session_data = generate_step_data(next_step)
-    session_data["serial_number"] = session.get("serial_number")
-    factory_sessions[user.id] = session_data
-
-    return {
-        "completed": False,
-        "next_step": factory_sessions[user.id]
-    }
-
-def generate_step_data(step: int) -> Dict[str, Any]:
-    base = {
-        "current_step": step, 
-        "title": PROCESS_STEPS[step - 1]
-    }
-    
-    if step == 1:
-        parts = ["SKF-6204ベアリング", "SUS304 M12ボルト", "IC-TTL7400回路", "高耐圧シリコンパッキン"]
-        target = random.choice(parts)
-        base.update({
-            "target_part": target,
-            "options": random.sample(parts, len(parts))
-        })
-
-    elif step == 2:
-        voltage = random.randint(12, 48)
-        current = random.choice([2, 3, 4, 6])
-        base.update({
-            "math_question": f"回路電圧 {voltage}V / 規定電流 {current}A の適正抵抗値 [Ω] を設定せよ",
-            "math_answer": voltage // current
-        })
-
-    elif step == 3:
-        base.update({
-            "instruction": "クラッチ同期：規定トルク範囲（45 - 55 Nm）内でロックピンを結合せよ"
-        })
-
-    elif step == 4:
-        base.update({
-            "instruction": "手動油圧シリンダー：規定圧（10 Bar）に到達するまでポンピングを実行せよ"
-        })
-
-    elif step == 5:
-        base.update({
-            "instruction": "全機械シーケンス正常完了：最終品質検査をパスして出荷転送を実行"
-        })
-
-    return base
+                sta
