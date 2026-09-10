@@ -418,6 +418,11 @@
         <!-- 6. 詳細オプション・自動設定パネル -->
         <div class="option-box">
             <label class="checkbox-label">
+                <input type="checkbox" id="bgm-toggle">
+                <span>🎵 BGM ON</span>
+            </label>
+
+            <label class="checkbox-label">
                 <input type="checkbox" id="disable-shake">
                 <span>🚫 画面の揺れ・飛び出し演出をオフにする</span>
             </label>
@@ -456,6 +461,8 @@
     <!-- 戻るボタン -->
     <button class="btn-back" onclick="location.href='/casino'">◀ カジノ一覧に戻る</button>
 </div>
+
+<audio id="bgm-player" src="/templates/dopa.mp3" loop preload="auto"></audio>
 
 <script>
     const token = localStorage.getItem("access_token");
@@ -502,6 +509,23 @@
         document.getElementById("bet-amount").addEventListener("input", calculateStats);
         document.getElementById("roll-btn").addEventListener("click", () => playDice(false));
         document.getElementById("auto-btn").addEventListener("click", toggleAutoBet);
+
+        const bgmPlayer = document.getElementById("bgm-player");
+        const bgmToggle = document.getElementById("bgm-toggle");
+
+        bgmToggle.addEventListener("change", (e) => {
+            if (e.target.checked) {
+                bgmPlayer.play().catch(err => console.log("再生ブロック解除待ち:", err));
+            } else {
+                bgmPlayer.pause();
+            }
+        });
+
+        document.addEventListener("click", function startAudioOnFirstUserGesture() {
+            if (bgmToggle.checked && bgmPlayer.paused) {
+                bgmPlayer.play().catch(() => {});
+            }
+        }, { once: true });
     }
 
     function setMode(mode) {
