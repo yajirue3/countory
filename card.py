@@ -20,7 +20,6 @@ router = APIRouter()
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
-# Supabaseクライアント初期化
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 supabase: Optional[Client] = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
@@ -39,7 +38,6 @@ async def get_user_from_token_async(authorization: str):
     except Exception:
         raise HTTPException(status_code=401, detail="無効なトークンです")
 
-# マスターデータ
 CARD_DATABASE = {
     "u_01": {"id": "u_01", "name": "先鋒兵", "type": "unit", "cost": 1, "atk": 2, "hp": 1, "haste": True, "desc": "速攻"},
     "u_02": {"id": "u_02", "name": "重装兵", "type": "unit", "cost": 3, "atk": 2, "hp": 5, "taunt": True, "desc": "挑発"},
@@ -66,12 +64,10 @@ class CardGameSession:
         self.guest_name: Optional[str] = None
         self.guest_wallet_id: Optional[str] = None
         self.bet_amount = bet_amount
-        
         self.status = "WAITING"
         self.lock = asyncio.Lock()
         self.timer_task: Optional[asyncio.Task] = None
         self.time_limit = 60
-        
         self.turn_user_id: Optional[str] = None
         self.draft_pool: List[str] = []
         self.draft_options: Dict[str, List[str]] = {}
@@ -93,31 +89,24 @@ async def get_card(request: Request):
 
 @router.get("/api/card/rooms")
 async def get_rooms():
-    return {"rooms": [{"room_id": s.room_id, "host_name": s.host_name, "bet_amount": s.bet_amount} 
-                      for s in CARD_SESSIONS.values() if s.status == "WAITING"]}
+    return {"rooms": [{"room_id": s.room_id, "host_name": s.host_name, "bet_amount": s.bet_amount} for s in CARD_SESSIONS.values() if s.status == "WAITING"]}
 
 @router.post("/api/card/create")
 async def create_room(data: CreateRoomRequest, authorization: str = Header(None)):
     user = await get_user_from_token_async(authorization)
-
     if supabase:
         w_res = await async_supabase_exec(supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id))
         if not w_res.data or w_res.data[0]["balance"] < data.amount:
             raise HTTPException(status_code=400, detail="残高が不足しています")
-        
-        # 部屋作成時にホストの賭け金を即時引き落とし
         new_bal = w_res.data[0]["balance"] - data.amount
         await async_supabase_exec(supabase.table("wallets").update({"balance": new_bal}).eq("wallet_id", data.wallet_id))
-
         p_res = await async_supabase_exec(supabase.table("profiles").select("nickname").eq("id", user.id))
         name = p_res.data[0]["nickname"] if p_res and p_res.data and "nickname" in p_res.data[0] else f"Player-{str(user.id)[:4]}"
     else:
         name = f"Player-{str(user.id)[:4]}"
-
     room_id = str(uuid.uuid4())[:8]
     session = CardGameSession(room_id, str(user.id), name, data.wallet_id, data.amount)
     CARD_SESSIONS[room_id] = session
-    
     set_timer(session, seconds=60)
     return {"room_id": room_id}
 
@@ -129,16 +118,13 @@ async def card_websocket(websocket: WebSocket, room_id: str, token: str):
     except Exception:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
-
     user_id = str(user.id)
     session = CARD_SESSIONS.get(room_id)
     if not session:
         await websocket.send_json({"type": "ERROR", "message": "部屋が存在しません"})
         await websocket.close()
         return
-
     CLIENT_CONNECTIONS.setdefault(room_id, {})[user_id] = websocket
-
     async with session.lock:
         if session.status == "WAITING" and session.host_id != user_id:
             if supabase:
@@ -147,23 +133,17 @@ async def card_websocket(websocket: WebSocket, room_id: str, token: str):
                     await websocket.send_json({"type": "ERROR", "message": "参加資金が不足しています"})
                     await websocket.close()
                     return
-                
                 guest_w = w_res.data[0]
-                # ゲストの賭け金を即時引き落とし
                 await async_supabase_exec(supabase.table("wallets").update({"balance": guest_w["balance"] - session.bet_amount}).eq("wallet_id", guest_w["wallet_id"]))
-
                 p_res = await async_supabase_exec(supabase.table("profiles").select("nickname").eq("id", user.id))
                 session.guest_name = p_res.data[0]["nickname"] if p_res and p_res.data and "nickname" in p_res.data[0] else f"Player-{user_id[:4]}"
                 session.guest_wallet_id = guest_w["wallet_id"]
             else:
                 session.guest_name = f"Player-{user_id[:4]}"
                 session.guest_wallet_id = f"w_{user_id[:4]}"
-
             session.guest_id = user_id
             start_draft_phase(session)
-
     await broadcast_state(room_id)
-
     try:
         while True:
             payload = await websocket.receive_json()
@@ -176,10 +156,8 @@ async def card_websocket(websocket: WebSocket, room_id: str, token: str):
 async def handle_disconnect(room_id: str, user_id: str):
     if room_id in CLIENT_CONNECTIONS and user_id in CLIENT_CONNECTIONS[room_id]:
         del CLIENT_CONNECTIONS[room_id][user_id]
-
     session = CARD_SESSIONS.get(room_id)
     if not session: return
-
     async with session.lock:
         if session.status == "WAITING":
             if user_id == session.host_id:
@@ -194,7 +172,6 @@ async def handle_disconnect(room_id: str, user_id: str):
             session.message = "相手が通信を切断しました。不戦勝です！"
             await settle_payout(session, winner)
             if session.timer_task: session.timer_task.cancel()
-    
     await broadcast_state(room_id)
     if session and session.status == "ENDED":
         await cleanup_room(room_id)
@@ -213,7 +190,6 @@ async def cleanup_room(room_id: str):
             except: pass
         del CLIENT_CONNECTIONS[room_id]
 
-# --- タイマー管理系 ---
 def set_timer(session: CardGameSession, seconds: int = 30):
     if session.timer_task and not session.timer_task.done():
         session.timer_task.cancel()
@@ -226,11 +202,9 @@ async def run_timer(room_id: str):
             await asyncio.sleep(1)
             session = CARD_SESSIONS.get(room_id)
             if not session: break
-            
             async with session.lock:
                 if session.status == "ENDED": break
                 session.time_limit -= 1
-                
                 if session.time_limit <= 0:
                     if session.status == "WAITING":
                         session.status = "ENDED"
@@ -243,7 +217,6 @@ async def run_timer(room_id: str):
                         auto_draft(session)
                     elif session.status == "BATTLE":
                         switch_turn(session)
-
             if session.time_limit % 5 == 0 or session.time_limit <= 5:
                 await broadcast_state(room_id)
     except asyncio.CancelledError:
@@ -286,49 +259,40 @@ def start_battle_phase(session: CardGameSession):
     h, g = session.host_id, session.guest_id
     random.shuffle(session.decks[h])
     random.shuffle(session.decks[g])
-
     session.hp = {h: 20, g: 20}
     session.max_mp = {h: 1, g: 1}
     session.mp = {h: 1, g: 1}
     session.boards = {h: [], g: []}
     session.hands = {h: [], g: []}
-    
     for uid in [h, g]:
         for _ in range(min(3, len(session.decks[uid]))):
             c = session.decks[uid].pop()
             c["instance_id"] = str(uuid.uuid4())[:8]
             session.hands[uid].append(c)
-
     session.turn_user_id = h
     set_timer(session, 45)
 
 async def process_action(session: CardGameSession, user_id: str, action: dict):
     if session.status == "ENDED" or session.turn_user_id != user_id: return
     act = action.get("action")
-
     if session.status == "DRAFT" and act == "PICK_CARD":
         cid = action.get("card_id")
         opts = session.draft_options.get(user_id, [])
         if cid in opts:
             session.decks[user_id].append(copy.deepcopy(CARD_DATABASE[cid]))
             advance_draft(session)
-
     elif session.status == "BATTLE":
         if act == "PLAY_HAND":
             instance_id = action.get("card_instance_id")
             target = action.get("target")
-
             hand = session.hands[user_id]
             idx = next((i for i, c in enumerate(hand) if c.get("instance_id") == instance_id), None)
             if idx is None: return
-
             card = hand[idx]
             if session.mp[user_id] < card["cost"]: return
-
             session.mp[user_id] -= card["cost"]
             played = hand.pop(idx)
             session.message = f"{session.host_name if user_id == session.host_id else session.guest_name} が {played['name']} を使用！"
-
             if played["type"] == "unit":
                 session.boards[user_id].append({
                     "instance_id": str(uuid.uuid4())[:8],
@@ -343,22 +307,17 @@ async def process_action(session: CardGameSession, user_id: str, action: dict):
                 })
             elif played["type"] == "spell":
                 resolve_spell(session, user_id, played, target)
-
             await check_battle_state(session)
-
         elif act == "DECLARE_ATTACK":
             atk_id = action.get("attacker_id")
             target = action.get("target")
-
             opp_id = session.guest_id if user_id == session.host_id else session.host_id
             attacker = next((u for u in session.boards[user_id] if u["instance_id"] == atk_id), None)
             if not attacker or not attacker["can_attack"] or not target: return
-
             taunts = [u for u in session.boards[opp_id] if u["taunt"]]
             if taunts:
                 if target.get("type") != "unit" or target.get("id") not in [u["instance_id"] for u in taunts]:
-                    return # 挑発を無視している
-
+                    return
             session.message = f"{attacker['name']} の攻撃！"
             if target.get("type") == "hero":
                 session.hp[opp_id] -= attacker["atk"]
@@ -371,16 +330,13 @@ async def process_action(session: CardGameSession, user_id: str, action: dict):
                     attacker["curr_hp"] -= defender["atk"]
                     if attacker["lifesteal"]: session.hp[user_id] = min(20, session.hp[user_id] + attacker["atk"])
                     attacker["can_attack"] = False
-
             await check_battle_state(session)
-
         elif act == "END_TURN":
             switch_turn(session)
 
 def resolve_spell(session: CardGameSession, user_id: str, card: dict, target: Optional[dict]):
     opp_id = session.guest_id if user_id == session.host_id else session.host_id
     eff, val = card.get("effect"), card.get("val", 0)
-
     if eff == "damage" and target:
         if target.get("type") == "hero" and target.get("id") == opp_id:
             session.hp[opp_id] -= val
@@ -402,11 +358,9 @@ def switch_turn(session: CardGameSession):
     nxt = session.guest_id if session.turn_user_id == session.host_id else session.host_id
     session.turn_user_id = nxt
     session.message = f"{session.host_name if nxt == session.host_id else session.guest_name} のターン"
-    
     session.max_mp[nxt] = min(10, session.max_mp[nxt] + 1)
     session.mp[nxt] = session.max_mp[nxt]
     for u in session.boards[nxt]: u["can_attack"] = True
-
     if session.decks[nxt] and len(session.hands[nxt]) < 7:
         c = session.decks[nxt].pop()
         c["instance_id"] = str(uuid.uuid4())[:8]
@@ -416,10 +370,8 @@ def switch_turn(session: CardGameSession):
 async def check_battle_state(session: CardGameSession):
     for uid in [session.host_id, session.guest_id]:
         session.boards[uid] = [u for u in session.boards[uid] if u["curr_hp"] > 0]
-
     h, g = session.host_id, session.guest_id
     winner = None
-
     if session.hp[g] <= 0 and session.hp[h] <= 0:
         session.status = "ENDED"
         session.message = "引き分け！両者に資金を返却します。"
@@ -427,7 +379,6 @@ async def check_battle_state(session: CardGameSession):
         return
     elif session.hp[g] <= 0: winner = h
     elif session.hp[h] <= 0: winner = g
-
     if winner:
         session.status = "ENDED"
         session.winner_id = winner
@@ -450,7 +401,6 @@ async def settle_payout(session: CardGameSession, winner: Optional[str]):
 async def broadcast_state(room_id: str):
     session = CARD_SESSIONS.get(room_id)
     if not session or room_id not in CLIENT_CONNECTIONS: return
-
     for uid, ws in list(CLIENT_CONNECTIONS[room_id].items()):
         try:
             state = mask_session_for_client(session, uid)
@@ -460,13 +410,10 @@ async def broadcast_state(room_id: str):
 
 def mask_session_for_client(session: CardGameSession, target_uid: str) -> dict:
     opp_id = session.guest_id if target_uid == session.host_id else session.host_id
-
-    masked_hands = {
-        target_uid: session.hands.get(target_uid, [])
-    }
+    masked_hands = {target_uid: session.hands.get(target_uid, [])}
     if opp_id:
         masked_hands[opp_id] = [{"instance_id": f"masked_{i}"} for i in range(len(session.hands.get(opp_id, [])))]
-
+    
     return {
         "room_id": session.room_id,
         "status": session.status,
@@ -479,6 +426,7 @@ def mask_session_for_client(session: CardGameSession, target_uid: str) -> dict:
         "draft_options": [CARD_DATABASE[cid] for cid in session.draft_options.get(target_uid, [])] if session.status == "DRAFT" else [],
         "hands": masked_hands,
         "deck_counts": {uid: len(deck) for uid, deck in session.decks.items()},
+        "my_deck": session.decks.get(target_uid, []),  # ★ここを追加（ピック履歴用）
         "boards": session.boards,
         "hp": session.hp,
         "mp": session.mp,
