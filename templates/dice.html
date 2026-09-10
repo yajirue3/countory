@@ -13,311 +13,274 @@
             --neon-yellow: #ffe600;
             --neon-green: #00ff66;
             --neon-red: #ff003c;
-            --bg-dark: #05020a;
         }
 
         body { 
             font-family: 'M PLUS 1p', 'Black Ops One', sans-serif; 
             background: #000;
             background-image: 
-                radial-gradient(circle at 50% 20%, #20002c 0%, #000000 80%),
-                linear-gradient(0deg, rgba(255, 0, 127, 0.1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
-            background-size: 100% 100%, 30px 30px, 30px 30px;
+                radial-gradient(circle at 50% 20%, #15001f 0%, #000000 80%),
+                linear-gradient(0deg, rgba(255, 0, 127, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.08) 1px, transparent 1px);
+            background-size: 100% 100%, 20px 20px, 20px 20px;
             color: #fff; 
             display: flex; 
             justify-content: center; 
-            padding: 10px 0; 
+            align-items: center;
+            padding: 10px; 
             margin: 0; 
             min-height: 100vh;
+            box-sizing: border-box;
             overflow-x: hidden;
         }
 
         .container { 
             width: 100%;
-            max-width: 420px; 
+            max-width: 380px; 
             display: flex; 
             flex-direction: column; 
-            gap: 12px; 
-            padding: 10px;
+            gap: 10px; 
             box-sizing: border-box;
         }
 
         .card { 
-            background: rgba(15, 5, 25, 0.9); 
-            border: 3px solid var(--neon-pink); 
-            border-radius: 24px; 
-            padding: 18px; 
-            box-shadow: 
-                0 0 20px var(--neon-pink),
-                inset 0 0 15px rgba(255, 0, 127, 0.4); 
-            backdrop-filter: blur(10px);
+            background: rgba(15, 5, 25, 0.92); 
+            border: 2px solid var(--neon-pink); 
+            border-radius: 20px; 
+            padding: 14px; 
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.4); 
             position: relative;
             overflow: hidden;
         }
 
-        .card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-            transform: rotate(45deg);
-            animation: shine 3s infinite linear;
-            pointer-events: none;
-        }
-
-        @keyframes shine {
-            0% { transform: translateY(-100%) rotate(45deg); }
-            100% { transform: translateY(100%) rotate(45deg); }
-        }
-
         .header { 
-            font-size: 1.5rem; 
+            font-size: 1.25rem; 
             font-weight: 900; 
             color: var(--neon-yellow); 
             text-align: center; 
-            border-bottom: 3px stroke var(--neon-cyan); 
-            padding-bottom: 6px; 
-            margin-bottom: 8px; 
-            text-shadow: 0 0 10px var(--neon-yellow), 0 0 20px #ffaa00, 2px 2px 0px #000;
+            border-bottom: 2px solid var(--neon-cyan); 
+            padding-bottom: 4px; 
+            margin-bottom: 6px; 
+            text-shadow: 0 0 8px var(--neon-yellow);
             letter-spacing: 1px;
-            animation: pulse-text 0.8s infinite alternate;
-        }
-
-        @keyframes pulse-text {
-            0% { transform: scale(1); text-shadow: 0 0 10px var(--neon-yellow); }
-            100% { transform: scale(1.03); text-shadow: 0 0 25px var(--neon-yellow), 0 0 40px #ff0055; }
         }
         
         .label { 
-            font-size: 0.85rem; 
+            font-size: 0.75rem; 
             color: var(--neon-cyan); 
-            margin-top: 8px; 
+            margin-top: 6px; 
             display: block; 
             font-weight: 900;
-            text-shadow: 0 0 5px var(--neon-cyan);
-            letter-spacing: 0.5px;
+            text-shadow: 0 0 4px var(--neon-cyan);
         }
 
         input, select { 
             width: 100%; 
-            padding: 12px; 
-            border-radius: 12px; 
+            padding: 8px 10px; 
+            border-radius: 10px; 
             border: 2px solid var(--neon-cyan); 
             background: rgba(10, 10, 20, 0.9); 
             color: #fff; 
             box-sizing: border-box; 
-            margin-top: 4px; 
-            margin-bottom: 8px; 
-            font-size: 1rem; 
+            margin-top: 3px; 
+            margin-bottom: 6px; 
+            font-size: 0.9rem; 
             font-weight: bold;
             font-family: inherit; 
-            box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);
             outline: none;
-            transition: all 0.2s;
+            transition: border-color 0.15s, box-shadow 0.15s;
         }
 
         input:focus, select:focus {
             border-color: var(--neon-pink);
-            box-shadow: 0 0 15px var(--neon-pink);
+            box-shadow: 0 0 10px var(--neon-pink);
         }
         
         button { 
             width: 100%; 
-            padding: 12px; 
+            padding: 10px; 
             border: none; 
-            border-radius: 14px; 
+            border-radius: 12px; 
             font-weight: 900; 
             cursor: pointer; 
             background: var(--neon-yellow); 
             color: #000; 
-            font-size: 1rem; 
+            font-size: 0.95rem; 
             margin-top: 4px; 
-            transition: transform 0.1s, filter 0.2s;
-            box-shadow: 0 0 15px var(--neon-yellow);
+            box-shadow: 0 0 10px var(--neon-yellow);
+            transition: transform 0.08s ease, filter 0.1s ease;
+            user-select: none;
         }
 
-        button:active {
-            transform: scale(0.95);
+        /* 🔥 ボタン押し込みエフェクト */
+        button:active:not(:disabled) {
+            transform: scale(0.96) translateY(2px) !important;
+            filter: brightness(1.2);
+            box-shadow: 0 0 5px var(--neon-yellow);
         }
         
         .btn-roll { 
             background: linear-gradient(135deg, #ff0055 0%, #ff00a0 50%, #7928ca 100%); 
             color: #fff; 
-            font-size: 1.4rem; 
-            padding: 16px; 
-            border-radius: 18px;
-            box-shadow: 0 0 25px var(--neon-pink), 0 0 10px #ff0055;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-            letter-spacing: 1.5px;
-            animation: roll-btn-glow 1.2s infinite alternate;
+            font-size: 1.15rem; 
+            padding: 12px; 
+            border-radius: 14px;
+            box-shadow: 0 0 18px var(--neon-pink);
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
             border: 2px solid #fff;
-        }
-
-        @keyframes roll-btn-glow {
-            0% { box-shadow: 0 0 15px var(--neon-pink); transform: scale(1); }
-            100% { box-shadow: 0 0 35px var(--neon-pink), 0 0 15px var(--neon-yellow); transform: scale(1.02); }
         }
 
         .btn-roll:disabled { 
             background: #333; 
             box-shadow: none; 
             cursor: not-allowed; 
-            animation: none;
             border: none;
             color: #666;
+            transform: none !important;
         }
 
         .btn-auto {
             background: linear-gradient(135deg, #00ff66 0%, #009933 100%);
             color: #000;
-            font-size: 1.1rem;
-            margin-top: 10px;
-            box-shadow: 0 0 15px var(--neon-green);
+            font-size: 0.95rem;
+            margin-top: 8px;
+            box-shadow: 0 0 10px var(--neon-green);
         }
 
         .btn-auto.active { 
             background: linear-gradient(135deg, #ff003c 0%, #990000 100%); 
             color: #fff;
-            box-shadow: 0 0 20px var(--neon-red);
-            animation: pulse-red 0.5s infinite alternate;
-        }
-
-        @keyframes pulse-red {
-            0% { box-shadow: 0 0 10px var(--neon-red); }
-            100% { box-shadow: 0 0 30px var(--neon-red); }
+            box-shadow: 0 0 15px var(--neon-red);
         }
         
         .btn-back { 
             background: #111; 
             color: #888; 
-            margin-top: 8px; 
+            margin-top: 4px; 
             border: 1px solid #333; 
-            font-size: 0.85rem;
+            font-size: 0.8rem;
+            padding: 8px;
+            box-shadow: none;
         }
 
-        /* 🎰 ドーパミン全開ダイスディスプレイ */
+        /* 🎰 サイコロ結果エリア */
         .dice-display { 
             background: #000; 
-            border: 3px solid var(--neon-cyan); 
-            border-radius: 20px; 
-            padding: 16px 10px; 
+            border: 2px solid var(--neon-cyan); 
+            border-radius: 16px; 
+            padding: 10px 8px; 
             text-align: center; 
-            margin-bottom: 12px; 
-            box-shadow: inset 0 0 20px rgba(0, 243, 255, 0.5), 0 0 15px rgba(0, 243, 255, 0.3);
+            margin-bottom: 8px; 
+            box-shadow: inset 0 0 12px rgba(0, 243, 255, 0.4);
             position: relative;
-            overflow: hidden;
         }
 
         .dice-number { 
-            font-size: 3.8rem; 
+            font-size: 2.6rem; 
             font-weight: 900; 
             font-family: 'Black Ops One', monospace; 
             color: var(--neon-yellow); 
-            letter-spacing: 3px; 
-            text-shadow: 0 0 20px var(--neon-yellow), 0 0 40px var(--neon-yellow);
-            line-height: 1;
-            margin: 5px 0;
+            letter-spacing: 2px; 
+            text-shadow: 0 0 12px var(--neon-yellow);
+            line-height: 1.1;
+            margin: 2px 0;
         }
 
         .dice-status { 
-            font-size: 1rem; 
-            margin-top: 6px; 
-            min-height: 24px; 
+            font-size: 0.82rem; 
+            margin-top: 2px; 
+            min-height: 20px; 
             font-weight: 900; 
-            text-shadow: 0 0 8px currentColor;
-            letter-spacing: 1px;
+            text-shadow: 0 0 6px currentColor;
         }
         
         /* 📊 ネオンステータスボード */
         .stats-grid { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
-            gap: 10px; 
-            background: rgba(0, 0, 0, 0.6); 
-            border-radius: 16px; 
-            padding: 10px; 
-            margin-bottom: 12px; 
-            border: 2px solid rgba(255, 255, 255, 0.1); 
+            gap: 8px; 
+            background: rgba(0, 0, 0, 0.5); 
+            border-radius: 12px; 
+            padding: 6px; 
+            margin-bottom: 8px; 
+            border: 1fr solid rgba(255, 255, 255, 0.1); 
         }
 
         .stat-box { 
             text-align: center; 
             background: rgba(20, 20, 35, 0.8);
-            padding: 8px;
-            border-radius: 12px;
+            padding: 6px;
+            border-radius: 10px;
             border: 1px solid rgba(0, 243, 255, 0.2);
         }
 
-        .stat-label { font-size: 0.75rem; color: #aaa; font-weight: bold; }
-        .stat-val { font-size: 1.3rem; font-weight: 900; color: var(--neon-green); margin-top: 2px; text-shadow: 0 0 10px var(--neon-green); }
+        .stat-label { font-size: 0.7rem; color: #aaa; font-weight: bold; }
+        .stat-val { font-size: 1.1rem; font-weight: 900; color: var(--neon-green); margin-top: 1px; text-shadow: 0 0 8px var(--neon-green); }
 
         /* スライダー */
         input[type=range] { 
             -webkit-appearance: none;
             width: 100%; 
-            height: 14px; 
-            border-radius: 7px; 
+            height: 10px; 
+            border-radius: 5px; 
             background: #1a1a2e; 
             outline: none; 
-            margin: 10px 0 14px 0; 
+            margin: 6px 0 10px 0; 
             border: 1px solid var(--neon-cyan);
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
         }
 
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 28px;
-            height: 28px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
             background: var(--neon-yellow);
             cursor: pointer;
-            box-shadow: 0 0 15px var(--neon-yellow);
+            box-shadow: 0 0 10px var(--neon-yellow);
             border: 2px solid #fff;
         }
         
-        /* 🔀 モード切り替えボタン */
-        .mode-selector { display: flex; gap: 10px; margin-bottom: 10px; }
+        /* モード切り替えボタン */
+        .mode-selector { display: flex; gap: 8px; margin-bottom: 6px; }
         .mode-btn { 
             flex: 1; 
-            padding: 10px; 
-            font-size: 0.9rem; 
+            padding: 8px; 
+            font-size: 0.8rem; 
             font-weight: 900;
             background: #111; 
             color: #666; 
             border: 2px solid #333; 
-            border-radius: 12px; 
+            border-radius: 10px; 
             cursor: pointer; 
             text-align: center; 
-            transition: all 0.2s;
+            transition: all 0.15s;
         }
+
+        .mode-btn:active {
+            transform: scale(0.95);
+        }
+
         .mode-btn.active { 
             background: linear-gradient(135deg, #00f3ff 0%, #0066ff 100%); 
             color: #fff; 
             border-color: #fff; 
-            box-shadow: 0 0 15px var(--neon-cyan);
-            text-shadow: 0 0 5px #000;
+            box-shadow: 0 0 10px var(--neon-cyan);
         }
 
         /* ⚙️ オプション設定パネル */
         .option-box { 
             background: rgba(10, 10, 15, 0.95); 
-            border: 2px solid var(--neon-pink); 
-            border-radius: 16px; 
-            padding: 12px; 
-            margin-top: 12px; 
-            margin-bottom: 10px; 
-            box-shadow: 0 0 10px rgba(255, 0, 127, 0.2);
+            border: 1.5px solid var(--neon-pink); 
+            border-radius: 14px; 
+            padding: 10px; 
+            margin-top: 8px; 
         }
 
         .checkbox-label { 
             display: flex; 
             align-items: center; 
-            gap: 8px; 
-            font-size: 0.85rem; 
+            gap: 6px; 
+            font-size: 0.78rem; 
             font-weight: bold;
             color: #fff; 
             cursor: pointer; 
@@ -325,49 +288,39 @@
         }
 
         .checkbox-label input[type=checkbox] { 
-            width: 18px; 
-            height: 18px; 
+            width: 16px; 
+            height: 16px; 
             margin: 0; 
             accent-color: var(--neon-pink);
         }
 
-        .auto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-        .auto-grid .label { margin-top: 2px; font-size: 0.7rem; color: #bbb; }
-        .auto-grid input { margin-bottom: 2px; padding: 8px; font-size: 0.85rem; }
+        .auto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+        .auto-grid .label { margin-top: 0; font-size: 0.65rem; color: #bbb; }
+        .auto-grid input { margin-bottom: 0; padding: 6px; font-size: 0.8rem; }
 
-        /* 🔥 ドーパミン演出エフェクトクラス */
+        /* 🔥 軽量ヒットアニメーション */
         .win-shake {
-            animation: shake-win 0.4s cubic-bezier(.36,.07,.19,.97) both infinite, rainbow-bg 0.2s infinite;
+            animation: win-pop 0.3s ease-out;
+            border-color: var(--neon-yellow) !important;
+            box-shadow: 0 0 20px var(--neon-yellow) !important;
         }
 
         .lose-shake {
-            animation: shake-lose 0.3s cubic-bezier(.36,.07,.19,.97) both;
-            filter: grayscale(0.8) contrast(1.5);
+            animation: lose-pop 0.25s ease-out;
+            border-color: var(--neon-red) !important;
         }
 
-        @keyframes shake-win {
-            0% { transform: translate(0, 0) scale(1.05); }
-            20% { transform: translate(-5px, 5px) scale(1.08); }
-            40% { transform: translate(5px, -5px) scale(1.05); }
-            60% { transform: translate(-5px, -5px) scale(1.08); }
-            80% { transform: translate(5px, 5px) scale(1.05); }
-            100% { transform: translate(0, 0) scale(1.05); }
+        @keyframes win-pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
         }
 
-        @keyframes shake-lose {
-            10%, 90% { transform: translate3d(-2px, 0, 0); }
-            20%, 80% { transform: translate3d(4px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
-            40%, 60% { transform: translate3d(6px, 0, 0); }
-        }
-
-        @keyframes rainbow-bg {
-            0% { border-color: #ff0000; box-shadow: 0 0 30px #ff0000; }
-            20% { border-color: #ffff00; box-shadow: 0 0 30px #ffff00; }
-            40% { border-color: #00ff00; box-shadow: 0 0 30px #00ff00; }
-            60% { border-color: #00ffff; box-shadow: 0 0 30px #00ffff; }
-            80% { border-color: #ff00ff; box-shadow: 0 0 30px #ff00ff; }
-            100% { border-color: #ff0000; box-shadow: 0 0 30px #ff0000; }
+        @keyframes lose-pop {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+            100% { transform: translateX(0); }
         }
     </style>
 </head>
@@ -376,7 +329,7 @@
 <div class="container">
     <div class="card" id="main-card">
         <div class="header">🔥 脳汁炸裂！DICE 🔥</div>
-        <p style="font-size: 0.8rem; color: #00f3ff; font-weight: bold; margin-top: 0; line-height: 1.4; text-align: center; text-shadow: 0 0 5px #00f3ff;">
+        <p style="font-size: 0.75rem; color: #00f3ff; font-weight: bold; margin: 0 0 6px 0; text-align: center; text-shadow: 0 0 4px #00f3ff;">
             ⚡ 0〜10000の神引きを狙え！脳汁ドバドバ一獲千金 ⚡
         </p>
 
@@ -406,7 +359,7 @@
         </div>
 
         <div class="label" style="display: flex; justify-content: space-between; align-items: center;">
-            <span>ターゲット: <b id="target-val-text" style="color: var(--neon-yellow); font-size: 1.1rem; text-shadow: 0 0 8px var(--neon-yellow);">5000</b></span>
+            <span>ターゲット: <b id="target-val-text" style="color: var(--neon-yellow); font-size: 0.95rem; text-shadow: 0 0 6px var(--neon-yellow);">5000</b></span>
             <span id="condition-desc" style="color: var(--neon-cyan); font-weight: bold;">5000 未満で勝利</span>
         </div>
         <input type="range" id="target-slider" min="100" max="9500" step="50" value="5000">
@@ -428,9 +381,9 @@
                 <span>⚡ 爆速演出スキップ（即時判定）</span>
             </label>
 
-            <div style="border-top: 1px dashed var(--neon-pink); margin: 10px 0;"></div>
+            <div style="border-top: 1px dashed var(--neon-pink); margin: 6px 0;"></div>
 
-            <div style="font-size: 0.85rem; font-weight: 900; color: var(--neon-yellow); text-shadow: 0 0 5px var(--neon-yellow);">🤖 無限脳汁！自動連打モード</div>
+            <div style="font-size: 0.75rem; font-weight: 900; color: var(--neon-yellow); text-shadow: 0 0 4px var(--neon-yellow);">🤖 無限脳汁！自動連打モード</div>
             <div class="auto-grid">
                 <div>
                     <span class="label">実行回数 (0=無限)</span>
@@ -569,7 +522,7 @@
         if (autoTimer) clearTimeout(autoTimer);
 
         const autoBtn = document.getElementById("auto-btn");
-        autoBtn.innerText = "▶ 自動賭けスタート";
+        autoBtn.innerText = "▶ 自動ベット爆走スタート";
         autoBtn.classList.remove("active");
 
         toggleInputsDisabled(false);
@@ -656,7 +609,7 @@
             animInterval = setInterval(() => {
                 diceNumEl.innerText = Math.floor(Math.random() * 10001);
                 diceNumEl.style.color = "#00ff66";
-            }, 40);
+            }, 60); // アニメーション描画間隔を少し伸ばして軽量化
         }
 
         try {
@@ -667,7 +620,7 @@
             });
 
             const data = await res.json();
-            const delay = skipAnim ? 0 : 500;
+            const delay = skipAnim ? 0 : 400;
 
             return await new Promise((resolve) => {
                 setTimeout(async () => {
@@ -688,12 +641,12 @@
                     if (data.is_win) {
                         diceNumEl.style.color = "#ffe600";
                         statusEl.style.color = "#00ff66";
-                        statusEl.innerText = `🎉 脳汁噴出の大勝利！！ +${data.payout} Gold ゲット！！ 🎉`;
+                        statusEl.innerText = `🎉 大勝利！！ +${data.payout} Gold ゲット！！ 🎉`;
                         displayBox.classList.add("win-shake");
                     } else {
                         diceNumEl.style.color = "#ff003c";
                         statusEl.style.color = "#ff003c";
-                        statusEl.innerText = `💀 爆死... ${amount} Gold 没収！！`;
+                        statusEl.innerText = `💀 敗北... ${amount} Gold 没収！！`;
                         displayBox.classList.add("lose-shake");
                     }
 
