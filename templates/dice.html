@@ -5,174 +5,452 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>村岡王国 - サイコロ勝負 (Dice)</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=M+PLUS+1p:wght@800;900&display=swap');
+
+        :root {
+            --neon-pink: #ff007f;
+            --neon-cyan: #00f3ff;
+            --neon-yellow: #ffe600;
+            --neon-green: #00ff66;
+            --neon-red: #ff003c;
+            --bg-dark: #05020a;
+        }
+
         body { 
-            font-family: sans-serif; 
-            background: radial-gradient(circle at center, #221a0f 0%, #0d0d0d 100%); 
-            color: #e0e0e0; 
+            font-family: 'M PLUS 1p', 'Black Ops One', sans-serif; 
+            background: #000;
+            background-image: 
+                radial-gradient(circle at 50% 20%, #20002c 0%, #000000 80%),
+                linear-gradient(0deg, rgba(255, 0, 127, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
+            background-size: 100% 100%, 30px 30px, 30px 30px;
+            color: #fff; 
             display: flex; 
             justify-content: center; 
-            padding: 20px 0; 
+            padding: 10px 0; 
             margin: 0; 
             min-height: 100vh;
+            overflow-x: hidden;
         }
-        .container { width: 380px; display: flex; flex-direction: column; gap: 16px; }
+
+        .container { 
+            width: 100%;
+            max-width: 420px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
         .card { 
-            background: rgba(35, 30, 25, 0.95); 
-            border: 2px solid #d4af37; 
-            border-radius: 16px; 
-            padding: 20px; 
-            box-shadow: 0 0 25px rgba(212, 175, 55, 0.25), inset 0 0 10px rgba(0,0,0,0.8); 
+            background: rgba(15, 5, 25, 0.9); 
+            border: 3px solid var(--neon-pink); 
+            border-radius: 24px; 
+            padding: 18px; 
+            box-shadow: 
+                0 0 20px var(--neon-pink),
+                inset 0 0 15px rgba(255, 0, 127, 0.4); 
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
         }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+            transform: rotate(45deg);
+            animation: shine 3s infinite linear;
+            pointer-events: none;
+        }
+
+        @keyframes shine {
+            0% { transform: translateY(-100%) rotate(45deg); }
+            100% { transform: translateY(100%) rotate(45deg); }
+        }
+
         .header { 
-            font-size: 1.1rem; 
-            font-weight: bold; 
-            color: #ffd700; 
+            font-size: 1.5rem; 
+            font-weight: 900; 
+            color: var(--neon-yellow); 
             text-align: center; 
-            border-bottom: 2px solid #d4af37; 
-            padding-bottom: 8px; 
-            margin-bottom: 12px; 
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            border-bottom: 3px stroke var(--neon-cyan); 
+            padding-bottom: 6px; 
+            margin-bottom: 8px; 
+            text-shadow: 0 0 10px var(--neon-yellow), 0 0 20px #ffaa00, 2px 2px 0px #000;
+            letter-spacing: 1px;
+            animation: pulse-text 0.8s infinite alternate;
+        }
+
+        @keyframes pulse-text {
+            0% { transform: scale(1); text-shadow: 0 0 10px var(--neon-yellow); }
+            100% { transform: scale(1.03); text-shadow: 0 0 25px var(--neon-yellow), 0 0 40px #ff0055; }
         }
         
-        .label { font-size: 0.8rem; color: #aaa; margin-top: 6px; display: block; }
-        input, select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #333; color: #fff; box-sizing: border-box; margin-top: 4px; margin-bottom: 10px; font-size: 0.85rem; font-family: sans-serif; }
+        .label { 
+            font-size: 0.85rem; 
+            color: var(--neon-cyan); 
+            margin-top: 8px; 
+            display: block; 
+            font-weight: 900;
+            text-shadow: 0 0 5px var(--neon-cyan);
+            letter-spacing: 0.5px;
+        }
+
+        input, select { 
+            width: 100%; 
+            padding: 12px; 
+            border-radius: 12px; 
+            border: 2px solid var(--neon-cyan); 
+            background: rgba(10, 10, 20, 0.9); 
+            color: #fff; 
+            box-sizing: border-box; 
+            margin-top: 4px; 
+            margin-bottom: 8px; 
+            font-size: 1rem; 
+            font-weight: bold;
+            font-family: inherit; 
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--neon-pink);
+            box-shadow: 0 0 15px var(--neon-pink);
+        }
         
-        button { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #d4af37; color: #1a1a1a; font-size: 0.9rem; margin-top: 4px; }
-        button:hover { background: #f1c40f; }
+        button { 
+            width: 100%; 
+            padding: 12px; 
+            border: none; 
+            border-radius: 14px; 
+            font-weight: 900; 
+            cursor: pointer; 
+            background: var(--neon-yellow); 
+            color: #000; 
+            font-size: 1rem; 
+            margin-top: 4px; 
+            transition: transform 0.1s, filter 0.2s;
+            box-shadow: 0 0 15px var(--neon-yellow);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
         
         .btn-roll { 
-            background: linear-gradient(180deg, #e74c3c 0%, #900c3f 100%); 
+            background: linear-gradient(135deg, #ff0055 0%, #ff00a0 50%, #7928ca 100%); 
             color: #fff; 
-            font-size: 1.0rem; 
-            padding: 12px; 
-            box-shadow: 0 0 12px rgba(231, 76, 60, 0.4);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            font-size: 1.4rem; 
+            padding: 16px; 
+            border-radius: 18px;
+            box-shadow: 0 0 25px var(--neon-pink), 0 0 10px #ff0055;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            letter-spacing: 1.5px;
+            animation: roll-btn-glow 1.2s infinite alternate;
+            border: 2px solid #fff;
         }
-        .btn-roll:hover { 
-            background: linear-gradient(180deg, #ff5733 0%, #a00d40 100%); 
-            box-shadow: 0 0 18px rgba(255, 87, 51, 0.6);
+
+        @keyframes roll-btn-glow {
+            0% { box-shadow: 0 0 15px var(--neon-pink); transform: scale(1); }
+            100% { box-shadow: 0 0 35px var(--neon-pink), 0 0 15px var(--neon-yellow); transform: scale(1.02); }
         }
-        .btn-roll:disabled { background: #555; box-shadow: none; cursor: not-allowed; }
+
+        .btn-roll:disabled { 
+            background: #333; 
+            box-shadow: none; 
+            cursor: not-allowed; 
+            animation: none;
+            border: none;
+            color: #666;
+        }
 
         .btn-auto {
-            background: linear-gradient(180deg, #27ae60 0%, #1e8449 100%);
-            color: #fff;
-            margin-top: 8px;
+            background: linear-gradient(135deg, #00ff66 0%, #009933 100%);
+            color: #000;
+            font-size: 1.1rem;
+            margin-top: 10px;
+            box-shadow: 0 0 15px var(--neon-green);
         }
-        .btn-auto:hover { background: linear-gradient(180deg, #2ecc71 0%, #25a25a 100%); }
-        .btn-auto.active { background: #c0392b; }
-        
-        .btn-back { background: #333; color: #aaa; margin-top: 8px; border: 1px solid #555; }
-        .btn-back:hover { background: #444; color: #fff; }
 
-        /* ダイス結果ディスプレイ */
-        .dice-display { background: #151515; border: 2px dashed #d4af37; border-radius: 10px; padding: 16px; text-align: center; margin-bottom: 12px; }
-        .dice-number { font-size: 2.8rem; font-weight: bold; font-family: monospace; color: #888; letter-spacing: 2px; }
-        .dice-status { font-size: 0.85rem; margin-top: 4px; height: 20px; font-weight: bold; }
+        .btn-auto.active { 
+            background: linear-gradient(135deg, #ff003c 0%, #990000 100%); 
+            color: #fff;
+            box-shadow: 0 0 20px var(--neon-red);
+            animation: pulse-red 0.5s infinite alternate;
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 10px var(--neon-red); }
+            100% { box-shadow: 0 0 30px var(--neon-red); }
+        }
         
-        /* 確率・倍率ステータスボード */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #202020; border-radius: 8px; padding: 10px; margin-bottom: 12px; border: 1px solid #333; }
-        .stat-box { text-align: center; }
-        .stat-label { font-size: 0.7rem; color: #888; }
-        .stat-val { font-size: 1.0rem; font-weight: bold; color: #f39c12; margin-top: 2px; }
+        .btn-back { 
+            background: #111; 
+            color: #888; 
+            margin-top: 8px; 
+            border: 1px solid #333; 
+            font-size: 0.85rem;
+        }
+
+        /* 🎰 ドーパミン全開ダイスディスプレイ */
+        .dice-display { 
+            background: #000; 
+            border: 3px solid var(--neon-cyan); 
+            border-radius: 20px; 
+            padding: 16px 10px; 
+            text-align: center; 
+            margin-bottom: 12px; 
+            box-shadow: inset 0 0 20px rgba(0, 243, 255, 0.5), 0 0 15px rgba(0, 243, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dice-number { 
+            font-size: 3.8rem; 
+            font-weight: 900; 
+            font-family: 'Black Ops One', monospace; 
+            color: var(--neon-yellow); 
+            letter-spacing: 3px; 
+            text-shadow: 0 0 20px var(--neon-yellow), 0 0 40px var(--neon-yellow);
+            line-height: 1;
+            margin: 5px 0;
+        }
+
+        .dice-status { 
+            font-size: 1rem; 
+            margin-top: 6px; 
+            min-height: 24px; 
+            font-weight: 900; 
+            text-shadow: 0 0 8px currentColor;
+            letter-spacing: 1px;
+        }
+        
+        /* 📊 ネオンステータスボード */
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 10px; 
+            background: rgba(0, 0, 0, 0.6); 
+            border-radius: 16px; 
+            padding: 10px; 
+            margin-bottom: 12px; 
+            border: 2px solid rgba(255, 255, 255, 0.1); 
+        }
+
+        .stat-box { 
+            text-align: center; 
+            background: rgba(20, 20, 35, 0.8);
+            padding: 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 243, 255, 0.2);
+        }
+
+        .stat-label { font-size: 0.75rem; color: #aaa; font-weight: bold; }
+        .stat-val { font-size: 1.3rem; font-weight: 900; color: var(--neon-green); margin-top: 2px; text-shadow: 0 0 10px var(--neon-green); }
 
         /* スライダー */
-        input[type=range] { width: 100%; height: 8px; border-radius: 4px; background: #444; outline: none; margin: 8px 0 12px 0; }
-        
-        /* モード切り替えボタン */
-        .mode-selector { display: flex; gap: 8px; margin-bottom: 10px; }
-        .mode-btn { flex: 1; padding: 8px; font-size: 0.8rem; background: #333; color: #aaa; border: 1px solid #444; border-radius: 6px; cursor: pointer; text-align: center; }
-        .mode-btn.active { background: #2980b9; color: #fff; border-color: #3498db; font-weight: bold; }
+        input[type=range] { 
+            -webkit-appearance: none;
+            width: 100%; 
+            height: 14px; 
+            border-radius: 7px; 
+            background: #1a1a2e; 
+            outline: none; 
+            margin: 10px 0 14px 0; 
+            border: 1px solid var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        }
 
-        /* オプション設定パネル */
-        .option-box { background: #222; border: 1px solid #444; border-radius: 8px; padding: 10px; margin-top: 10px; margin-bottom: 10px; }
-        .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: #ddd; cursor: pointer; margin: 0; }
-        .checkbox-label input[type=checkbox] { width: auto; margin: 0; }
-        .auto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
-        .auto-grid .label { margin-top: 2px; font-size: 0.7rem; }
-        .auto-grid input { margin-bottom: 4px; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--neon-yellow);
+            cursor: pointer;
+            box-shadow: 0 0 15px var(--neon-yellow);
+            border: 2px solid #fff;
+        }
+        
+        /* 🔀 モード切り替えボタン */
+        .mode-selector { display: flex; gap: 10px; margin-bottom: 10px; }
+        .mode-btn { 
+            flex: 1; 
+            padding: 10px; 
+            font-size: 0.9rem; 
+            font-weight: 900;
+            background: #111; 
+            color: #666; 
+            border: 2px solid #333; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            text-align: center; 
+            transition: all 0.2s;
+        }
+        .mode-btn.active { 
+            background: linear-gradient(135deg, #00f3ff 0%, #0066ff 100%); 
+            color: #fff; 
+            border-color: #fff; 
+            box-shadow: 0 0 15px var(--neon-cyan);
+            text-shadow: 0 0 5px #000;
+        }
+
+        /* ⚙️ オプション設定パネル */
+        .option-box { 
+            background: rgba(10, 10, 15, 0.95); 
+            border: 2px solid var(--neon-pink); 
+            border-radius: 16px; 
+            padding: 12px; 
+            margin-top: 12px; 
+            margin-bottom: 10px; 
+            box-shadow: 0 0 10px rgba(255, 0, 127, 0.2);
+        }
+
+        .checkbox-label { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            font-size: 0.85rem; 
+            font-weight: bold;
+            color: #fff; 
+            cursor: pointer; 
+            margin: 0; 
+        }
+
+        .checkbox-label input[type=checkbox] { 
+            width: 18px; 
+            height: 18px; 
+            margin: 0; 
+            accent-color: var(--neon-pink);
+        }
+
+        .auto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+        .auto-grid .label { margin-top: 2px; font-size: 0.7rem; color: #bbb; }
+        .auto-grid input { margin-bottom: 2px; padding: 8px; font-size: 0.85rem; }
+
+        /* 🔥 ドーパミン演出エフェクトクラス */
+        .win-shake {
+            animation: shake-win 0.4s cubic-bezier(.36,.07,.19,.97) both infinite, rainbow-bg 0.2s infinite;
+        }
+
+        .lose-shake {
+            animation: shake-lose 0.3s cubic-bezier(.36,.07,.19,.97) both;
+            filter: grayscale(0.8) contrast(1.5);
+        }
+
+        @keyframes shake-win {
+            0% { transform: translate(0, 0) scale(1.05); }
+            20% { transform: translate(-5px, 5px) scale(1.08); }
+            40% { transform: translate(5px, -5px) scale(1.05); }
+            60% { transform: translate(-5px, -5px) scale(1.08); }
+            80% { transform: translate(5px, 5px) scale(1.05); }
+            100% { transform: translate(0, 0) scale(1.05); }
+        }
+
+        @keyframes shake-lose {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+
+        @keyframes rainbow-bg {
+            0% { border-color: #ff0000; box-shadow: 0 0 30px #ff0000; }
+            20% { border-color: #ffff00; box-shadow: 0 0 30px #ffff00; }
+            40% { border-color: #00ff00; box-shadow: 0 0 30px #00ff00; }
+            60% { border-color: #00ffff; box-shadow: 0 0 30px #00ffff; }
+            80% { border-color: #ff00ff; box-shadow: 0 0 30px #ff00ff; }
+            100% { border-color: #ff0000; box-shadow: 0 0 30px #ff0000; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="card">
-        <div class="header">🎲 ハイローラー・ダイス（Dice）</div>
-        <p style="font-size: 0.75rem; color: #aaa; margin-top: 0; line-height: 1.4; text-align: center;">
-            0 〜 10000 の出目を予想せよ！目標数値を設定して一獲千金を狙え！
+    <div class="card" id="main-card">
+        <div class="header">🔥 脳汁炸裂！DICE 🔥</div>
+        <p style="font-size: 0.8rem; color: #00f3ff; font-weight: bold; margin-top: 0; line-height: 1.4; text-align: center; text-shadow: 0 0 5px #00f3ff;">
+            ⚡ 0〜10000の神引きを狙え！脳汁ドバドバ一獲千金 ⚡
         </p>
 
         <!-- 1. 出目・結果表示エリア -->
-        <div class="dice-display">
+        <div class="dice-display" id="dice-display-box">
             <div id="dice-num" class="dice-number">????</div>
-            <div id="dice-status" class="dice-status" style="color: #aaa;">ベットしてサイコロを振ってください</div>
+            <div id="dice-status" class="dice-status" style="color: #00f3ff;">💰 ベットして運命のダイスを振れ！！</div>
         </div>
 
         <!-- 2. 確率・倍率表示エリア -->
         <div class="stats-grid">
             <div class="stat-box">
-                <div class="stat-label">配当倍率</div>
+                <div class="stat-label">🔥 配当倍率</div>
                 <div id="stat-multiplier" class="stat-val">1.93x</div>
             </div>
             <div class="stat-box">
-                <div class="stat-label">勝利確率</div>
+                <div class="stat-label">🎯 勝利確率</div>
                 <div id="stat-chance" class="stat-val">50.00%</div>
             </div>
         </div>
 
         <!-- 3. ゲーム条件設定エリア -->
-        <div class="label">勝利条件</div>
+        <div class="label">⚔️ 勝利条件ターゲット</div>
         <div class="mode-selector">
             <div id="mode-under" class="mode-btn active">UNDER (未満)</div>
             <div id="mode-over" class="mode-btn">OVER (超え)</div>
         </div>
 
-        <div class="label" style="display: flex; justify-content: space-between;">
-            <span>ターゲット値: <b id="target-val-text" style="color: #f39c12;">5000</b></span>
-            <span id="condition-desc" style="color: #3498db;">5000 未満で勝利</span>
+        <div class="label" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>ターゲット: <b id="target-val-text" style="color: var(--neon-yellow); font-size: 1.1rem; text-shadow: 0 0 8px var(--neon-yellow);">5000</b></span>
+            <span id="condition-desc" style="color: var(--neon-cyan); font-weight: bold;">5000 未満で勝利</span>
         </div>
         <input type="range" id="target-slider" min="100" max="9500" step="50" value="5000">
 
         <!-- 4. 口座・賭け金入力エリア -->
-        <div class="label">支払口座を選択</div>
+        <div class="label">💳 支払口座</div>
         <select id="wallet-select"></select>
 
-        <div class="label">賭け金 (Gold)</div>
-        <input type="number" id="bet-amount" min="10" value="100" placeholder="例: 100">
+        <div class="label">💎 賭け金 (Gold)</div>
+        <input type="number" id="bet-amount" min="10" value="10" placeholder="例: 10">
 
         <!-- 5. ベットアクションボタン -->
-        <button id="roll-btn" class="btn-roll">🎲 サイコロを振る</button>
+        <button id="roll-btn" class="btn-roll">🎲 運命のダイスを振る！！</button>
 
         <!-- 6. 詳細オプション・自動設定パネル -->
         <div class="option-box">
             <label class="checkbox-label">
                 <input type="checkbox" id="skip-anim">
-                <span>⚡ 演出をスキップ（即時判定）</span>
+                <span>⚡ 爆速演出スキップ（即時判定）</span>
             </label>
 
-            <div style="border-top: 1px dashed #444; margin: 8px 0;"></div>
+            <div style="border-top: 1px dashed var(--neon-pink); margin: 10px 0;"></div>
 
-            <div style="font-size: 0.75rem; font-weight: bold; color: #ffd700;">🤖 自動ベット設定</div>
+            <div style="font-size: 0.85rem; font-weight: 900; color: var(--neon-yellow); text-shadow: 0 0 5px var(--neon-yellow);">🤖 無限脳汁！自動連打モード</div>
             <div class="auto-grid">
                 <div>
-                    <span class="label">実行回数 (0で無制限)</span>
+                    <span class="label">実行回数 (0=無限)</span>
                     <input type="number" id="auto-count" value="10" min="0" placeholder="例: 10">
                 </div>
                 <div>
-                    <span class="label">間隔 (ミリ秒 / 最低500)</span>
+                    <span class="label">速度 (ms/最低500)</span>
                     <input type="number" id="auto-interval" value="600" min="500" step="100" placeholder="600">
                 </div>
                 <div>
-                    <span class="label">損切り (以下で停止)</span>
+                    <span class="label">損切りストップ</span>
                     <input type="number" id="stop-loss" value="0" min="0" placeholder="0">
                 </div>
                 <div>
-                    <span class="label">利確 (以上で停止)</span>
+                    <span class="label">利確ストップ</span>
                     <input type="number" id="take-profit" value="0" min="0" placeholder="0">
                 </div>
             </div>
 
-            <button id="auto-btn" class="btn-auto">▶ 自動賭けスタート</button>
+            <button id="auto-btn" class="btn-auto">▶ 自動ベット爆走スタート</button>
         </div>
     </div>
 
@@ -299,7 +577,7 @@
         if (reason) {
             const statusEl = document.getElementById("dice-status");
             statusEl.innerText = `[自動賭け終了] ${reason}`;
-            statusEl.style.color = "#f39c12";
+            statusEl.style.color = "#ffe600";
         }
     }
 
@@ -364,17 +642,21 @@
         const rollBtn = document.getElementById("roll-btn");
         const diceNumEl = document.getElementById("dice-num");
         const statusEl = document.getElementById("dice-status");
+        const displayBox = document.getElementById("dice-display-box");
+
+        // アニメーション初期化
+        displayBox.classList.remove("win-shake", "lose-shake");
 
         if (!isAutoCall) rollBtn.disabled = true;
-        statusEl.style.color = "#aaa";
-        statusEl.innerText = "サイコロを振っています...";
+        statusEl.style.color = "#00f3ff";
+        statusEl.innerText = "🎲 激アツ！ダイス回転中...！";
 
         let animInterval = null;
         if (!skipAnim) {
             animInterval = setInterval(() => {
                 diceNumEl.innerText = Math.floor(Math.random() * 10001);
-                diceNumEl.style.color = "#888";
-            }, 50);
+                diceNumEl.style.color = "#00ff66";
+            }, 40);
         }
 
         try {
@@ -394,8 +676,8 @@
 
                     if (!res.ok) {
                         diceNumEl.innerText = "----";
-                        statusEl.style.color = "#e74c3c";
-                        statusEl.innerText = "エラー: " + data.detail;
+                        statusEl.style.color = "#ff003c";
+                        statusEl.innerText = "💥 エラー: " + data.detail;
                         if (isAutoRunning) stopAutoBet("エラーが発生したため停止しました");
                         resolve(false);
                         return;
@@ -404,13 +686,15 @@
                     diceNumEl.innerText = data.roll;
 
                     if (data.is_win) {
-                        diceNumEl.style.color = "#2ecc71";
-                        statusEl.style.color = "#2ecc71";
-                        statusEl.innerText = `🎉 勝利！ +${data.payout} Gold 獲得！`;
+                        diceNumEl.style.color = "#ffe600";
+                        statusEl.style.color = "#00ff66";
+                        statusEl.innerText = `🎉 脳汁噴出の大勝利！！ +${data.payout} Gold ゲット！！ 🎉`;
+                        displayBox.classList.add("win-shake");
                     } else {
-                        diceNumEl.style.color = "#e74c3c";
-                        statusEl.style.color = "#e74c3c";
-                        statusEl.innerText = `💀 敗北... ${amount} Gold 没収`;
+                        diceNumEl.style.color = "#ff003c";
+                        statusEl.style.color = "#ff003c";
+                        statusEl.innerText = `💀 爆死... ${amount} Gold 没収！！`;
+                        displayBox.classList.add("lose-shake");
                     }
 
                     await loadWallets();
