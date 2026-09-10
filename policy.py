@@ -1,17 +1,18 @@
-from fastapi import APIRouter, HTTPException, Header, Depends
-from pydantic import BaseModel
 import os
+from fastapi import APIRouter, HTTPException, Header
+from pydantic import BaseModel
 from supabase import create_client, Client
 
 router = APIRouter()
 
-# Supabaseクライアントの初期化 (環境変数より取得)
+# Supabaseクライアントの初期化
+# RLSバイパスと通信安定化のため SERVICE_ROLE_KEY を推奨（無ければ SUPABASE_KEY を使用）
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY", "")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # --------------------------------------------------
-# 規約設定（規約を更新した場合はこの数値を増やす）
+# 規約設定
 # --------------------------------------------------
 CURRENT_TERMS_VERSION = 1
 
@@ -28,7 +29,7 @@ TERMS_TEXT = """
 ユーザーは以下の行為を行ってはなりません。
 ・リアルマネー取引（RMT）行為
 ・不正アクセス、通信の改ざん、およびバグの不正利用
-・アカウントの不正作成・複数所持による報酬の不当取得、ただし、複数所持は3アカウントまでなら許可されます。
+・アカウントの不正作成・複数所持による報酬の不当取得（ただし3アカウントまでなら許可）
 ・学校などのふさわしくない場所や時間でのプレイ
 
 4. 免責事項
@@ -41,13 +42,13 @@ TERMS_TEXT = """
 """
 
 # --------------------------------------------------
-# リクエスト / レスポンスモデル
+# リクエストモデル
 # --------------------------------------------------
 class TermsAgreeRequest(BaseModel):
     version: int
 
 
-# トークンからユーザーを取得する共通関数（既存の処理に合わせて適宜調整してください）
+# トークンからユーザーを取得する共通関数
 def get_user_from_token(authorization: str):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="認証トークンが必要です。")
@@ -61,7 +62,7 @@ def get_user_from_token(authorization: str):
 
 
 # --------------------------------------------------
-# APIエンドポイント
+# APIエンドポイント (すべて同期 def で定義)
 # --------------------------------------------------
 
 # 最新の規約内容とバージョンを取得
@@ -78,7 +79,8 @@ def get_latest_policy():
 def get_policy_status(authorization: str = Header(None)):
     user = get_user_from_token(authorization)
 
-    res = supabase.table("users").select("agreed_terms_version").eq("id", user.id).execute()
+    # profiles テーブルを参照
+    res = supabase.table("profiles").select("agreed_terms_version").eq("id", user.id).execute()
     
     agreed_version = 0
     if res.data and len(res.data) > 0:
@@ -99,8 +101,8 @@ def agree_policy(data: TermsAgreeRequest, authorization: str = Header(None)):
     if data.version != CURRENT_TERMS_VERSION:
         raise HTTPException(status_code=400, detail="無効な規約バージョンです。")
 
-    # DBの同意済みバージョンを更新
-    supabase.table("users").update({"agreed_terms_version": data.version}).eq("id", user.id).execute()
+    # profiles テーブルの同意済みバージョンを更新
+    supabase.table("profiles").update({"agreed_terms_version": data.version}).eq("id", user.id).execute()
 
     return {
         "status": "success",
