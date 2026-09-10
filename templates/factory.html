@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>村岡王国 - 国立機械工場</title>
     <style>
         :root {
@@ -22,6 +23,7 @@
             padding: 20px; 
             display: flex;
             justify-content: center;
+            margin: 0;
         }
 
         .factory-container { 
@@ -32,6 +34,7 @@
             border-radius: 4px; 
             border: 2px solid var(--border-color);
             box-shadow: inset 0 0 10px rgba(0,0,0,0.5), 0 8px 20px rgba(0,0,0,0.6);
+            box-sizing: border-box;
         }
 
         .header-panel {
@@ -52,11 +55,13 @@
             background: #111827;
             color: #3b82f6;
             border: 1px solid var(--border-color);
-            padding: 4px 8px;
+            padding: 6px 10px;
             font-family: inherit;
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 4px;
         }
 
-        /* 視覚化：工程進捗インジケーター（機械のシャフト風） */
         .track-container {
             background: #111827;
             height: 32px;
@@ -86,7 +91,6 @@
             background: #374151;
         }
 
-        /* アクションエリア：操作盤スタイル */
         .control-panel { 
             background: #1e2227; 
             padding: 20px; 
@@ -103,7 +107,6 @@
             padding-left: 8px;
         }
 
-        /* 機械的なボタン */
         .btn-machinery { 
             background: #374151; 
             color: #f9fafb; 
@@ -113,7 +116,7 @@
             font-weight: bold; 
             font-family: inherit;
             cursor: pointer; 
-            margin: 4px; 
+            margin: 4px 4px 4px 0; 
             display: inline-block;
             transition: all 0.1s;
         }
@@ -136,7 +139,6 @@
             background: #1d4ed8;
         }
 
-        /* アナログゲージ風UI */
         .gauge-container { 
             width: 100%; 
             background: #111827; 
@@ -164,16 +166,26 @@
             left: 0%; 
         }
 
-        /* ログウィンドウ（シリアルモニター風） */
         .console-log {
             background: #0d1117;
             border: 1px solid var(--border-color);
             padding: 8px 12px;
-            height: 80px;
+            height: 100px;
             overflow-y: auto;
             font-size: 0.8rem;
             color: #10b981;
             text-align: left;
+        }
+
+        .btn-back {
+            background: #374151;
+            color: #ccc;
+            border: none;
+            padding: 8px 16px;
+            margin-top: 12px;
+            cursor: pointer;
+            width: 100%;
+            font-family: inherit;
         }
     </style>
 </head>
@@ -184,11 +196,10 @@
         <h2>SYS_MURAOKA // NATIONAL_FACTORY_01</h2>
         <div>
             <label style="font-size: 0.8rem; color: var(--text-dim);">DESTINATION_ACCOUNT:</label>
-            <select id="walletSelect" onchange="saveSelectedWallet()"></select>
+            <select id="walletSelect"></select>
         </div>
     </div>
 
-    <!-- 5段階の進行状況を示すシャフ構造 -->
     <div class="track-container">
         <div id="node1" class="track-node"></div>
         <div id="node2" class="track-node"></div>
@@ -205,9 +216,18 @@
     <div class="console-log" id="consoleLog">
         > SYSTEM READY.<br>
     </div>
+
+    <button class="btn-back" onclick="location.href='/dashboard'">◀ 国民証に戻る</button>
 </div>
 
 <script>
+// トークン取得キーを「access_token」と「token」の両方に対応
+const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+
+if (!token) {
+    window.location.href = "/";
+}
+
 let currentSession = null;
 let gaugeVal = 0, gaugeDir = 2, gaugeInterval = null;
 let tapCount = 0;
@@ -223,25 +243,37 @@ function logMessage(msg) {
     log.scrollTop = log.scrollHeight;
 }
 
+function escapeHtml(str) { 
+    return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; 
+}
+
 async function loadWallets() {
     try {
-        const res = await fetch('/api/wallets', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+        const res = await fetch('/api/wallets', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) {
+            logMessage("<span style='color:#ef4444;'>ERROR: Failed to load wallets. Status: " + res.status + "</span>");
+            return;
+        }
         const wallets = await res.json();
         const sel = document.getElementById('walletSelect');
-        sel.innerHTML = wallets.map(w => `<option value="${w.wallet_id}">${w.wallet_name} [${w.balance} G]</option>`).join('');
+        if (wallets.length === 0) {
+            sel.innerHTML = '<option value="">口座が存在しません</option>';
+            return;
+        }
+        sel.innerHTML = wallets.map(w => `<option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} (${w.wallet_id}) - 残高:${w.balance}G</option>`).join('');
     } catch(e) {
-        logMessage("ERROR: Failed to load wallets.");
+        logMessage("<span style='color:#ef4444;'>ERROR: Failed to load wallets.</span>");
     }
 }
 
 async function fetchStatus() {
     try {
-        const res = await fetch('/api/factory/status', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+        const res = await fetch('/api/factory/status', { headers: { 'Authorization': `Bearer ${token}` } });
         const data = await res.json();
         currentSession = data.session;
         renderStep();
     } catch(e) {
-        logMessage("ERROR: Connection failed.");
+        logMessage("<span style='color:#ef4444;'>ERROR: Connection failed.</span>");
     }
 }
 
@@ -312,12 +344,18 @@ function countTap(step) {
 
 async function submitStep(step, answer) {
     const walletId = document.getElementById('walletSelect').value;
+    
+    if (step === 5 && !walletId) {
+        logMessage("<span style='color:#ef4444;'>ERROR: 出荷先口座を選択してください。</span>");
+        return;
+    }
+
     try {
         const res = await fetch('/api/factory/process', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}` 
+                'Authorization': `Bearer ${token}` 
             },
             body: JSON.stringify({ step: step, answer: answer, wallet_id: walletId })
         });
@@ -337,10 +375,10 @@ async function submitStep(step, answer) {
             logMessage(`工程 [STEP 0${step}] 正常完了。次工程へ移行。`);
         }
 
-        currentSession = data.completed ? data.next_step : data.next_step;
+        currentSession = data.next_step;
         renderStep();
     } catch(e) {
-        logMessage("ERROR: リクエストの送信に失敗しました。");
+        logMessage("<span style='color:#ef4444;'>ERROR: リクエストの送信に失敗しました。</span>");
     }
 }
 
