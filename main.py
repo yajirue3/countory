@@ -140,6 +140,8 @@ def get_tower(request: Request):
     return templates.TemplateResponse(request=request, name="tower.html")
 
 
+app.mount("/templates", StaticFiles(directory="templates"), name="templates")
+
 # --------------------------------------------------
 # 認証API
 # --------------------------------------------------
