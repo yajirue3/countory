@@ -63,7 +63,7 @@
             margin-bottom: 6px; 
             text-shadow: 0 0 10px var(--neon-yellow);
             letter-spacing: 1px;
-        }
+        } 
         
         .label { 
             font-size: 0.75rem; 
@@ -195,7 +195,8 @@
             text-shadow: 0 0 15px var(--neon-yellow);
             line-height: 1.1;
             margin: 2px 0;
-            will-change: color, text-shadow;
+            display: inline-block;
+            will-change: transform, color, text-shadow;
         }
 
         .dice-status { 
@@ -317,6 +318,17 @@
             animation: rainbow-text 0.2s linear infinite;
         }
 
+        /* 🔥 数字飛び出しエフェクト */
+        .num-pop {
+            animation: pop-bounce 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes pop-bounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.45); text-shadow: 0 0 30px #ffffff, 0 0 50px var(--neon-pink); }
+            100% { transform: scale(1); }
+        }
+
         .lose-shake {
             animation: lose-shake-anim 0.2s ease-in-out 2;
             border-color: var(--neon-red) !important;
@@ -407,7 +419,7 @@
         <div class="option-box">
             <label class="checkbox-label">
                 <input type="checkbox" id="disable-shake">
-                <span>🚫 画面の揺れ演出をオフにする</span>
+                <span>🚫 画面の揺れ・飛び出し演出をオフにする</span>
             </label>
 
             <label class="checkbox-label">
@@ -686,6 +698,7 @@
                             displayBox.classList.add("win-rainbow-noshake");
                         } else {
                             displayBox.classList.add("win-rainbow-shake");
+                            diceNumEl.classList.add("num-pop"); // 💥 飛び出しアニメーション追加
                         }
                     } else {
                         diceNumEl.style.color = "#ff003c";
