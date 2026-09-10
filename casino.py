@@ -90,13 +90,13 @@ def play_dice(data: DicePlayRequest, authorization: str = Header(None)):
     if current_balance < data.amount:
         raise HTTPException(status_code=400, detail="口座の残高が不足しています。")
 
-    # 3. 勝率と配当倍率（RTP 90% = ハウスエッジ10%）の計算
+    # 3. 勝率と配当倍率（RTP 96.5% = ハウスエッジ3.5%）の計算
     if data.mode == "UNDER":
         win_chance = data.target / 10000.0
     else:  # OVER
         win_chance = (10000 - data.target) / 10000.0
 
-    multiplier = 0.90 / win_chance  # 還元率90%（プレイヤー有利にならない）
+    multiplier = 0.965 / win_chance  # 還元率96.5%に設定
 
     # 4. サーバー側で乱数生成 (0 〜 10000)
     roll_result = random.randint(0, 10000)
