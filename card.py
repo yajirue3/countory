@@ -5,7 +5,7 @@ import os
 import random
 import uuid
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Header, Request, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import HTMLResponse
@@ -20,7 +20,7 @@ router = APIRouter()
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
-# Supabaseクライアント初期化 (casino.pyに準拠)
+# Supabaseクライアント初期化
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 supabase: Optional[Client] = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
@@ -35,17 +35,17 @@ def get_user_from_token(authorization: str):
     except Exception:
         raise HTTPException(status_code=401, detail="無効なトークンです")
 
-# --- カードマスターデータ ---
+# マスターデータ
 CARD_DATABASE = {
-    "u_01": {"id": "u_01", "name": "先鋒兵", "type": "unit", "cost": 1, "atk": 2, "hp": 1, "haste": True, "desc": "速攻（召喚ターンに攻撃可能）"},
-    "u_02": {"id": "u_02", "name": "重装兵", "type": "unit", "cost": 3, "atk": 2, "hp": 5, "taunt": True, "desc": "挑発（敵の攻撃を引き受ける）"},
-    "u_03": {"id": "u_03", "name": "魔導士", "type": "unit", "cost": 2, "atk": 3, "hp": 2, "desc": "標準的なアタッカー"},
-    "u_04": {"id": "u_04", "name": "巨兵", "type": "unit", "cost": 6, "atk": 7, "hp": 6, "desc": "強力な大型ユニット"},
-    "u_05": {"id": "u_05", "name": "吸血鬼", "type": "unit", "cost": 4, "atk": 3, "hp": 4, "lifesteal": True, "desc": "吸血（ダメージ分HP回復）"},
-    "s_01": {"id": "s_01", "name": "雷撃", "type": "spell", "cost": 2, "effect": "damage", "val": 3, "need_target": True, "desc": "対象に3ダメージ"},
-    "s_02": {"id": "s_02", "name": "嵐", "type": "spell", "cost": 4, "effect": "aoe_damage", "val": 2, "need_target": False, "desc": "敵全体に2ダメージ"},
-    "s_03": {"id": "s_03", "name": "治癒", "type": "spell", "cost": 2, "effect": "heal", "val": 5, "need_target": False, "desc": "自ヒーローのHPを5回復"},
-    "s_04": {"id": "s_04", "name": "戦術的補充", "type": "spell", "cost": 3, "effect": "draw", "val": 2, "need_target": False, "desc": "カードを2枚ドロー"},
+    "u_01": {"id": "u_01", "name": "先鋒兵", "type": "unit", "cost": 1, "atk": 2, "hp": 1, "haste": True, "desc": "速攻"},
+    "u_02": {"id": "u_02", "name": "重装兵", "type": "unit", "cost": 3, "atk": 2, "hp": 5, "taunt": True, "desc": "挑発"},
+    "u_03": {"id": "u_03", "name": "魔導士", "type": "unit", "cost": 2, "atk": 3, "hp": 2, "desc": "標準アタッカー"},
+    "u_04": {"id": "u_04", "name": "巨兵", "type": "unit", "cost": 6, "atk": 7, "hp": 6, "desc": "大型ユニット"},
+    "u_05": {"id": "u_05", "name": "吸血鬼", "type": "unit", "cost": 4, "atk": 3, "hp": 4, "lifesteal": True, "desc": "吸血"},
+    "s_01": {"id": "s_01", "name": "雷撃", "type": "spell", "cost": 2, "effect": "damage", "val": 3, "need_target": True, "desc": "単体3点"},
+    "s_02": {"id": "s_02", "name": "嵐", "type": "spell", "cost": 4, "effect": "aoe_damage", "val": 2, "need_target": False, "desc": "全体2点"},
+    "s_03": {"id": "s_03", "name": "治癒", "type": "spell", "cost": 2, "effect": "heal", "val": 5, "need_target": False, "desc": "回復5点"},
+    "s_04": {"id": "s_04", "name": "補充", "type": "spell", "cost": 3, "effect": "draw", "val": 2, "need_target": False, "desc": "2枚引く"},
 }
 
 class CreateRoomRequest(BaseModel):
@@ -66,7 +66,7 @@ class CardGameSession:
         self.status = "WAITING"  # WAITING, DRAFT, BATTLE, ENDED
         self.lock = asyncio.Lock()
         self.timer_task: Optional[asyncio.Task] = None
-        self.time_limit = 30
+        self.time_limit = 60  # 待機時間は60秒カウントダウン
         
         self.turn_user_id: Optional[str] = None
         self.draft_pool: List[str] = []
@@ -108,6 +108,10 @@ def create_room(data: CreateRoomRequest, authorization: str = Header(None)):
     room_id = str(uuid.uuid4())[:8]
     session = CardGameSession(room_id, str(user.id), name, data.wallet_id, data.amount)
     CARD_SESSIONS[room_id] = session
+    
+    # ルーム作成と同時にタイマーを開始（待機タイマー）
+    set_timer(session, seconds=60)
+    
     return {"room_id": room_id}
 
 @router.websocket("/ws/card/{room_id}")
@@ -129,7 +133,6 @@ async def card_websocket(websocket: WebSocket, room_id: str, token: str):
 
     async with session.lock:
         if session.status == "WAITING" and session.host_id != user_id:
-            # ゲスト参加処理と資金の確認・ロック
             if supabase:
                 w_res = supabase.table("wallets").select("*").eq("user_id", user.id).gte("balance", session.bet_amount).execute()
                 if not w_res.data:
@@ -158,8 +161,46 @@ async def card_websocket(websocket: WebSocket, room_id: str, token: str):
         if room_id in CLIENT_CONNECTIONS and user_id in CLIENT_CONNECTIONS[room_id]:
             del CLIENT_CONNECTIONS[room_id][user_id]
 
+# --- タイマー管理系 ---
+def set_timer(session: CardGameSession, seconds: int = 30):
+    if session.timer_task and not session.timer_task.done():
+        session.timer_task.cancel()
+    session.time_limit = seconds
+    session.timer_task = asyncio.create_task(run_timer(session.room_id))
+
+async def run_timer(room_id: str):
+    try:
+        while True:
+            await asyncio.sleep(1)
+            session = CARD_SESSIONS.get(room_id)
+            if not session:
+                break
+            
+            async with session.lock:
+                if session.status == "ENDED":
+                    break
+                
+                session.time_limit -= 1
+                
+                # タイムアウト処理
+                if session.time_limit <= 0:
+                    if session.status == "WAITING":
+                        session.status = "ENDED"
+                        # 待機切れ解散
+                        if room_id in CARD_SESSIONS:
+                            del CARD_SESSIONS[room_id]
+                        await broadcast_state(room_id)
+                        break
+                    elif session.status == "DRAFT":
+                        auto_draft(session)
+                    elif session.status == "BATTLE":
+                        switch_turn(session)
+
+            await broadcast_state(room_id)
+    except asyncio.CancelledError:
+        pass
+
 def deduct_entry_fee(session: CardGameSession):
-    """casino.pyの仕様に合わせて正確にDB更新"""
     if not supabase: return
     for wid in [session.host_wallet_id, session.guest_wallet_id]:
         w_res = supabase.table("wallets").select("*").eq("wallet_id", wid).execute()
@@ -175,35 +216,11 @@ def start_draft_phase(session: CardGameSession):
     session.decks = {session.host_id: [], session.guest_id: []}
     session.turn_user_id = session.host_id
     generate_draft_candidates(session)
-    set_timer(session)
+    set_timer(session, 30)
 
 def generate_draft_candidates(session: CardGameSession):
     if len(session.draft_pool) >= 3:
         session.draft_options[session.turn_user_id] = [session.draft_pool.pop() for _ in range(3)]
-
-def set_timer(session: CardGameSession):
-    if session.timer_task and not session.timer_task.done():
-        session.timer_task.cancel()
-    session.time_limit = 30
-    session.timer_task = asyncio.create_task(run_timer(session.room_id))
-
-async def run_timer(room_id: str):
-    try:
-        while True:
-            await asyncio.sleep(1)
-            session = CARD_SESSIONS.get(room_id)
-            if not session: break
-            async with session.lock:
-                if session.status == "ENDED": break
-                session.time_limit -= 1
-                if session.time_limit <= 0:
-                    if session.status == "DRAFT":
-                        auto_draft(session)
-                    elif session.status == "BATTLE":
-                        switch_turn(session)
-                    await broadcast_state(room_id)
-    except asyncio.CancelledError:
-        pass
 
 def auto_draft(session: CardGameSession):
     uid = session.turn_user_id
@@ -219,7 +236,7 @@ def advance_draft(session: CardGameSession):
     else:
         session.turn_user_id = g if session.turn_user_id == h else h
         generate_draft_candidates(session)
-        set_timer(session)
+        set_timer(session, 30)
 
 def start_battle_phase(session: CardGameSession):
     session.status = "BATTLE"
@@ -240,10 +257,9 @@ def start_battle_phase(session: CardGameSession):
             session.hands[uid].append(c)
 
     session.turn_user_id = h
-    set_timer(session)
+    set_timer(session, 30)
 
 async def process_action(session: CardGameSession, user_id: str, action: dict):
-    # イカサマ防犯: 自分のターンでない操作はすべて棄却
     if session.status == "ENDED" or session.turn_user_id != user_id:
         return
 
@@ -267,7 +283,7 @@ async def process_action(session: CardGameSession, user_id: str, action: dict):
             if idx is None: return
 
             card = hand[idx]
-            if session.mp[user_id] < card["cost"]: return  # MP不足を拒否
+            if session.mp[user_id] < card["cost"]: return
 
             session.mp[user_id] -= card["cost"]
             played = hand.pop(idx)
@@ -298,7 +314,6 @@ async def process_action(session: CardGameSession, user_id: str, action: dict):
             attacker = next((u for u in session.boards[user_id] if u["instance_id"] == atk_id), None)
             if not attacker or not attacker["can_attack"]: return
 
-            # 挑発（Taunt）バイパスの不正を遮断
             taunts = [u for u in session.boards[opp_id] if u["taunt"]]
             if taunts:
                 if target.get("type") != "unit" or target.get("id") not in [u["instance_id"] for u in taunts]:
@@ -359,7 +374,7 @@ def switch_turn(session: CardGameSession):
         c["instance_id"] = str(uuid.uuid4())[:8]
         session.hands[nxt].append(c)
 
-    set_timer(session)
+    set_timer(session, 30)
 
 def check_battle_state(session: CardGameSession):
     for uid in [session.host_id, session.guest_id]:
@@ -382,15 +397,14 @@ def check_battle_state(session: CardGameSession):
         settle_payout(session, winner=winner)
 
 def settle_payout(session: CardGameSession, winner: Optional[str]):
-    """提供コード casino.py に完全に準拠した精算処理"""
     if not supabase: return
-    if winner is None:  # 引き分け返金
+    if winner is None:
         for wid in [session.host_wallet_id, session.guest_wallet_id]:
             w_res = supabase.table("wallets").select("*").eq("wallet_id", wid).execute()
             if w_res.data:
                 w = w_res.data[0]
                 supabase.table("wallets").update({"balance": w["balance"] + session.bet_amount}).eq("id", w["id"]).execute()
-    else:  # 勝者総取り
+    else:
         win_wid = session.host_wallet_id if winner == session.host_id else session.guest_wallet_id
         w_res = supabase.table("wallets").select("*").eq("wallet_id", win_wid).execute()
         if w_res.data:
@@ -409,7 +423,6 @@ async def broadcast_state(room_id: str):
             pass
 
 def mask_session_for_client(session: CardGameSession, target_uid: str) -> dict:
-    """相手の手札や山札などの非公開情報を隠蔽して返却"""
     opp_id = session.guest_id if target_uid == session.host_id else session.host_id
 
     masked_hands = {
@@ -423,7 +436,7 @@ def mask_session_for_client(session: CardGameSession, target_uid: str) -> dict:
         "time_limit": session.time_limit,
         "turn_user_id": session.turn_user_id,
         "host": {"id": session.host_id, "name": session.host_name},
-        "guest": {"id": session.guest_id, "name": session.guest_name},
+        "guest": {"id": session.guest_id, "name": session.guest_name} if session.guest_id else None,
         "bet_amount": session.bet_amount,
         "draft_options": [CARD_DATABASE[cid] for cid in session.draft_options.get(target_uid, [])] if session.status == "DRAFT" else [],
         "hands": masked_hands,
