@@ -41,6 +41,27 @@
         .btn-admin { background: linear-gradient(180deg, #d4af37 0%, #8a7322 100%); color: #1a1a1a; grid-column: span 2; border: 1px solid #ffd700; margin-top: 4px; display: none; }
         .btn-admin:hover { background: linear-gradient(180deg, #ffd700 0%, #a68a28 100%); }
 
+        /* 路地裏イベント用スタイル（メニュー一覧からは完全に独立） */
+        .alley-card {
+            background: #191b1f;
+            border: 1px dashed #4a5568;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 8px;
+            text-align: center;
+        }
+        .btn-alley {
+            background: #2d3748;
+            color: #a0aec0;
+            border: 1px solid #4a5568;
+            padding: 8px;
+            font-size: 0.8rem;
+        }
+        .btn-alley:hover {
+            background: #3a4a5e;
+            color: #e2e8f0;
+        }
+
         .btn-logout { background: #444; color: #ccc; }
         .btn-logout:hover { background: #555; }
         .secret-tag { color: #e74c3c; font-size: 0.7rem; }
@@ -78,6 +99,14 @@
             
             <!-- 国王専用ボタン（初期状態は非表示） -->
             <button id="btn-admin-items" class="btn-admin" onclick="location.href='/admin/items'">👑 アイテム管理（国王専用）</button>
+        </div>
+
+        <!-- 一覧から外した路地裏イベント（独立エリア） -->
+        <div class="alley-card">
+            <div style="font-size: 0.75rem; color: #718096; margin-bottom: 6px;">
+                👀 視線を感じる... 街の裏路地で怪しげな男がこちらの様子を伺っている。
+            </div>
+            <button class="btn-alley" onclick="openAlleyModal()">🕵️ 男に近づいて話しかける</button>
         </div>
     </div>
 
@@ -200,6 +229,19 @@
         localStorage.clear();
         window.location.href = "/";
     }
+
+    /* 路地裏の男イベントモーダル処理 */
+    function openAlleyModal() {
+        document.getElementById("alley-modal").style.display = "flex";
+    }
+
+    function closeAlleyModal() {
+        document.getElementById("alley-modal").style.display = "none";
+    }
+
+    function goToFactory() {
+        window.location.href = "/factory";
+    }
 </script>
 
 <!-- ================= 規約同意モーダル ================= -->
@@ -218,6 +260,29 @@
         <button id="agree-terms-btn" style="width: 100%; padding: 12px; background: #27ae60; color: #fff; border: none; border-radius: 6px; font-weight: bold; font-size: 0.95rem; cursor: pointer;">
             規約に同意してプレイを続ける
         </button>
+    </div>
+</div>
+
+<!-- ================= 路地裏の男会話モーダル（裏イベント） ================= -->
+<div id="alley-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.88); z-index: 9998; justify-content: center; align-items: center;">
+    <div style="background: #1c1e22; border: 2px solid #3a4a5e; border-radius: 12px; width: 90%; max-width: 380px; padding: 20px; box-shadow: 0 0 20px rgba(0,0,0,0.8); color: #e2e8f0; font-family: sans-serif;">
+        <h3 style="color: #cbd5e0; margin-top: 0; text-align: center; border-bottom: 1px solid #2d3748; padding-bottom: 8px;">🕵️ 路地裏の男</h3>
+        
+        <div style="background: #0f1115; border: 1px solid #2d3748; border-radius: 6px; padding: 12px; font-size: 0.85rem; color: #cbd5e0; line-height: 1.6; margin-bottom: 16px;">
+            「おい…声がでかい。しっ、静かにしろ。<br><br>
+            …お前、稼ぎに困ってんだろ？ 特別な仕事がある。<br>
+            この国の国立機械工場は慢性的なくせに超深刻な人手不足でな。だが村岡国王に内緒でワケありの奴らも集めてラインを回してるんだよ。<br><br>
+            簡単な作業で報酬は即金だ。どうだ、秘密の工場へ行くか？」
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button onclick="goToFactory()" style="flex: 1; background: #2b6cb0; color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                はい（工場へ行く）
+            </button>
+            <button onclick="closeAlleyModal()" style="flex: 1; background: #4a5568; color: #ccc; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                いいえ（断る）
+            </button>
+        </div>
     </div>
 </div>
 
@@ -280,7 +345,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 });
 </script>
-
 
 </body>
 </html>
