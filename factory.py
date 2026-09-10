@@ -3,16 +3,15 @@ import time
 import main
 from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 
 router = APIRouter(prefix="/api/factory", tags=["factory"])
 
 # -------------------------------------------------------------------
-# 内部メモリ保持データ
+# メモリ保持データ
 # -------------------------------------------------------------------
 factory_sessions: Dict[str, Dict[str, Any]] = {}
 
-# 工場全体の稼働統計（アナリティクス）
 factory_metrics: Dict[str, int] = {
     "total_units_produced": 0,
     "total_calibration_errors": 0,
@@ -42,28 +41,25 @@ class SystemDiagnostics(BaseModel):
     error_count: int
 
 # -------------------------------------------------------------------
-# 補助関数（ログ・システム制御）
+# 補助関数
 # -------------------------------------------------------------------
 def generate_serial_number() -> str:
-    """製品追跡用シリアルナンバーの生成"""
     prefix = "MRK-SYS"
     timestamp = int(time.time()) % 100000
     rand_id = random.randint(100, 999)
     return f"{prefix}-{timestamp}-{rand_id}"
 
 def log_system_event(level: str, message: str) -> None:
-    """サーバー側システムログ"""
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] [{level.upper()}] {message}")
 
 def reset_session(user_id: str) -> Dict[str, Any]:
-    """セッションの再初期化"""
     factory_sessions[user_id] = generate_step_data(1)
     factory_sessions[user_id]["serial_number"] = generate_serial_number()
     return factory_sessions[user_id]
 
 # -------------------------------------------------------------------
-# エンドポイント群
+# エンドポイント
 # -------------------------------------------------------------------
 @router.get("/status")
 def get_factory_status(authorization: str = Header(None)):
@@ -81,7 +77,6 @@ def get_factory_status(authorization: str = Header(None)):
 
 @router.get("/diagnostics")
 def get_diagnostics():
-    """工場システムの診断データを取得（拡張用）"""
     uptime = int(time.time()) - factory_metrics["system_up_time_sec"]
     return SystemDiagnostics(
         status="OPERATIONAL",
@@ -102,9 +97,7 @@ def process_step(data: ProcessAction, authorization: str = Header(None)):
             detail="[ERROR: DESYNC] 工程シーケンスが不整合です。ラインを再読み込みしてください。"
         )
 
-    # ---------------------------------------------------------------
-    # 各ステップの精密チェックロジック
-    # ---------------------------------------------------------------
+    # 各工程のバリデーション
     if data.step == 1:
         if data.answer != session["target_part"]:
             factory_metrics["total_calibration_errors"] += 1
@@ -124,7 +117,6 @@ def process_step(data: ProcessAction, authorization: str = Header(None)):
             )
 
     elif data.step == 3:
-        # トルク許容公差（45 - 55 Nm）
         if not (45 <= data.answer <= 55):
             factory_metrics["total_calibration_errors"] += 1
             log_system_event("error", f"Torque limit out of range by User: {user.id}")
@@ -134,7 +126,6 @@ def process_step(data: ProcessAction, authorization: str = Header(None)):
             )
 
     elif data.step == 4:
-        # 油圧ポンプ加圧（10 Bar以上）
         if data.answer < 10:
             factory_metrics["total_calibration_errors"] += 1
             raise HTTPException(
@@ -142,9 +133,7 @@ def process_step(data: ProcessAction, authorization: str = Header(None)):
                 detail=f"[ERROR: PRESSURE LOW] 油圧不足（{data.answer} Bar）。規定圧 10 Bar 未満です。"
             )
 
-    # ---------------------------------------------------------------
-    # 最終工程（出荷処理 & Supabase連携）
-    # ---------------------------------------------------------------
+    # 最終出荷工程（報酬反映）
     if data.step == 5:
         if not data.wallet_id:
             raise HTTPException(
@@ -154,7 +143,7 @@ def process_step(data: ProcessAction, authorization: str = Header(None)):
 
         reward_gold = random.randint(15, 25)
         
-        # 口座チェック
+        # Supabaseのwalletsテーブルを参照
         w_res = main.supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
         if not w_res.data:
             raise HTTPException(
@@ -165,12 +154,10 @@ def process_step(data: ProcessAction, authorization: str = Header(None)):
         current_balance = w_res.data[0]["balance"]
         main.supabase.table("wallets").update({"balance": current_balance + reward_gold}).eq("id", w_res.data[0]["id"]).execute()
 
-        # 統計更新 & ログ出力
         factory_metrics["total_units_produced"] += 1
         completed_serial = session.get("serial_number", "UNKNOWN")
         log_system_event("info", f"Unit completed. Serial: {completed_serial}, Reward: {reward_gold} G")
 
-        # セッションリセット
         next_session = reset_session(user.id)
         
         return {
@@ -181,12 +168,10 @@ def process_step(data: ProcessAction, authorization: str = Header(None)):
             "next_step": next_session
         }
 
-    # ---------------------------------------------------------------
-    # 次工程への進展処理
-    # ---------------------------------------------------------------
+    # 次の工程へ進行
     next_step = data.step + 1
     session_data = generate_step_data(next_step)
-    session_data["serial_number"] = session.get("serial_number")  # シリアル保持
+    session_data["serial_number"] = session.get("serial_number")
     factory_sessions[user.id] = session_data
 
     return {
@@ -194,9 +179,6 @@ def process_step(data: ProcessAction, authorization: str = Header(None)):
         "next_step": factory_sessions[user.id]
     }
 
-# -------------------------------------------------------------------
-# 工程データ生成ロジック
-# -------------------------------------------------------------------
 def generate_step_data(step: int) -> Dict[str, Any]:
     base = {
         "current_step": step, 
@@ -208,7 +190,7 @@ def generate_step_data(step: int) -> Dict[str, Any]:
         target = random.choice(parts)
         base.update({
             "target_part": target,
-            "options": random.sample(parts, len(parts))  # シャッフルして出力
+            "options": random.sample(parts, len(parts))
         })
 
     elif step == 2:
