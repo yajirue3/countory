@@ -202,7 +202,6 @@
     }
 </script>
 
-
 <!-- 利用規約同意モーダル -->
 <div id="terms-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center;">
     <div style="background: #222; border: 2px solid #d4af37; border-radius: 12px; width: 90%; max-width: 420px; padding: 20px; box-shadow: 0 0 20px rgba(212,175,55,0.4); color: #fff; font-family: sans-serif;">
@@ -212,7 +211,7 @@
             内容をご確認の上、「同意する」ボタンを押してください。
         </p>
         
-        <div id="terms-content-box" style="background: #111; border: 1px solid #444; border-radius: 6px; padding: 10px; height: 180px; overflow-y: auto; font-size: 0.75rem; color: #aaa; margin-bottom: 15px; whitespace: pre-wrap;">
+        <div id="terms-content-box" style="background: #111; border: 1px solid #444; border-radius: 6px; padding: 10px; height: 180px; overflow-y: auto; font-size: 0.75rem; color: #aaa; margin-bottom: 15px; white-space: pre-wrap;">
             規約を読み込んでいます...
         </div>
 
@@ -247,19 +246,25 @@ document.addEventListener("DOMContentLoaded", async () => {
 
                 // 同意ボタンのクリックイベント
                 document.getElementById("agree-terms-btn").onclick = async () => {
-                    const agreeRes = await fetch("/api/policy/agree", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Authorization": `Bearer ${token}`
-                        },
-                        body: JSON.stringify({ version: latestData.version })
-                    });
+                    try {
+                        const agreeRes = await fetch("/api/policy/agree", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ version: latestData.version })
+                        });
 
-                    if (agreeRes.ok) {
-                        document.getElementById("terms-modal").style.display = "none";
-                    } else {
-                        alert("エラーが発生しました。再度お試しください。");
+                        if (agreeRes.ok) {
+                            document.getElementById("terms-modal").style.display = "none";
+                        } else {
+                            const errData = await agreeRes.json();
+                            alert("エラーが発生しました: " + (errData.detail || "送信失敗"));
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert("通信エラーが発生しました。");
                     }
                 };
             }
