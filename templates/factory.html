@@ -221,7 +221,6 @@
 </div>
 
 <script>
-// トークン取得キーを「access_token」と「token」の両方に対応
 const token = localStorage.getItem("access_token") || localStorage.getItem("token");
 
 if (!token) {
@@ -260,7 +259,7 @@ async function loadWallets() {
             sel.innerHTML = '<option value="">口座が存在しません</option>';
             return;
         }
-        sel.innerHTML = wallets.map(w => `<option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} (${w.wallet_id}) - 残高:${w.balance}G</option>`).join('');
+        sel.innerHTML = wallets.map(w => `<option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} (${w.wallet_id}) - 残高:${Math.floor(w.balance)}G</option>`).join('');
     } catch(e) {
         logMessage("<span style='color:#ef4444;'>ERROR: Failed to load wallets.</span>");
     }
@@ -299,8 +298,8 @@ function renderStep() {
             currentSession.options.map(opt => `<button class="btn-machinery" onclick="submitStep(${step}, '${opt}')">${opt}</button>`).join('');
     } else if (step === 2) {
         area.innerHTML = `<p style="font-size:0.9rem;">${currentSession.math_question}</p>
-            <input type="number" id="mathAns" style="background:#111827; color:#fff; border:1px solid var(--border-color); padding:8px; width:80px; font-family:inherit;">
-            <button class="btn-machinery btn-action" onclick="submitStep(${step}, parseInt(document.getElementById('mathAns').value))">入力実行</button>`;
+            <input type="number" id="mathAns" step="1" style="background:#111827; color:#fff; border:1px solid var(--border-color); padding:8px; width:80px; font-family:inherit;">
+            <button class="btn-machinery btn-action" onclick="submitStep(${step}, parseInt(document.getElementById('mathAns').value, 10))">入力実行</button>`;
     } else if (step === 3) {
         area.innerHTML = `<p style="font-size:0.85rem; color:var(--text-dim);">${currentSession.instruction}</p>
             <div class="gauge-container"><div class="gauge-target"></div><div id="pointer" class="gauge-pointer"></div></div>
@@ -331,7 +330,7 @@ function startGauge() {
 
 function stopGauge(step) {
     clearInterval(gaugeInterval);
-    submitStep(step, gaugeVal);
+    submitStep(step, Math.floor(gaugeVal)); // 端数をカットして整数化
 }
 
 function countTap(step) {
