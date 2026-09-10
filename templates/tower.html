@@ -68,7 +68,6 @@
         .btn-back { background: #333; color: #aaa; margin-top: 8px; border: 1px solid #555; }
         .btn-back:hover { background: #444; color: #fff; }
 
-        /* ステータス表示エリア */
         .status-display { background: #151515; border: 2px dashed #d4af37; border-radius: 10px; padding: 12px; text-align: center; margin-bottom: 12px; }
         .status-text { font-size: 0.85rem; font-weight: bold; color: #ffd700; min-height: 20px; }
         
@@ -77,7 +76,6 @@
         .stat-label { font-size: 0.7rem; color: #888; }
         .stat-val { font-size: 1.0rem; font-weight: bold; color: #f39c12; margin-top: 2px; }
 
-        /* タワー（15段）ディスプレイ */
         .tower-container {
             display: flex;
             flex-direction: column-reverse;
@@ -138,7 +136,7 @@
         }
         .tile-btn.safe { background: #27ae60 !important; border-color: #2ecc71 !important; color: #fff; }
         .tile-btn.trap { background: #c0392b !important; border-color: #e74c3c !important; color: #fff; }
-        .floor-mult { font-size: 0.7rem; color: #f39c12; width: 48px; text-align: right; }
+        .floor-mult { font-size: 0.7rem; color: #f39c12; width: 60px; text-align: right; }
     </style>
 </head>
 <body>
@@ -147,7 +145,7 @@
     <div class="card">
         <div class="header">🏰 王国タワー（Tower）</div>
         <p style="font-size: 0.75rem; color: #aaa; margin-top: 0; line-height: 1.4; text-align: center;">
-            3つのブロックから唯一の宝を選べ！成功率 33.3% の激ムズタワー！（最大50倍）
+            3つのブロックから1つを選べ！還元率 90.0% のスリリングタワー！
         </p>
 
         <!-- ステータスエリア -->
@@ -188,13 +186,12 @@
 
 <script>
     const token = localStorage.getItem("access_token");
-    
     const TOTAL_FLOORS = 15;
     
     let myWalletsData = [];
-    let currentFloor = 0; // 0: 開始前, 1〜15: 進行中
+    let currentGameId = null;
+    let currentFloor = 0;
     let isPlaying = false;
-    let serverSafeTiles = [];
     let activeBetAmount = 0;
 
     initTowerUI();
@@ -206,16 +203,10 @@
         setupEventListeners();
     }
 
-    // 序盤低め・15階で最大50倍に到達する指数傾斜計算
+    // RTP 90.0% 倍率計算関数
     function getMultiplier(floor) {
         if (floor <= 0) return 1.0;
-        const maxMult = 50.0;
-        const startMult = 1.2;
-        
-        // 1階で1.2x、15階で50xとなる計算式
-        const rate = Math.pow(maxMult / startMult, 1 / (TOTAL_FLOORS - 1));
-        const val = startMult * Math.pow(rate, floor - 1);
-        return Math.floor(val * 100) / 100;
+        return Math.floor(Math.pow(2.70, floor) * 100) / 100;
     }
 
     async function loadWallets() {
@@ -284,10 +275,9 @@
             const data = await res.json();
             if (!res.ok) return alert(data.detail || "エラーが発生しました");
 
-            // UIリセット
             initTowerUI();
 
-            serverSafeTiles = data.safe_tiles;
+            currentGameId = data.game_id;
             activeBetAmount = amount;
             currentFloor = 1;
             isPlaying = true;
@@ -308,91 +298,95 @@
     async function selectTile(floor, tileIndex) {
         if (!isPlaying || floor !== currentFloor) return;
 
-        const safeTile = serverSafeTiles[floor - 1];
-        const row = document.getElementById(`floor-row-${floor}`);
-        const buttons = row.querySelectorAll(".tile-btn");
+        try {
+            const res = await fetch("/api/tower/step", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ game_id: currentGameId, floor, tile_index: tileIndex })
+            });
 
-        if (tileIndex === safeTile) {
-            // 安全（当たり）
-            buttons[tileIndex].innerText = "💎";
-            buttons[tileIndex].classList.add("safe");
+            const data = await res.json();
+            if (!res.ok) return alert(data.detail || "エラーが発生しました");
 
-            if (currentFloor === TOTAL_FLOORS) {
-                // 全フロアクリア（50倍）
-                const finalMult = getMultiplier(TOTAL_FLOORS);
-                const finalPayout = Math.floor(activeBetAmount * finalMult);
-                
-                const statusEl = document.getElementById("game-status");
-                statusEl.innerText = `🎉 タワー完全制覇！！ +${finalPayout} Gold 獲得！`;
-                statusEl.style.color = "#2ecc71";
-                
-                await endGame(true, finalPayout);
+            const row = document.getElementById(`floor-row-${floor}`);
+            const buttons = row.querySelectorAll(".tile-btn");
+
+            if (data.is_safe) {
+                buttons[tileIndex].innerText = "💎";
+                buttons[tileIndex].classList.add("safe");
+
+                if (data.is_cleared) {
+                    isPlaying = false;
+                    const statusEl = document.getElementById("game-status");
+                    statusEl.innerText = `🎉 タワー完全制覇！！ +${data.payout} Gold 獲得！`;
+                    statusEl.style.color = "#2ecc71";
+                    await loadWallets();
+                } else {
+                    currentFloor = data.next_floor;
+                    const statusEl = document.getElementById("game-status");
+                    statusEl.innerText = `見事命中！ (${data.multiplier}x) ${currentFloor}階に進みます。`;
+                    statusEl.style.color = "#ffd700";
+                }
             } else {
-                currentFloor++;
-                updateUIState();
+                buttons[tileIndex].innerText = "💣";
+                buttons[tileIndex].classList.add("trap");
                 
+                if (buttons[data.safe_tile]) {
+                    buttons[data.safe_tile].innerText = "💎";
+                }
+
+                isPlaying = false;
                 const statusEl = document.getElementById("game-status");
-                statusEl.innerText = `見事命中！${currentFloor}階に進みます。`;
-                statusEl.style.color = "#ffd700";
+                statusEl.innerText = `💀 罠を踏みました！ゲームオーバー... (-${activeBetAmount} G)`;
+                statusEl.style.color = "#e74c3c";
             }
-        } else {
-            // 罠を踏んだ（ハズレ・ゲームオーバー）
-            buttons[tileIndex].innerText = "💣";
-            buttons[tileIndex].classList.add("trap");
-            
-            const statusEl = document.getElementById("game-status");
-            statusEl.innerText = `💀 罠を踏みました！ゲームオーバー... (-${activeBetAmount} G)`;
-            statusEl.style.color = "#e74c3c";
-            
-            await endGame(false, 0);
+
+            updateUIState();
+
+        } catch (e) {
+            console.error(e);
+            alert("通信エラーが発生しました");
         }
     }
 
     async function cashout() {
         if (!isPlaying || currentFloor <= 1) return;
 
-        const mult = getMultiplier(currentFloor - 1);
-        const payout = Math.floor(activeBetAmount * mult);
-
-        const statusEl = document.getElementById("game-status");
-        statusEl.innerText = `💰 キャッシュアウト成功！ +${payout} Gold 獲得！`;
-        statusEl.style.color = "#2ecc71";
-
-        await endGame(true, payout);
-    }
-
-    async function endGame(isWin, payout) {
-        isPlaying = false;
-        const wallet_id = document.getElementById("wallet-select").value;
-
         try {
-            await fetch("/api/tower/finish", {
+            const res = await fetch("/api/tower/cashout", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                body: JSON.stringify({ wallet_id, payout })
+                body: JSON.stringify({ game_id: currentGameId })
             });
+
+            const data = await res.json();
+            if (!res.ok) return alert(data.detail || "エラーが発生しました");
+
+            isPlaying = false;
+            const statusEl = document.getElementById("game-status");
+            statusEl.innerText = `💰 キャッシュアウト成功！ +${data.payout} Gold 獲得！`;
+            statusEl.style.color = "#2ecc71";
+
             await loadWallets();
+            updateUIState();
+
         } catch (e) {
             console.error(e);
+            alert("通信エラーが発生しました");
         }
-
-        updateUIState();
     }
 
     function updateUIState() {
-        // 入力フォーム制御
         document.getElementById("start-btn").disabled = isPlaying;
         document.getElementById("wallet-select").disabled = isPlaying;
         document.getElementById("bet-amount").disabled = isPlaying;
         document.getElementById("cashout-btn").disabled = !isPlaying || currentFloor <= 1;
 
-        // 倍率・見込み配当表示
         const mult = isPlaying && currentFloor > 1 ? getMultiplier(currentFloor - 1) : (isPlaying ? 1.0 : 0);
         const payout = Math.floor(activeBetAmount * mult);
         document.getElementById("stat-multiplier").innerText = mult.toFixed(2) + "x";
         document.getElementById("stat-payout").innerText = payout + " G";
 
-        // タワーの各行とボタンの有効化/無効化
         for (let f = 1; f <= TOTAL_FLOORS; f++) {
             const row = document.getElementById(`floor-row-${f}`);
             if (!row) continue;
