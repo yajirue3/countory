@@ -25,12 +25,18 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 supabase: Optional[Client] = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
 
-def get_user_from_token(authorization: str):
+async def async_supabase_exec(query):
+    """Supabaseの同期処理でイベントループがブロックされるのを防止"""
+    if not supabase:
+        return None
+    return await asyncio.to_thread(query.execute)
+
+async def get_user_from_token_async(authorization: str):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="認証トークンがありません")
     token = authorization.split(" ")[1]
     try:
-        user_res = supabase.auth.get_user(token)
+        user_res = await asyncio.to_thread(supabase.auth.get_user, token)
         return user_res.user
     except Exception:
         raise HTTPException(status_code=401, detail="無効なトークンです")
@@ -63,10 +69,10 @@ class CardGameSession:
         self.guest_wallet_id: Optional[str] = None
         self.bet_amount = bet_amount
         
-        self.status = "WAITING"  # WAITING, DRAFT, BATTLE, ENDED
+        self.status = "WAITING"
         self.lock = asyncio.Lock()
         self.timer_task: Optional[asyncio.Task] = None
-        self.time_limit = 60  # 待機時間は60秒カウントダウン
+        self.time_limit = 60
         
         self.turn_user_id: Optional[str] = None
         self.draft_pool: List[str] = []
@@ -83,25 +89,25 @@ CARD_SESSIONS: Dict[str, CardGameSession] = {}
 CLIENT_CONNECTIONS: Dict[str, Dict[str, WebSocket]] = {}
 
 @router.get("/card", response_class=HTMLResponse)
-def get_card(request: Request):
+async def get_card(request: Request):
     return templates.TemplateResponse(request=request, name="card.html")
 
 @router.get("/api/card/rooms")
-def get_rooms():
+async def get_rooms():
     return {"rooms": [{"room_id": s.room_id, "host_name": s.host_name, "bet_amount": s.bet_amount} 
                       for s in CARD_SESSIONS.values() if s.status == "WAITING"]}
 
 @router.post("/api/card/create")
-def create_room(data: CreateRoomRequest, authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
+async def create_room(data: CreateRoomRequest, authorization: str = Header(None)):
+    user = await get_user_from_token_async(authorization)
 
     if supabase:
-        w_res = supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
+        w_res = await async_supabase_exec(supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id))
         if not w_res.data or w_res.data[0]["balance"] < data.amount:
             raise HTTPException(status_code=400, detail="残高が不足しています")
         
-        p_res = supabase.table("profiles").select("nickname").eq("id", user.id).execute()
-        name = p_res.data[0]["nickname"] if p_res.data and "nickname" in p_res.data[0] else f"Player-{str(user.id)[:4]}"
+        p_res = await async_supabase_exec(supabase.table("profiles").select("nickname").eq("id", user.id))
+        name = p_res.data[0]["nickname"] if p_res and p_res.data and "nickname" in p_res.data[0] else f"Player-{str(user.id)[:4]}"
     else:
         name = f"Player-{str(user.id)[:4]}"
 
@@ -109,16 +115,14 @@ def create_room(data: CreateRoomRequest, authorization: str = Header(None)):
     session = CardGameSession(room_id, str(user.id), name, data.wallet_id, data.amount)
     CARD_SESSIONS[room_id] = session
     
-    # ルーム作成と同時にタイマーを開始（待機タイマー）
     set_timer(session, seconds=60)
-    
     return {"room_id": room_id}
 
 @router.websocket("/ws/card/{room_id}")
 async def card_websocket(websocket: WebSocket, room_id: str, token: str):
     await websocket.accept()
     try:
-        user = get_user_from_token(f"Bearer {token}")
+        user = await get_user_from_token_async(f"Bearer {token}")
     except Exception:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
@@ -134,20 +138,20 @@ async def card_websocket(websocket: WebSocket, room_id: str, token: str):
     async with session.lock:
         if session.status == "WAITING" and session.host_id != user_id:
             if supabase:
-                w_res = supabase.table("wallets").select("*").eq("user_id", user.id).gte("balance", session.bet_amount).execute()
-                if not w_res.data:
+                w_res = await async_supabase_exec(supabase.table("wallets").select("*").eq("user_id", user.id).gte("balance", session.bet_amount))
+                if not w_res or not w_res.data:
                     await websocket.send_json({"type": "ERROR", "message": "参加資金が不足しています"})
                     await websocket.close()
                     return
-                p_res = supabase.table("profiles").select("nickname").eq("id", user.id).execute()
-                session.guest_name = p_res.data[0]["nickname"] if p_res.data and "nickname" in p_res.data[0] else f"Player-{user_id[:4]}"
+                p_res = await async_supabase_exec(supabase.table("profiles").select("nickname").eq("id", user.id))
+                session.guest_name = p_res.data[0]["nickname"] if p_res and p_res.data and "nickname" in p_res.data[0] else f"Player-{user_id[:4]}"
                 session.guest_wallet_id = w_res.data[0]["wallet_id"]
             else:
                 session.guest_name = f"Player-{user_id[:4]}"
                 session.guest_wallet_id = f"w_{user_id[:4]}"
 
             session.guest_id = user_id
-            deduct_entry_fee(session)
+            await deduct_entry_fee(session)
             start_draft_phase(session)
 
     await broadcast_state(room_id)
@@ -182,11 +186,9 @@ async def run_timer(room_id: str):
                 
                 session.time_limit -= 1
                 
-                # タイムアウト処理
                 if session.time_limit <= 0:
                     if session.status == "WAITING":
                         session.status = "ENDED"
-                        # 待機切れ解散
                         if room_id in CARD_SESSIONS:
                             del CARD_SESSIONS[room_id]
                         await broadcast_state(room_id)
@@ -200,13 +202,13 @@ async def run_timer(room_id: str):
     except asyncio.CancelledError:
         pass
 
-def deduct_entry_fee(session: CardGameSession):
+async def deduct_entry_fee(session: CardGameSession):
     if not supabase: return
     for wid in [session.host_wallet_id, session.guest_wallet_id]:
-        w_res = supabase.table("wallets").select("*").eq("wallet_id", wid).execute()
-        if w_res.data:
+        w_res = await async_supabase_exec(supabase.table("wallets").select("*").eq("wallet_id", wid))
+        if w_res and w_res.data:
             w = w_res.data[0]
-            supabase.table("wallets").update({"balance": w["balance"] - session.bet_amount}).eq("id", w["id"]).execute()
+            await async_supabase_exec(supabase.table("wallets").update({"balance": w["balance"] - session.bet_amount}).eq("id", w["id"]))
 
 def start_draft_phase(session: CardGameSession):
     session.status = "DRAFT"
@@ -303,7 +305,7 @@ async def process_action(session: CardGameSession, user_id: str, action: dict):
             elif played["type"] == "spell":
                 resolve_spell(session, user_id, played, target)
 
-            check_battle_state(session)
+            await check_battle_state(session)
             await broadcast_state(session.room_id)
 
         elif act == "DECLARE_ATTACK":
@@ -332,7 +334,7 @@ async def process_action(session: CardGameSession, user_id: str, action: dict):
                     if attacker["lifesteal"]: session.hp[user_id] = min(20, session.hp[user_id] + attacker["atk"])
                     attacker["can_attack"] = False
 
-            check_battle_state(session)
+            await check_battle_state(session)
             await broadcast_state(session.room_id)
 
         elif act == "END_TURN":
@@ -376,7 +378,7 @@ def switch_turn(session: CardGameSession):
 
     set_timer(session, 30)
 
-def check_battle_state(session: CardGameSession):
+async def check_battle_state(session: CardGameSession):
     for uid in [session.host_id, session.guest_id]:
         session.boards[uid] = [u for u in session.boards[uid] if u["curr_hp"] > 0]
 
@@ -385,7 +387,7 @@ def check_battle_state(session: CardGameSession):
 
     if session.hp[g] <= 0 and session.hp[h] <= 0:
         session.status = "ENDED"
-        settle_payout(session, winner=None)
+        await settle_payout(session, winner=None)
         return
     elif session.hp[g] <= 0: winner = h
     elif session.hp[h] <= 0: winner = g
@@ -394,22 +396,22 @@ def check_battle_state(session: CardGameSession):
         session.status = "ENDED"
         session.winner_id = winner
         if session.timer_task: session.timer_task.cancel()
-        settle_payout(session, winner=winner)
+        await settle_payout(session, winner=winner)
 
-def settle_payout(session: CardGameSession, winner: Optional[str]):
+async def settle_payout(session: CardGameSession, winner: Optional[str]):
     if not supabase: return
     if winner is None:
         for wid in [session.host_wallet_id, session.guest_wallet_id]:
-            w_res = supabase.table("wallets").select("*").eq("wallet_id", wid).execute()
-            if w_res.data:
+            w_res = await async_supabase_exec(supabase.table("wallets").select("*").eq("wallet_id", wid))
+            if w_res and w_res.data:
                 w = w_res.data[0]
-                supabase.table("wallets").update({"balance": w["balance"] + session.bet_amount}).eq("id", w["id"]).execute()
+                await async_supabase_exec(supabase.table("wallets").update({"balance": w["balance"] + session.bet_amount}).eq("id", w["id"]))
     else:
         win_wid = session.host_wallet_id if winner == session.host_id else session.guest_wallet_id
-        w_res = supabase.table("wallets").select("*").eq("wallet_id", win_wid).execute()
-        if w_res.data:
+        w_res = await async_supabase_exec(supabase.table("wallets").select("*").eq("wallet_id", win_wid))
+        if w_res and w_res.data:
             w = w_res.data[0]
-            supabase.table("wallets").update({"balance": w["balance"] + (session.bet_amount * 2)}).eq("id", w["id"]).execute()
+            await async_supabase_exec(supabase.table("wallets").update({"balance": w["balance"] + (session.bet_amount * 2)}).eq("id", w["id"]))
 
 async def broadcast_state(room_id: str):
     session = CARD_SESSIONS.get(room_id)
@@ -420,6 +422,7 @@ async def broadcast_state(room_id: str):
             state = mask_session_for_client(session, uid)
             await ws.send_json({"type": "SYNC_STATE", "payload": state})
         except Exception:
+            # 切断済みクライアントによる送受信例外の無視
             pass
 
 def mask_session_for_client(session: CardGameSession, target_uid: str) -> dict:
