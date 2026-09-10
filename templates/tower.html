@@ -5,180 +5,476 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>村岡王国 - タワーゲーム (Tower)</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=M+PLUS+1p:wght@800;900&display=swap');
+
+        :root {
+            --neon-pink: #ff007f;
+            --neon-cyan: #00f3ff;
+            --neon-yellow: #ffe600;
+            --neon-green: #00ff66;
+            --neon-red: #ff003c;
+            --neon-purple: #b000ff;
+        }
+
         body { 
-            font-family: sans-serif; 
-            background: radial-gradient(circle at center, #221a0f 0%, #0d0d0d 100%); 
-            color: #e0e0e0; 
+            font-family: 'M PLUS 1p', 'Black Ops One', sans-serif; 
+            background: #000;
+            background-image: 
+                radial-gradient(circle at 50% 30%, #200033 0%, #000000 85%),
+                linear-gradient(0deg, rgba(255, 0, 127, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.08) 1px, transparent 1px);
+            background-size: 100% 100%, 20px 20px, 20px 20px;
+            color: #fff; 
             display: flex; 
             justify-content: center; 
-            padding: 20px 0; 
+            padding: 10px 0; 
             margin: 0; 
             min-height: 100vh;
+            box-sizing: border-box;
+            overflow-x: hidden;
         }
-        .container { width: 380px; display: flex; flex-direction: column; gap: 16px; }
+
+        .container { 
+            width: 100%; 
+            max-width: 380px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            box-sizing: border-box;
+            padding: 0 10px;
+        }
+
         .card { 
-            background: rgba(35, 30, 25, 0.95); 
-            border: 2px solid #d4af37; 
-            border-radius: 16px; 
-            padding: 20px; 
-            box-shadow: 0 0 25px rgba(212, 175, 55, 0.25), inset 0 0 10px rgba(0,0,0,0.8); 
+            background: rgba(15, 5, 25, 0.95); 
+            border: 2px solid var(--neon-pink); 
+            border-radius: 20px; 
+            padding: 14px; 
+            box-shadow: 0 0 20px rgba(255, 0, 127, 0.5); 
+            position: relative;
+            overflow: hidden;
         }
+
         .header { 
-            font-size: 1.1rem; 
-            font-weight: bold; 
-            color: #ffd700; 
+            font-size: 1.3rem; 
+            font-weight: 900; 
+            color: var(--neon-yellow); 
             text-align: center; 
-            border-bottom: 2px solid #d4af37; 
-            padding-bottom: 8px; 
-            margin-bottom: 12px; 
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            border-bottom: 2px solid var(--neon-cyan); 
+            padding-bottom: 4px; 
+            margin-bottom: 6px; 
+            text-shadow: 0 0 10px var(--neon-yellow);
+            letter-spacing: 1px;
         }
 
-        .label { font-size: 0.8rem; color: #aaa; margin-top: 6px; display: block; }
-        input, select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #333; color: #fff; box-sizing: border-box; margin-top: 4px; margin-bottom: 10px; font-size: 0.85rem; font-family: sans-serif; }
+        .label { 
+            font-size: 0.75rem; 
+            color: var(--neon-cyan); 
+            margin-top: 6px; 
+            display: block; 
+            font-weight: 900;
+            text-shadow: 0 0 4px var(--neon-cyan);
+        }
 
-        button { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #d4af37; color: #1a1a1a; font-size: 0.9rem; margin-top: 4px; }
-        button:hover { background: #f1c40f; }
+        input, select { 
+            width: 100%; 
+            padding: 8px 10px; 
+            border-radius: 10px; 
+            border: 2px solid var(--neon-cyan); 
+            background: rgba(10, 10, 20, 0.9); 
+            color: #fff; 
+            box-sizing: border-box; 
+            margin-top: 3px; 
+            margin-bottom: 6px; 
+            font-size: 0.9rem; 
+            font-weight: bold;
+            font-family: inherit; 
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--neon-pink);
+            box-shadow: 0 0 10px var(--neon-pink);
+        }
+
+        button { 
+            width: 100%; 
+            padding: 10px; 
+            border: none; 
+            border-radius: 12px; 
+            font-weight: 900; 
+            cursor: pointer; 
+            background: var(--neon-yellow); 
+            color: #000; 
+            font-size: 0.95rem; 
+            margin-top: 4px; 
+            box-shadow: 0 0 12px var(--neon-yellow);
+            user-select: none;
+            transition: transform 0.05s ease;
+        }
+
+        button:active:not(:disabled) {
+            transform: scale(0.95);
+            filter: brightness(1.3);
+        }
 
         .btn-start { 
-            background: linear-gradient(180deg, #e74c3c 0%, #900c3f 100%); 
+            background: linear-gradient(135deg, #ff0055 0%, #ff00a0 50%, #7928ca 100%); 
             color: #fff; 
-            font-size: 1.0rem; 
+            font-size: 1.15rem; 
             padding: 12px; 
-            box-shadow: 0 0 12px rgba(231, 76, 60, 0.4);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            border-radius: 14px;
+            box-shadow: 0 0 25px var(--neon-pink);
+            text-shadow: 0 0 5px #fff;
+            border: 2px solid #fff;
+            animation: pulse-btn 1.5s infinite;
         }
-        .btn-start:hover { 
-            background: linear-gradient(180deg, #ff5733 0%, #a00d40 100%); 
-            box-shadow: 0 0 18px rgba(255, 87, 51, 0.6);
+
+        @keyframes pulse-btn {
+            0% { box-shadow: 0 0 15px var(--neon-pink); }
+            50% { box-shadow: 0 0 30px var(--neon-pink), 0 0 10px var(--neon-cyan); }
+            100% { box-shadow: 0 0 15px var(--neon-pink); }
         }
-        .btn-start:disabled { background: #555; box-shadow: none; cursor: not-allowed; }
+
+        .btn-start:disabled { 
+            background: #333; 
+            box-shadow: none; 
+            cursor: not-allowed; 
+            border: none;
+            color: #666;
+            animation: none;
+            transform: none !important;
+        }
 
         .btn-cashout {
-            background: linear-gradient(180deg, #27ae60 0%, #1e8449 100%);
-            color: #fff;
-            font-size: 1.0rem;
+            background: linear-gradient(135deg, #00ff66 0%, #009933 100%);
+            color: #000;
+            font-size: 1.1rem;
             padding: 12px;
-            box-shadow: 0 0 12px rgba(39, 174, 96, 0.4);
+            border-radius: 14px;
+            box-shadow: 0 0 20px var(--neon-green);
             margin-top: 8px;
+            border: 2px solid #fff;
+            animation: cashout-glow 0.8s infinite alternate;
         }
-        .btn-cashout:hover { background: linear-gradient(180deg, #2ecc71 0%, #25a25a 100%); }
-        .btn-cashout:disabled { background: #555; box-shadow: none; cursor: not-allowed; }
 
-        .btn-back { background: #333; color: #aaa; margin-top: 8px; border: 1px solid #555; }
-        .btn-back:hover { background: #444; color: #fff; }
+        @keyframes cashout-glow {
+            from { box-shadow: 0 0 10px var(--neon-green); filter: brightness(1); }
+            to { box-shadow: 0 0 25px var(--neon-green), 0 0 10px var(--neon-yellow); filter: brightness(1.3); }
+        }
 
-        .status-display { background: #151515; border: 2px dashed #d4af37; border-radius: 10px; padding: 12px; text-align: center; margin-bottom: 12px; }
-        .status-text { font-size: 0.85rem; font-weight: bold; color: #ffd700; min-height: 20px; }
+        .btn-cashout:disabled { background: #333; box-shadow: none; cursor: not-allowed; border: none; color: #666; animation: none; }
+
+        .btn-back { 
+            background: #111; 
+            color: #888; 
+            margin-top: 4px; 
+            border: 1px solid #333; 
+            font-size: 0.8rem;
+            padding: 8px;
+            box-shadow: none;
+        }
+
+        /* 🎰 ステータス表示エリア */
+        .status-display { 
+            background: #000; 
+            border: 2px solid var(--neon-cyan); 
+            border-radius: 16px; 
+            padding: 10px 8px; 
+            text-align: center; 
+            margin-bottom: 8px; 
+            box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.4);
+            position: relative;
+            will-change: transform;
+        }
+
+        .status-text { 
+            font-size: 0.85rem; 
+            font-weight: 900; 
+            color: var(--neon-yellow); 
+            min-height: 22px; 
+            text-shadow: 0 0 6px currentColor;
+        }
         
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #202020; border-radius: 8px; padding: 10px; margin-bottom: 12px; border: 1px solid #333; }
-        .stat-box { text-align: center; }
-        .stat-label { font-size: 0.7rem; color: #888; }
-        .stat-val { font-size: 1.0rem; font-weight: bold; color: #f39c12; margin-top: 2px; }
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 8px; 
+            background: rgba(0, 0, 0, 0.5); 
+            border-radius: 12px; 
+            padding: 6px; 
+            margin-bottom: 8px; 
+        }
 
+        .stat-box { 
+            text-align: center; 
+            background: rgba(20, 20, 35, 0.8);
+            padding: 6px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 243, 255, 0.2);
+        }
+
+        .stat-label { font-size: 0.7rem; color: #aaa; font-weight: bold; }
+        .stat-val { 
+            font-size: 1.15rem; 
+            font-weight: 900; 
+            color: var(--neon-green); 
+            margin-top: 1px; 
+            text-shadow: 0 0 8px var(--neon-green); 
+            font-family: 'Black Ops One', monospace;
+            display: inline-block;
+            will-change: transform;
+        }
+
+        /* 🏰 15段タワーエリア */
         .tower-container {
             display: flex;
             flex-direction: column-reverse;
-            gap: 4px;
+            gap: 5px;
             max-height: 320px;
             overflow-y: auto;
-            background: #111;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #333;
-            margin-bottom: 12px;
+            background: #000;
+            padding: 8px;
+            border-radius: 14px;
+            border: 2px solid var(--neon-pink);
+            margin-bottom: 8px;
+            box-shadow: inset 0 0 15px rgba(255, 0, 127, 0.3);
+            scrollbar-width: thin;
         }
+
         .tower-row {
             display: flex;
             align-items: center;
             gap: 6px;
-            opacity: 0.3;
+            opacity: 0.35;
             padding: 4px;
-            border-radius: 6px;
-            background: #1e1e1e;
+            border-radius: 10px;
+            background: rgba(20, 10, 30, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.15s ease;
         }
+
         .tower-row.active {
             opacity: 1.0;
-            background: #2a2518;
-            border: 1px solid #ffd700;
+            background: rgba(0, 243, 255, 0.12);
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 12px var(--neon-cyan);
+            animation: active-row-pulse 1s infinite alternate;
         }
+
+        @keyframes active-row-pulse {
+            from { border-color: var(--neon-cyan); box-shadow: 0 0 8px var(--neon-cyan); }
+            to { border-color: var(--neon-pink); box-shadow: 0 0 15px var(--neon-pink); }
+        }
+
         .tower-row.cleared {
-            opacity: 0.8;
-            background: #1b2e1e;
+            opacity: 0.9;
+            background: rgba(0, 255, 102, 0.1);
+            border: 1px solid var(--neon-green);
         }
+
         .floor-num {
             font-size: 0.75rem;
-            font-weight: bold;
-            color: #888;
+            font-weight: 900;
+            color: var(--neon-yellow);
             width: 28px;
             text-align: center;
+            text-shadow: 0 0 4px var(--neon-yellow);
+            font-family: 'Black Ops One', monospace;
         }
+
         .tiles-group {
             display: flex;
             flex: 1;
             gap: 6px;
         }
+
         .tile-btn {
             flex: 1;
-            padding: 6px 0;
-            background: #333;
-            border: 1px solid #555;
-            color: #fff;
-            border-radius: 4px;
-            font-size: 0.8rem;
+            padding: 8px 0;
+            background: #151525;
+            border: 1.5px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 900;
             cursor: pointer;
             margin: 0;
+            box-shadow: 0 0 6px rgba(0, 243, 255, 0.2);
+            transition: transform 0.05s ease;
         }
+
+        .tile-btn:not(:disabled):hover {
+            background: var(--neon-cyan);
+            color: #000;
+            box-shadow: 0 0 12px var(--neon-cyan);
+        }
+
         .tile-btn:disabled {
             cursor: not-allowed;
-            background: #222;
+            background: #101015;
             border-color: #333;
+            color: #444;
+            box-shadow: none;
         }
-        .tile-btn.safe { background: #27ae60 !important; border-color: #2ecc71 !important; color: #fff; }
-        .tile-btn.trap { background: #c0392b !important; border-color: #e74c3c !important; color: #fff; }
-        .floor-mult { font-size: 0.7rem; color: #f39c12; width: 60px; text-align: right; }
+
+        .tile-btn.safe { 
+            background: linear-gradient(135deg, #00ff66 0%, #009933 100%) !important; 
+            border-color: #fff !important; 
+            color: #fff !important; 
+            text-shadow: 0 0 6px #000;
+            box-shadow: 0 0 15px var(--neon-green) !important;
+        }
+
+        .tile-btn.trap { 
+            background: linear-gradient(135deg, #ff003c 0%, #990000 100%) !important; 
+            border-color: #fff !important; 
+            color: #fff !important; 
+            box-shadow: 0 0 15px var(--neon-red) !important;
+        }
+
+        .floor-mult { 
+            font-size: 0.75rem; 
+            font-weight: 900;
+            color: var(--neon-green); 
+            width: 58px; 
+            text-align: right; 
+            text-shadow: 0 0 5px var(--neon-green);
+            font-family: 'Black Ops One', monospace;
+        }
+
+        /* ⚙️ オプション設定パネル */
+        .option-box { 
+            background: rgba(10, 10, 15, 0.95); 
+            border: 1.5px solid var(--neon-pink); 
+            border-radius: 14px; 
+            padding: 8px 10px; 
+            margin-top: 6px; 
+        }
+
+        .checkbox-label { 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+            font-size: 0.78rem; 
+            font-weight: bold;
+            color: #fff; 
+            cursor: pointer; 
+        }
+
+        .checkbox-label input[type=checkbox] { 
+            width: 16px; 
+            height: 16px; 
+            margin: 0; 
+            accent-color: var(--neon-pink);
+        }
+
+        /* 🌈 脳汁爆発！虹色・揺れ・飛び出し演出 🌈 */
+        .win-rainbow-shake {
+            animation: rainbow-glow 0.4s linear infinite, win-shake-anim 0.2s ease-in-out infinite alternate;
+        }
+
+        .win-rainbow-noshake {
+            animation: rainbow-glow 0.4s linear infinite;
+        }
+
+        .win-text-rainbow {
+            animation: rainbow-text 0.2s linear infinite;
+        }
+
+        .num-pop {
+            animation: pop-bounce 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes pop-bounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.45); text-shadow: 0 0 30px #ffffff, 0 0 50px var(--neon-pink); }
+            100% { transform: scale(1); }
+        }
+
+        .lose-shake {
+            animation: lose-shake-anim 0.2s ease-in-out 2;
+            border-color: var(--neon-red) !important;
+        }
+
+        @keyframes rainbow-glow {
+            0% { border-color: #ff0000; box-shadow: 0 0 25px #ff0000, inset 0 0 15px #ff0000; }
+            20% { border-color: #ffff00; box-shadow: 0 0 25px #ffff00, inset 0 0 15px #ffff00; }
+            40% { border-color: #00ff00; box-shadow: 0 0 25px #00ff00, inset 0 0 15px #00ff00; }
+            60% { border-color: #00ffff; box-shadow: 0 0 25px #00ffff, inset 0 0 15px #00ffff; }
+            80% { border-color: #ff00ff; box-shadow: 0 0 25px #ff00ff, inset 0 0 15px #ff00ff; }
+            100% { border-color: #ff0000; box-shadow: 0 0 25px #ff0000, inset 0 0 15px #ff0000; }
+        }
+
+        @keyframes rainbow-text {
+            0% { color: #ff0055; text-shadow: 0 0 15px #ff0055; }
+            25% { color: #ffe600; text-shadow: 0 0 15px #ffe600; }
+            50% { color: #00ff66; text-shadow: 0 0 15px #00ff66; }
+            75% { color: #00f3ff; text-shadow: 0 0 15px #00f3ff; }
+            100% { color: #ff00a0; text-shadow: 0 0 15px #ff00a0; }
+        }
+
+        @keyframes win-shake-anim {
+            0% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.05) rotate(-1.5deg); }
+            100% { transform: scale(1.05) rotate(1.5deg); }
+        }
+
+        @keyframes lose-shake-anim {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+            100% { transform: translateX(0); }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="card">
-        <div class="header">🏰 王国タワー（Tower）</div>
-        <p style="font-size: 0.75rem; color: #aaa; margin-top: 0; line-height: 1.4; text-align: center;">
-            3つのブロックから1つを選べ！還元率 90.0% のスリリングタワー！
+    <div class="card" id="main-card">
+        <div class="header">👑 脳汁頂上！TOWER 👑</div>
+        <p style="font-size: 0.75rem; color: #00f3ff; font-weight: bold; margin: 0 0 6px 0; text-align: center; text-shadow: 0 0 4px #00f3ff;">
+            ⚡ 全財産を叩き込め！1/3の罠を避けて頂点を目指せ！ ⚡
         </p>
 
         <!-- ステータスエリア -->
-        <div class="status-display">
-            <div id="game-status" class="status-text">賭け金を入力して挑戦スタート！</div>
+        <div class="status-display" id="status-display-box">
+            <div id="game-status" class="status-text">🔥 全ベット準備完了！勝負のタワーを開始せよ！</div>
         </div>
 
         <div class="stats-grid">
             <div class="stat-box">
-                <div class="stat-label">現在の獲得倍率</div>
+                <div class="stat-label">🔥 現在の獲得倍率</div>
                 <div id="stat-multiplier" class="stat-val">1.00x</div>
             </div>
             <div class="stat-box">
-                <div class="stat-label">見込み獲得Gold</div>
+                <div class="stat-label">💎 見込み獲得Gold</div>
                 <div id="stat-payout" class="stat-val">0 G</div>
             </div>
         </div>
 
         <!-- 口座選択 -->
-        <div class="label">支払口座を選択</div>
+        <div class="label">💳 支払口座</div>
         <select id="wallet-select"></select>
 
         <!-- 賭け金入力 -->
-        <div class="label">賭け金 (Gold)</div>
+        <div class="label">💎 賭け金 (Gold)</div>
         <input type="number" id="bet-amount" min="10" value="100" placeholder="例: 100">
 
         <!-- 15段のタワー -->
-        <div class="label">タワーフロア (全15階)</div>
+        <div class="label">🏰 頂上へ登れ！(全15階)</div>
         <div id="tower-container" class="tower-container"></div>
 
         <!-- ボタンエリア -->
-        <button id="start-btn" class="btn-start">🚀 チャレンジスタート</button>
-        <button id="cashout-btn" class="btn-cashout" disabled>💰 今すぐ引き出し (Cash Out)</button>
+        <button id="start-btn" class="btn-start">🚀 脳汁挑戦スタート！</button>
+        <button id="cashout-btn" class="btn-cashout" disabled>💰 今すぐ利確 (Cash Out)</button>
+
+        <!-- ⚙️ オプション設定 -->
+        <div class="option-box">
+            <label class="checkbox-label">
+                <input type="checkbox" id="disable-shake">
+                <span>🚫 画面の揺れ・飛び出し演出をオフにする</span>
+            </label>
+        </div>
     </div>
 
     <button class="btn-back" onclick="location.href='/casino'">◀ カジノ一覧に戻る</button>
@@ -258,6 +554,47 @@
         document.getElementById("cashout-btn").addEventListener("click", cashout);
     }
 
+    function triggerWinEffects() {
+        const displayBox = document.getElementById("status-display-box");
+        const disableShake = document.getElementById("disable-shake").checked;
+        const payoutEl = document.getElementById("stat-payout");
+        const statusEl = document.getElementById("game-status");
+
+        displayBox.className = "status-display";
+        payoutEl.className = "stat-val";
+        statusEl.className = "status-text";
+
+        statusEl.classList.add("win-text-rainbow");
+
+        if (disableShake) {
+            displayBox.classList.add("win-rainbow-noshake");
+        } else {
+            displayBox.classList.add("win-rainbow-shake");
+            payoutEl.classList.add("num-pop");
+        }
+    }
+
+    function triggerLoseEffects() {
+        const displayBox = document.getElementById("status-display-box");
+        const disableShake = document.getElementById("disable-shake").checked;
+        
+        displayBox.className = "status-display";
+        
+        if (!disableShake) {
+            displayBox.classList.add("lose-shake");
+        }
+    }
+
+    function resetEffects() {
+        const displayBox = document.getElementById("status-display-box");
+        const payoutEl = document.getElementById("stat-payout");
+        const statusEl = document.getElementById("game-status");
+
+        displayBox.className = "status-display";
+        payoutEl.className = "stat-val";
+        statusEl.className = "status-text";
+    }
+
     async function startGame() {
         const wallet_id = document.getElementById("wallet-select").value;
         const amount = parseInt(document.getElementById("bet-amount").value, 10);
@@ -275,6 +612,7 @@
             const data = await res.json();
             if (!res.ok) return alert(data.detail || "エラーが発生しました");
 
+            resetEffects();
             initTowerUI();
 
             currentGameId = data.game_id;
@@ -286,8 +624,10 @@
             updateUIState();
 
             const statusEl = document.getElementById("game-status");
-            statusEl.innerText = "1階のブロックを1つ選んでください！";
-            statusEl.style.color = "#ffd700";
+            statusEl.innerText = "⚡ 1階のブロックを選べ！直感を信じろ！";
+            statusEl.style.color = "#00f3ff";
+
+            scrollToActiveFloor();
 
         } catch (e) {
             console.error(e);
@@ -318,14 +658,18 @@
                 if (data.is_cleared) {
                     isPlaying = false;
                     const statusEl = document.getElementById("game-status");
-                    statusEl.innerText = `🎉 タワー完全制覇！！ +${data.payout} Gold 獲得！`;
-                    statusEl.style.color = "#2ecc71";
+                    statusEl.innerText = `🌈👑 タワー完全制覇！！ +${data.payout} Gold 神引き達成！！ 👑🌈`;
+                    
+                    triggerWinEffects();
                     await loadWallets();
                 } else {
                     currentFloor = data.next_floor;
                     const statusEl = document.getElementById("game-status");
-                    statusEl.innerText = `見事命中！ (${data.multiplier}x) ${currentFloor}階に進みます。`;
-                    statusEl.style.color = "#ffd700";
+                    statusEl.innerText = `🎯 突破！！ (${data.multiplier}x) 次の ${currentFloor}階へ挑め！`;
+                    statusEl.style.color = "#00ff66";
+
+                    triggerWinEffects();
+                    scrollToActiveFloor();
                 }
             } else {
                 buttons[tileIndex].innerText = "💣";
@@ -337,8 +681,10 @@
 
                 isPlaying = false;
                 const statusEl = document.getElementById("game-status");
-                statusEl.innerText = `💀 罠を踏みました！ゲームオーバー... (-${activeBetAmount} G)`;
-                statusEl.style.color = "#e74c3c";
+                statusEl.innerText = `💀 爆死！！ 罠を踏んでしまった... (-${activeBetAmount} G)`;
+                statusEl.style.color = "#ff003c";
+
+                triggerLoseEffects();
             }
 
             updateUIState();
@@ -364,15 +710,22 @@
 
             isPlaying = false;
             const statusEl = document.getElementById("game-status");
-            statusEl.innerText = `💰 キャッシュアウト成功！ +${data.payout} Gold 獲得！`;
-            statusEl.style.color = "#2ecc71";
+            statusEl.innerText = `💰 脳汁利確成功！！ +${data.payout} Gold 獲得！！ 🎉`;
 
+            triggerWinEffects();
             await loadWallets();
             updateUIState();
 
         } catch (e) {
             console.error(e);
             alert("通信エラーが発生しました");
+        }
+    }
+
+    function scrollToActiveFloor() {
+        const activeRow = document.getElementById(`floor-row-${currentFloor}`);
+        if (activeRow) {
+            activeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     }
 
