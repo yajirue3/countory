@@ -6,7 +6,6 @@ from supabase import create_client, Client
 router = APIRouter()
 
 # Supabaseクライアントの初期化
-# RLSバイパスと通信安定化のため SERVICE_ROLE_KEY を推奨（無ければ SUPABASE_KEY を使用）
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY", "")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -84,7 +83,9 @@ def get_policy_status(authorization: str = Header(None)):
     
     agreed_version = 0
     if res.data and len(res.data) > 0:
-        agreed_version = res.data[0].get("agreed_terms_version") or 0
+        val = res.data[0].get("agreed_terms_version")
+        if val is not None:
+            agreed_version = int(val)
 
     return {
         "current_version": CURRENT_TERMS_VERSION,
