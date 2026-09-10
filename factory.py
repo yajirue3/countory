@@ -62,7 +62,7 @@ def process_step(data: ProcessAction, authorization: str = Header(None)):
         if not data.wallet_id:
             raise HTTPException(status_code=400, detail="受取口座が指定されていません。")
 
-        reward_gold = random.randint(150, 250)
+        reward_gold = random.randint(15, 25)
         
         # Supabaseのwalletsテーブルに残高反映
         w_res = supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
