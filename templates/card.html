@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>村岡王国 - カード対戦 (Duel)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>村岡王国 - 究極カード対戦 (Card Battle)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=M+PLUS+1p:wght@900&display=swap');
 
@@ -17,385 +17,325 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body { 
-            font-family: 'M PLUS 1p', 'Black Ops One', sans-serif; 
+        body {
+            font-family: 'M PLUS 1p', 'Black Ops One', sans-serif;
             background: #000;
             background-image: 
-                radial-gradient(circle at 50% 50%, #1a0022 0%, #000000 90%),
+                radial-gradient(circle at 50% 50%, #1a0022 0%, #000 90%),
                 linear-gradient(0deg, rgba(255, 0, 127, 0.1) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
-            background-size: 100% 100%, 12px 12px, 12px 12px;
-            color: #fff; 
-            display: flex; 
-            justify-content: center; 
+            background-size: 100% 100%, 16px 16px, 16px 16px;
+            color: #fff;
+            /* dvhで画面一杯に広げつつ、スマホのノッチや画面端見切れを防止 */
+            min-height: 100dvh;
+            display: flex;
+            justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            padding: 4px;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
             user-select: none;
             overflow: hidden;
         }
 
-        .container { width: 100%; max-width: 400px; display: flex; flex-direction: column; }
-
-        .card { 
-            background: rgba(10, 2, 18, 0.95); 
-            border: 2px solid var(--neon-pink); 
-            border-radius: 14px; 
-            padding: 6px; 
-            box-shadow: 0 0 25px rgba(255, 0, 127, 0.5); 
+        .container {
+            width: 100%;
+            max-width: 480px;
+            height: 100dvh;
+            max-height: 900px;
             display: flex;
             flex-direction: column;
-            gap: 4px;
-        }
-
-        .header { 
-            font-size: 1.0rem; 
-            font-weight: 900; 
-            color: var(--neon-yellow); 
-            text-align: center; 
-            border-bottom: 2px solid var(--neon-cyan); 
-            padding-bottom: 2px; 
-            text-shadow: 0 0 10px var(--neon-yellow);
-            letter-spacing: 1px;
-        }
-
-        /* 画面上部ステータス */
-        .status-display { 
-            background: #000; 
-            border: 1.5px solid var(--neon-cyan); 
-            border-radius: 8px; 
-            padding: 4px; 
-            text-align: center; 
-            display: flex;
             justify-content: space-between;
+            padding: 8px;
+            gap: 8px;
+        }
+
+        .card-main {
+            background: rgba(10, 2, 18, 0.95);
+            border: 2px solid var(--neon-pink);
+            border-radius: 16px;
+            padding: 10px;
+            box-shadow: 0 0 30px rgba(255, 0, 127, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .header {
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: var(--neon-yellow);
+            text-align: center;
+            border-bottom: 2px solid var(--neon-cyan);
+            padding-bottom: 4px;
+            text-shadow: 0 0 10px var(--neon-yellow);
+        }
+
+        /* 🎰 ステータス表示エリア (文字サイズ拡大) */
+        .status-display {
+            background: #000;
+            border: 2px solid var(--neon-cyan);
+            border-radius: 12px;
+            padding: 8px;
+            text-align: center;
+            box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.3);
+        }
+
+        .status-text {
+            font-size: 0.95rem;
+            font-weight: 900;
+            color: var(--neon-yellow);
+            min-height: 24px;
+            text-shadow: 0 0 8px currentColor;
+        }
+
+        .timer-display {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: var(--neon-red);
+            font-family: 'Black Ops One', monospace;
+        }
+
+        /* 🎛️ バトルフィールド */
+        .field {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .player-box {
+            background: rgba(20, 20, 35, 0.9);
+            border: 1px solid rgba(0, 243, 255, 0.4);
+            border-radius: 10px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
             align-items: center;
+            justify-content: space-between;
         }
 
-        .status-text { font-size: 0.75rem; font-weight: 900; color: var(--neon-yellow); }
-        .timer-text { font-size: 0.85rem; font-weight: 900; color: var(--neon-cyan); font-family: 'Black Ops One', monospace; }
-
-        /* ロビー用入力 */
-        .inputs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-        .input-group { display: flex; flex-direction: column; }
-        .label { font-size: 0.6rem; color: var(--neon-cyan); font-weight: 900; margin-bottom: 1px; }
-        input, select { 
-            width: 100%; padding: 4px 6px; border-radius: 6px; border: 1.5px solid var(--neon-cyan); 
-            background: rgba(10, 10, 20, 0.9); color: #fff; font-size: 0.75rem; font-weight: bold; outline: none;
+        .player-name {
+            font-size: 0.85rem;
+            color: var(--neon-cyan);
+            font-weight: bold;
         }
 
-        button { 
-            width: 100%; padding: 6px; border: none; border-radius: 8px; font-weight: 900; 
-            cursor: pointer; font-size: 0.8rem; box-shadow: 0 0 10px var(--neon-yellow); transition: transform 0.05s ease;
-        }
-        button:active:not(:disabled) { transform: scale(0.95); }
-        .btn-action { 
-            background: linear-gradient(135deg, #ff0055 0%, #7928ca 100%); 
-            color: #fff; border: 1px solid #fff; box-shadow: 0 0 12px var(--neon-pink);
-        }
-        .btn-action:disabled { background: #222; border: none; color: #555; box-shadow: none; cursor: not-allowed; }
-
-        .room-item {
-            background: rgba(20, 20, 35, 0.9); border: 1px solid rgba(0, 243, 255, 0.4);
-            border-radius: 6px; padding: 4px 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;
+        .hp-bar-container {
+            width: 100%;
+            height: 12px;
+            background: #222;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #444;
+            margin: 4px 0;
         }
 
-        /* 1画面ゲームフィールド */
-        .game-board { display: flex; flex-direction: column; gap: 4px; }
-        .hero-row { 
-            background: #000; border: 1px solid var(--neon-cyan); border-radius: 6px; padding: 4px 8px; 
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .hero-hp { font-size: 0.9rem; font-weight: 900; color: var(--neon-red); font-family: 'Black Ops One', monospace; }
-        .hero-mp { font-size: 0.75rem; font-weight: 900; color: var(--neon-cyan); font-family: 'Black Ops One', monospace; }
-
-        .field-zone { 
-            min-height: 72px; background: rgba(0, 0, 0, 0.5); border: 1px dashed rgba(0, 243, 255, 0.3); 
-            border-radius: 6px; padding: 3px; display: flex; gap: 4px; overflow-x: auto; align-items: center;
+        .hp-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0055, #00ff66);
+            width: 100%;
+            transition: width 0.3s ease;
         }
 
-        /* コンパクトカードデザイン */
-        .card-node {
-            width: 60px; height: 80px; background: rgba(15, 15, 25, 0.95); border: 1px solid var(--neon-cyan);
-            border-radius: 4px; padding: 3px; display: flex; flex-direction: column; justify-content: space-between;
-            flex-shrink: 0; cursor: pointer; position: relative;
+        .card-slot {
+            width: 100%;
+            aspect-ratio: 2/3;
+            max-height: 140px;
+            border: 2px dashed rgba(255,255,255,0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            background: rgba(0,0,0,0.5);
+            margin: 4px 0;
         }
-        .card-node.selected { border-color: var(--neon-yellow); box-shadow: 0 0 10px var(--neon-yellow); transform: translateY(-2px); }
-        .card-node.can-atk { border-color: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); }
-        .card-node.taunt { border: 2px solid var(--neon-yellow); }
 
-        .card-cost { 
-            position: absolute; top: -4px; left: -4px; background: var(--neon-pink); color: #fff; 
-            width: 16px; height: 16px; border-radius: 50%; font-size: 0.6rem; font-weight: 900; 
-            display: flex; align-items: center; justify-content: center; font-family: 'Black Ops One', monospace;
+        /* 🎎 手札エリア */
+        .hand-container {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            min-height: 85px;
         }
-        .card-name { font-size: 0.55rem; font-weight: 900; color: #fff; line-height: 1.1; margin-top: 2px; }
-        .card-stats { display: flex; justify-content: space-between; font-size: 0.6rem; font-weight: 900; font-family: 'Black Ops One', monospace; }
 
-        .btn-back { background: #111; color: #888; border: 1px solid #333; font-size: 0.65rem; padding: 3px 6px; width: auto; box-shadow: none; }
+        .card-item {
+            flex: 1;
+            max-width: 80px;
+            aspect-ratio: 2/3;
+            background: linear-gradient(135deg, #1f1c2c, #928dab);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .card-item:active { transform: scale(0.92); }
+        .card-item.selected { border-color: var(--neon-yellow); box-shadow: 0 0 12px var(--neon-yellow); }
+
+        /* 🎛️ 操作エリア */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1.5px solid var(--neon-cyan);
+            background: #0d0d18;
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 900;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: filter 0.1s;
+        }
+
+        button:active { filter: brightness(1.2); }
+        .btn-action { background: linear-gradient(135deg, #ff0055, #ff00a0); color: #fff; box-shadow: 0 0 15px var(--neon-pink); }
+        .btn-action:disabled { background: #333; box-shadow: none; color: #666; cursor: not-allowed; }
+
+        .btn-back { background: #111; color: #aaa; border: 1px solid #333; font-size: 0.75rem; padding: 6px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="card">
-        <div class="header">⚔️ カード対戦 ⚔️</div>
+    <div class="card-main">
+        <div class="header">⚔️ 究極カードバトル ⚔️</div>
 
-        <!-- ロビービュー -->
-        <div id="lobby-view" style="display: flex; flex-direction: column; gap: 6px;">
-            <div class="inputs-grid">
-                <div class="input-group">
-                    <div class="label">💳 支払口座</div>
-                    <select id="wallet-select"></select>
-                </div>
-                <div class="input-group">
-                    <div class="label">💎 賭け金 (Gold)</div>
-                    <input type="number" id="bet-amount" min="10" value="100">
-                </div>
-            </div>
-            <button class="btn-action" onclick="createRoom()">🚀 対戦ルーム作成</button>
-
-            <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 4px;">
-                <div class="label" style="margin-bottom: 4px;">対戦相手を募集中のルーム</div>
-                <div id="room-list-target">読み込み中...</div>
-            </div>
-            <button class="btn-back" onclick="location.href='/casino'">◀ カジノ一覧に戻る</button>
+        <div class="status-display">
+            <div id="status-text" class="status-text">対戦部屋を選択してください</div>
+            <div id="timer" class="timer-display">--</div>
         </div>
 
-        <!-- ゲーム対戦ビュー -->
-        <div id="game-view" style="display: none;" class="game-board">
-            <div class="status-display">
-                <div id="game-status" class="status-text">待機中</div>
-                <div id="timer-label" class="timer-text">30s</div>
+        <div class="field">
+            <div class="player-box">
+                <div id="host-name" class="player-name">Host: ---</div>
+                <div class="hp-bar-container"><div id="host-hp" class="hp-bar-fill"></div></div>
+                <div id="host-card" class="card-slot">❓</div>
             </div>
-
-            <!-- ドラフトコンテナ -->
-            <div id="draft-container" style="display: none;">
-                <div class="label" style="text-align: center; margin-bottom: 4px;">デッキ構築：1枚選択してください</div>
-                <div style="display: flex; justify-content: center; gap: 8px;" id="draft-options-target"></div>
+            <div class="player-box">
+                <div id="guest-name" class="player-name">Guest: ---</div>
+                <div class="hp-bar-container"><div id="guest-hp" class="hp-bar-fill"></div></div>
+                <div id="guest-card" class="card-slot">❓</div>
             </div>
+        </div>
 
-            <!-- バトルコンテナ -->
-            <div id="battle-container" style="display: none;" class="game-board">
-                <!-- 相手ヒーロー -->
-                <div class="hero-row" onclick="handleTargetClick('hero', oppUserId)">
-                    <div>
-                        <span style="font-size: 0.7rem; font-weight: bold;" id="opp-name">Opponent</span>
-                        <span style="font-size: 0.55rem; color: #aaa;" id="opp-deck">Deck: 0</span>
-                    </div>
-                    <div class="hero-hp">HP <span id="opp-hp">20</span></div>
-                </div>
+        <div id="hand-area" class="hand-container"></div>
 
-                <div class="field-zone" id="opp-board-target"></div>
-                <div class="field-zone" id="my-board-target"></div>
-
-                <!-- プレイヤーヒーロー -->
-                <div class="hero-row">
-                    <div>
-                        <span style="font-size: 0.7rem; font-weight: bold;">You</span>
-                        <span class="hero-mp">MP <span id="my-mp">1/1</span></span>
-                    </div>
-                    <div class="hero-hp" style="color: var(--neon-green);">HP <span id="my-hp">20</span></div>
-                </div>
-
-                <button id="end-turn-btn" class="btn-action" onclick="sendEndTurn()" style="padding: 4px;">ターン終了</button>
-
-                <!-- 手札ゾーン -->
-                <div class="field-zone" style="min-height: 86px; border-style: solid;" id="my-hand-target"></div>
+        <div class="controls">
+            <div class="input-row" id="setup-inputs">
+                <select id="wallet-select"></select>
+                <input type="number" id="bet-amount" value="100" min="10" placeholder="賭け金">
             </div>
+            <button id="main-btn" class="btn-action">部屋を作成して待機</button>
+            <button class="btn-back" onclick="location.href='/casino'">◀ カジノ一覧へ戻る</button>
         </div>
     </div>
 </div>
 
 <script>
     const token = localStorage.getItem("access_token");
-    let socket = null;
-    let myUserId = null;
-    let oppUserId = null;
-    let activeSession = null;
+    if (!token) window.location.href = "/";
 
-    let selectedHandCardId = null;
-    let selectedAttackerId = null;
+    let ws = null;
+    let currentRoomId = null;
+    let selectedCard = null;
 
-    if (!token) {
-        window.location.href = "/";
-    } else {
+    document.addEventListener("DOMContentLoaded", () => {
         loadWallets();
-        fetchRooms();
-    }
+        document.getElementById("main-btn").addEventListener("click", handleMainBtnClick);
+    });
 
     async function loadWallets() {
         try {
             const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
             if (!res.ok) return;
             const wallets = await res.json();
-            document.getElementById("wallet-select").innerHTML = wallets.map(w => `
-                <option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} - ${w.balance}G</option>
-            `).join('');
+            const select = document.getElementById("wallet-select");
+            select.innerHTML = wallets.map(w => `<option value="${w.wallet_id}">${w.wallet_name}: ${w.balance}G</option>`).join('');
         } catch (e) { console.error(e); }
     }
 
-    async function fetchRooms() {
-        try {
-            const res = await fetch("/api/card/rooms");
-            if (!res.ok) return;
-            const data = await res.json();
-            document.getElementById("room-list-target").innerHTML = data.rooms.length ? data.rooms.map(r => `
-                <div class="room-item">
-                    <span style="font-size:0.7rem; font-weight:bold;">${escapeHtml(r.host_name)} (${r.bet_amount}G)</span>
-                    <button class="btn-action" style="width:auto; padding:2px 8px; font-size:0.65rem;" onclick="joinRoom('${r.room_id}')">参戦</button>
-                </div>
-            `).join('') : '<div style="font-size:0.65rem; color:#666;">現在募集中のルームはありません</div>';
-        } catch (e) { console.error(e); }
-    }
-
-    async function createRoom() {
-        const wallet_id = document.getElementById("wallet-select").value;
+    async function handleMainBtnClick() {
+        const walletId = document.getElementById("wallet-select").value;
         const amount = parseInt(document.getElementById("bet-amount").value, 10);
-        if (!wallet_id || !amount) return alert("入力内容を確認してください");
+        if (!walletId || !amount) return alert("入力内容を確認してください");
 
+        // 部屋作成API呼び出し
         const res = await fetch("/api/card/create", {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-            body: JSON.stringify({ wallet_id, amount })
+            body: JSON.stringify({ wallet_id: walletId, bet_amount: amount })
         });
-        if (res.ok) {
-            const data = await res.json();
-            connectWebSocket(data.room_id);
-        } else {
-            const err = await res.json();
-            alert(err.detail || "作成失敗");
-        }
+        const data = await res.json();
+        if (!res.ok) return alert(data.detail);
+
+        connectWebSocket(data.room_id);
     }
 
-    function joinRoom(roomId) { connectWebSocket(roomId); }
-
     function connectWebSocket(roomId) {
-        document.getElementById("lobby-view").style.display = "none";
-        document.getElementById("game-view").style.display = "flex";
+        currentRoomId = roomId;
+        const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+        ws = new WebSocket(`${protocol}//${location.host}/ws/card/${roomId}?token=${token}`);
 
-        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        socket = new WebSocket(`${protocol}//${window.location.host}/ws/card/${roomId}?token=${token}`);
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === "ERROR") {
+                alert(data.message);
+                return;
+            }
+            renderState(data);
+        };
 
-        socket.onmessage = (e) => {
-            const msg = JSON.parse(e.data);
-            if (msg.type === "SYNC_STATE") renderState(msg.payload);
+        ws.onclose = () => {
+            document.getElementById("status-text").innerText = "切断されました";
         };
     }
 
-    function renderState(session) {
-        activeSession = session;
-        if (!myUserId) {
-            myUserId = session.guest ? (session.host.id === myUserId ? session.host.id : session.guest.id) : session.host.id;
-        }
-        oppUserId = (myUserId === session.host.id) ? (session.guest ? session.guest.id : null) : session.host.id;
+    function renderState(state) {
+        document.getElementById("status-text").innerText = state.message || state.status;
+        document.getElementById("timer").innerText = state.timer_seconds ?? "--";
+        
+        document.getElementById("host-name").innerText = state.host_name || "Host";
+        document.getElementById("guest-name").innerText = state.guest_name || "待機中...";
+        
+        document.getElementById("host-hp").style.width = `${(state.host_hp / 100) * 100}%`;
+        document.getElementById("guest-hp").style.width = `${(state.guest_hp / 100) * 100}%`;
 
-        document.getElementById("timer-label").innerText = `${session.time_limit}s`;
-        const isMyTurn = session.turn_user_id === myUserId;
-
-        if (session.status === "WAITING") {
-            document.getElementById("game-status").innerText = "対戦相手の参加を待機中...";
-        } else if (session.status === "DRAFT") {
-            document.getElementById("draft-container").style.display = "block";
-            document.getElementById("battle-container").style.display = "none";
-            document.getElementById("game-status").innerText = isMyTurn ? "カードを選んでください" : "相手が選択中...";
-
-            document.getElementById("draft-options-target").innerHTML = isMyTurn ? session.draft_options.map(c => `
-                <div class="card-node" style="width:80px; height:105px;" onclick="sendDraftPick('${c.id}')">
-                    <div class="card-cost">${c.cost}</div>
-                    <div class="card-name">${c.name}</div>
-                    <div style="font-size:0.5rem; color:#aaa; margin:2px 0;">${c.desc}</div>
-                    ${c.atk ? `<div class="card-stats"><span style="color:var(--neon-red)">⚔️${c.atk}</span><span style="color:var(--neon-green)">🛡️${c.hp}</span></div>` : ''}
-                </div>
-            `).join('') : '';
-        } else if (session.status === "BATTLE" || session.status === "ENDED") {
-            document.getElementById("draft-container").style.display = "none";
-            document.getElementById("battle-container").style.display = "flex";
-
-            document.getElementById("game-status").innerText = isMyTurn ? "あなたのターン" : "相手のターン";
-            document.getElementById("end-turn-btn").disabled = !isMyTurn || session.status === "ENDED";
-
-            document.getElementById("opp-name").innerText = oppUserId === session.host.id ? session.host.name : (session.guest ? session.guest.name : "Opponent");
-            document.getElementById("opp-hp").innerText = session.hp[oppUserId] || 0;
-            document.getElementById("opp-deck").innerText = `Deck:${session.deck_counts[oppUserId] || 0}`;
-
-            document.getElementById("my-hp").innerText = session.hp[myUserId] || 0;
-            document.getElementById("my-mp").innerText = `${session.mp[myUserId] || 0}/${session.max_mp[myUserId] || 0}`;
-
-            // 敵盤面
-            document.getElementById("opp-board-target").innerHTML = (session.boards[oppUserId] || []).map(u => `
-                <div class="card-node ${u.taunt ? 'taunt' : ''}" onclick="handleTargetClick('unit', '${u.instance_id}')">
-                    <div class="card-name">${u.name}</div>
-                    <div class="card-stats"><span style="color:var(--neon-red)">⚔️${u.atk}</span><span style="color:var(--neon-green)">🛡️${u.curr_hp}</span></div>
-                </div>
-            `).join('');
-
-            // 自盤面
-            document.getElementById("my-board-target").innerHTML = (session.boards[myUserId] || []).map(u => `
-                <div class="card-node ${u.can_attack && isMyTurn ? 'can-atk' : ''} ${selectedAttackerId === u.instance_id ? 'selected' : ''}"
-                     onclick="selectAttacker('${u.instance_id}', ${u.can_attack && isMyTurn})">
-                    <div class="card-name">${u.name}</div>
-                    <div class="card-stats"><span style="color:var(--neon-red)">⚔️${u.atk}</span><span style="color:var(--neon-green)">🛡️${u.curr_hp}</span></div>
-                </div>
-            `).join('');
-
-            // 手札
-            document.getElementById("my-hand-target").innerHTML = (session.hands[myUserId] || []).map(c => `
-                <div class="card-node ${selectedHandCardId === c.instance_id ? 'selected' : ''}" onclick="selectHandCard('${c.instance_id}')">
-                    <div class="card-cost">${c.cost}</div>
-                    <div class="card-name">${c.name}</div>
-                    ${c.atk ? `<div class="card-stats"><span style="color:var(--neon-red)">⚔️${c.atk}</span><span style="color:var(--neon-green)">🛡️${c.hp}</span></div>` : ''}
-                </div>
-            `).join('');
-
-            if (session.status === "ENDED") {
-                document.getElementById("game-status").innerText = session.winner_id === myUserId ? "🎉 勝利！" : (session.winner_id ? "💀 敗北..." : "引き分け");
-            }
+        // 画面の活性/非活性ハンドリング
+        const inputs = document.getElementById("setup-inputs");
+        const mainBtn = document.getElementById("main-btn");
+        if (state.status !== "WAITING") {
+            inputs.style.display = "none";
+            mainBtn.style.display = "none";
         }
     }
-
-    function sendDraftPick(cardId) {
-        socket.send(JSON.stringify({ action: "PICK_CARD", card_id: cardId }));
-    }
-
-    function selectHandCard(instanceId) {
-        if (activeSession.turn_user_id !== myUserId) return;
-        const card = activeSession.hands[myUserId].find(c => c.instance_id === instanceId);
-        if (card.type === "unit" || !card.need_target) {
-            socket.send(JSON.stringify({ action: "PLAY_HAND", card_instance_id: instanceId }));
-            selectedHandCardId = null;
-        } else {
-            selectedHandCardId = instanceId;
-            selectedAttackerId = null;
-        }
-    }
-
-    function selectAttacker(instanceId, canAttack) {
-        if (!canAttack) return;
-        selectedAttackerId = instanceId;
-        selectedHandCardId = null;
-    }
-
-    function handleTargetClick(targetType, targetId) {
-        if (selectedHandCardId) {
-            socket.send(JSON.stringify({
-                action: "PLAY_HAND", card_instance_id: selectedHandCardId, target: { type: targetType, id: targetId }
-            }));
-            selectedHandCardId = null;
-        } else if (selectedAttackerId) {
-            socket.send(JSON.stringify({
-                action: "DECLARE_ATTACK", attacker_id: selectedAttackerId, target: { type: targetType, id: targetId }
-            }));
-            selectedAttackerId = null;
-        }
-    }
-
-    function sendEndTurn() {
-        selectedHandCardId = null;
-        selectedAttackerId = null;
-        socket.send(JSON.stringify({ action: "END_TURN" }));
-    }
-
-    function escapeHtml(str) { return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
 </script>
 </body>
 </html>
