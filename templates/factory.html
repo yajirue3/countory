@@ -4,48 +4,206 @@
     <meta charset="UTF-8">
     <title>村岡王国 - 国立機械工場</title>
     <style>
-        body { background: #1f242d; color: #fff; font-family: sans-serif; padding: 20px; text-align: center; }
-        .factory-container { max-width: 600px; margin: 0 auto; background: #2d323e; padding: 20px; border-radius: 12px; border: 2px solid #444; }
-        
-        /* ベルトコンベアアニメーション */
-        .conveyor-belt {
-            height: 80px; background: #111; margin: 20px 0; border-radius: 8px; position: relative; overflow: hidden;
-            border-bottom: 5px dashed #ffa500; animation: belt-move 2s linear infinite;
+        :root {
+            --bg-color: #1a1d20;
+            --panel-bg: #24282e;
+            --border-color: #3b414a;
+            --accent-color: #4a90e2;
+            --accent-orange: #d97706;
+            --success-color: #10b981;
+            --text-main: #d1d5db;
+            --text-dim: #6b7280;
         }
-        @keyframes belt-move { from { background-position: 0 0; } to { background-position: 50px 0; } }
 
-        .product-item {
-            width: 50px; height: 50px; background: #ff4757; position: absolute; top: 15px; left: 10%;
-            border-radius: 8px; transition: left 0.5s ease-in-out, transform 0.3s;
+        body { 
+            background: var(--bg-color); 
+            color: var(--text-main); 
+            font-family: 'Consolas', 'Courier New', monospace; 
+            padding: 20px; 
+            display: flex;
+            justify-content: center;
         }
-        .product-item.assembling { animation: pulse 0.5s infinite alternate; }
-        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
 
-        .step-box { background: #3a404d; padding: 20px; border-radius: 8px; margin-top: 15px; }
-        .btn { background: #ffa500; color: #000; border: none; padding: 10px 20px; font-weight: bold; border-radius: 4px; cursor: pointer; margin: 5px; }
-        .btn:hover { background: #ff8c00; }
-        
-        /* ゲージスタイル */
-        .gauge-bar { width: 100%; background: #555; height: 20px; border-radius: 10px; position: relative; overflow: hidden; }
-        .gauge-target { position: absolute; left: 40%; width: 20%; height: 100%; background: #2ed573; }
-        .gauge-pointer { position: absolute; width: 5px; height: 100%; background: #fff; left: 0%; }
+        .factory-container { 
+            width: 100%;
+            max-width: 640px; 
+            background: var(--panel-bg); 
+            padding: 24px; 
+            border-radius: 4px; 
+            border: 2px solid var(--border-color);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5), 0 8px 20px rgba(0,0,0,0.6);
+        }
+
+        .header-panel {
+            border-bottom: 2px dashed var(--border-color);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .header-panel h2 {
+            margin: 0 0 8px 0;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            color: #f3f4f6;
+        }
+
+        select {
+            background: #111827;
+            color: #3b82f6;
+            border: 1px solid var(--border-color);
+            padding: 4px 8px;
+            font-family: inherit;
+        }
+
+        /* 視覚化：工程進捗インジケーター（機械のシャフト風） */
+        .track-container {
+            background: #111827;
+            height: 32px;
+            border: 1px solid var(--border-color);
+            margin: 16px 0;
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 0 4px;
+        }
+
+        .track-node {
+            flex: 1;
+            height: 12px;
+            background: #1f2937;
+            margin: 0 2px;
+            border: 1px solid #374151;
+            transition: all 0.3s;
+        }
+
+        .track-node.active {
+            background: var(--accent-color);
+            box-shadow: 0 0 8px var(--accent-color);
+        }
+
+        .track-node.completed {
+            background: #374151;
+        }
+
+        /* アクションエリア：操作盤スタイル */
+        .control-panel { 
+            background: #1e2227; 
+            padding: 20px; 
+            border: 1px solid var(--border-color); 
+            text-align: left;
+            margin-bottom: 16px;
+        }
+
+        .panel-title {
+            font-size: 0.9rem;
+            color: var(--accent-orange);
+            margin-bottom: 12px;
+            border-left: 3px solid var(--accent-orange);
+            padding-left: 8px;
+        }
+
+        /* 機械的なボタン */
+        .btn-machinery { 
+            background: #374151; 
+            color: #f9fafb; 
+            border: 1px solid #4b5563; 
+            border-bottom: 3px solid #1f2937;
+            padding: 10px 16px; 
+            font-weight: bold; 
+            font-family: inherit;
+            cursor: pointer; 
+            margin: 4px; 
+            display: inline-block;
+            transition: all 0.1s;
+        }
+
+        .btn-machinery:active { 
+            transform: translateY(2px);
+            border-bottom-width: 1px;
+        }
+
+        .btn-machinery:hover { 
+            background: #4b5563; 
+        }
+
+        .btn-action {
+            background: #2563eb;
+            border-color: #1d4ed8;
+        }
+
+        .btn-action:hover {
+            background: #1d4ed8;
+        }
+
+        /* アナログゲージ風UI */
+        .gauge-container { 
+            width: 100%; 
+            background: #111827; 
+            height: 24px; 
+            border: 1px solid var(--border-color); 
+            position: relative; 
+            margin: 12px 0;
+        }
+
+        .gauge-target { 
+            position: absolute; 
+            left: 45%; 
+            width: 10%; 
+            height: 100%; 
+            background: rgba(16, 185, 129, 0.3); 
+            border-left: 1px solid var(--success-color);
+            border-right: 1px solid var(--success-color);
+        }
+
+        .gauge-pointer { 
+            position: absolute; 
+            width: 2px; 
+            height: 100%; 
+            background: #ef4444; 
+            left: 0%; 
+        }
+
+        /* ログウィンドウ（シリアルモニター風） */
+        .console-log {
+            background: #0d1117;
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            height: 80px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            color: #10b981;
+            text-align: left;
+        }
     </style>
 </head>
 <body>
 
 <div class="factory-container">
-    <h2>⚙️ 村岡王国 国立第1工場</h2>
-    <p>振込先口座: <select id="walletSelect"></select></p>
-
-    <!-- コンベア視覚表示 -->
-    <div class="conveyor-belt">
-        <div id="product" class="product-item"></div>
+    <div class="header-panel">
+        <h2>SYS_MURAOKA // NATIONAL_FACTORY_01</h2>
+        <div>
+            <label style="font-size: 0.8rem; color: var(--text-dim);">DESTINATION_ACCOUNT:</label>
+            <select id="walletSelect" onchange="saveSelectedWallet()"></select>
+        </div>
     </div>
 
-    <h3 id="stepTitle">工程読み込み中...</h3>
+    <!-- 5段階の進行状況を示すシャフ構造 -->
+    <div class="track-container">
+        <div id="node1" class="track-node"></div>
+        <div id="node2" class="track-node"></div>
+        <div id="node3" class="track-node"></div>
+        <div id="node4" class="track-node"></div>
+        <div id="node5" class="track-node"></div>
+    </div>
 
-    <div class="step-box" id="actionArea">
-        <!-- JSで各工程のUIを動的挿入 -->
+    <div class="control-panel">
+        <div class="panel-title" id="stepTitle">INITIALIZING...</div>
+        <div id="actionArea"></div>
+    </div>
+
+    <div class="console-log" id="consoleLog">
+        > SYSTEM READY.<br>
     </div>
 </div>
 
@@ -59,59 +217,134 @@ async function initFactory() {
     await fetchStatus();
 }
 
+function logMessage(msg) {
+    const log = document.getElementById('consoleLog');
+    log.innerHTML += `> ${msg}<br>`;
+    log.scrollTop = log.scrollHeight;
+}
+
 async function loadWallets() {
-    const res = await fetch('/api/wallets', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
-    const wallets = await res.json();
-    const sel = document.getElementById('walletSelect');
-    sel.innerHTML = wallets.map(w => `<option value="${w.wallet_id}">${w.wallet_name} (${w.balance}G)</option>`).join('');
+    try {
+        const res = await fetch('/api/wallets', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+        const wallets = await res.json();
+        const sel = document.getElementById('walletSelect');
+        sel.innerHTML = wallets.map(w => `<option value="${w.wallet_id}">${w.wallet_name} [${w.balance} G]</option>`).join('');
+    } catch(e) {
+        logMessage("ERROR: Failed to load wallets.");
+    }
 }
 
 async function fetchStatus() {
-    const res = await fetch('/api/factory/status', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
-    const data = await res.json();
-    currentSession = data.session;
-    renderStep();
+    try {
+        const res = await fetch('/api/factory/status', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+        const data = await res.json();
+        currentSession = data.session;
+        renderStep();
+    } catch(e) {
+        logMessage("ERROR: Connection failed.");
+    }
+}
+
+function updateNodes(currentStep) {
+    for (let i = 1; i <= 5; i++) {
+        const node = document.getElementById(`node${i}`);
+        node.className = 'track-node';
+        if (i < currentStep) node.classList.add('completed');
+        if (i === currentStep) node.classList.add('active');
+    }
 }
 
 function renderStep() {
     const step = currentSession.current_step;
     document.getElementById('stepTitle').innerText = currentSession.title;
-    
-    // コンベア上の位置調整アニメーション
-    const prod = document.getElementById('product');
-    prod.style.left = `${(step - 1) * 20 + 10}%`;
-    prod.classList.remove('assembling');
+    updateNodes(step);
 
     const area = document.getElementById('actionArea');
     area.innerHTML = '';
 
     if (step === 1) {
-        area.innerHTML = `<p>指定パーツ: <b>${currentSession.target_part}</b></p>` +
-            currentSession.options.map(opt => `<button class="btn" onclick="submitStep(${step}, '${opt}')">${opt}</button>`).join('');
+        area.innerHTML = `<p style="font-size:0.9rem;">指定仕様: <b style="color:var(--accent-color);">${currentSession.target_part}</b></p>` +
+            currentSession.options.map(opt => `<button class="btn-machinery" onclick="submitStep(${step}, '${opt}')">${opt}</button>`).join('');
     } else if (step === 2) {
-        area.innerHTML = `<p>問題: <b>${currentSession.math_question}</b></p>
-            <input type="number" id="mathAns" style="padding:8px; width:80px;">
-            <button class="btn" onclick="submitStep(${step}, parseInt(document.getElementById('mathAns').value))">回答</button>`;
+        area.innerHTML = `<p style="font-size:0.9rem;">${currentSession.math_question}</p>
+            <input type="number" id="mathAns" style="background:#111827; color:#fff; border:1px solid var(--border-color); padding:8px; width:80px; font-family:inherit;">
+            <button class="btn-machinery btn-action" onclick="submitStep(${step}, parseInt(document.getElementById('mathAns').value))">入力実行</button>`;
     } else if (step === 3) {
-        area.innerHTML = `<p>${currentSession.instruction}</p>
-            <div class="gauge-bar"><div class="gauge-target"></div><div id="pointer" class="gauge-pointer"></div></div><br>
-            <button class="btn" onclick="stopGauge(${step})">STOP</button>`;
+        area.innerHTML = `<p style="font-size:0.85rem; color:var(--text-dim);">${currentSession.instruction}</p>
+            <div class="gauge-container"><div class="gauge-target"></div><div id="pointer" class="gauge-pointer"></div></div>
+            <button class="btn-machinery btn-action" onclick="stopGauge(${step})">クラッチ結合 [LOCK]</button>`;
         startGauge();
     } else if (step === 4) {
         tapCount = 0;
-        area.innerHTML = `<p>${currentSession.instruction}</p>
-            <p>タップ数: <span id="taps">0</span> / 10</p>
-            <button class="btn" onclick="countTap(${step})">圧着！</button>`;
+        area.innerHTML = `<p style="font-size:0.85rem; color:var(--text-dim);">${currentSession.instruction}</p>
+            <p style="font-size:1.1rem; font-weight:bold;">圧力: <span id="taps" style="color:var(--accent-orange);">0</span> / 10 Bar</p>
+            <button class="btn-machinery btn-action" onclick="countTap(${step})">加圧ストローク [PUMP]</button>`;
     } else if (step === 5) {
-        area.innerHTML = `<p>${currentSession.instruction}</p>
-            <button class="btn" style="background:#2ed573;" onclick="submitStep(${step}, true)">出荷する！</button>`;
+        area.innerHTML = `<p style="font-size:0.85rem; color:var(--text-dim);">${currentSession.instruction}</p>
+            <button class="btn-machinery" style="background:var(--success-color); border-color:#059669; color:#000;" onclick="submitStep(${step}, true)">出荷シーケンス起動</button>`;
     }
 }
 
 function startGauge() {
     gaugeVal = 0;
+    gaugeDir = 2;
     clearInterval(gaugeInterval);
     gaugeInterval = setInterval(() => {
         gaugeVal += gaugeDir;
         if (gaugeVal >= 100 || gaugeVal <= 0) gaugeDir *= -1;
-        const ptr = document.getElementById('pointer'
+        const ptr = document.getElementById('pointer');
+        if (ptr) ptr.style.left = `${gaugeVal}%`;
+    }, 20);
+}
+
+function stopGauge(step) {
+    clearInterval(gaugeInterval);
+    submitStep(step, gaugeVal);
+}
+
+function countTap(step) {
+    tapCount++;
+    document.getElementById('taps').innerText = tapCount;
+    if (tapCount >= 10) {
+        submitStep(step, tapCount);
+    }
+}
+
+async function submitStep(step, answer) {
+    const walletId = document.getElementById('walletSelect').value;
+    try {
+        const res = await fetch('/api/factory/process', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}` 
+            },
+            body: JSON.stringify({ step: step, answer: answer, wallet_id: walletId })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            logMessage(`<span style="color:#ef4444;">${data.detail}</span>`);
+            await fetchStatus();
+            return;
+        }
+
+        if (data.completed) {
+            logMessage(`<span style="color:var(--success-color);">${data.message}</span>`);
+            await loadWallets();
+        } else {
+            logMessage(`工程 [STEP 0${step}] 正常完了。次工程へ移行。`);
+        }
+
+        currentSession = data.completed ? data.next_step : data.next_step;
+        renderStep();
+    } catch(e) {
+        logMessage("ERROR: リクエストの送信に失敗しました。");
+    }
+}
+
+window.onload = initFactory;
+</script>
+</body>
+</html>
