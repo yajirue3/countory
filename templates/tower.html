@@ -517,10 +517,15 @@
         <div class="footer-row">
             <button class="btn-back" onclick="location.href='/casino'">◀ カジノ一覧に戻る</button>
             <label class="checkbox-label">
+                <input type="checkbox" id="bgm-toggle">
+                <span>🎵 BGM ON</span>
+            </label>
+            <label class="checkbox-label">
                 <input type="checkbox" id="disable-shake">
                 <span>🚫 画面演出（揺れ・光）をオフ</span>
             </label>
         </div>
+        <audio id="bgm-player" src="dopa.mp3" loop preload="auto"></audio>
     </div>
 </div>
 
@@ -596,6 +601,23 @@
     function setupEventListeners() {
         document.getElementById("start-btn").addEventListener("click", startGame);
         document.getElementById("cashout-btn").addEventListener("click", cashout);
+
+        const bgmPlayer = document.getElementById("bgm-player");
+        const bgmToggle = document.getElementById("bgm-toggle");
+
+        bgmToggle.addEventListener("change", (e) => {
+            if (e.target.checked) {
+                bgmPlayer.play().catch(err => console.log("再生ブロック解除待ち:", err));
+            } else {
+                bgmPlayer.pause();
+            }
+        });
+
+        document.addEventListener("click", function startAudioOnFirstUserGesture() {
+            if (bgmToggle.checked && bgmPlayer.paused) {
+                bgmPlayer.play().catch(() => {});
+            }
+        }, { once: true });
     }
 
     // 💥💥 激化限界突破演出発生処理 💥💥
