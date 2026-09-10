@@ -112,7 +112,7 @@
         <div class="stats-grid">
             <div class="stat-box">
                 <div class="stat-label">配当倍率</div>
-                <div id="stat-multiplier" class="stat-val">1.80x</div>
+                <div id="stat-multiplier" class="stat-val">1.93x</div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">勝利確率</div>
@@ -254,7 +254,8 @@
             document.getElementById("condition-desc").innerText = `${target} 超えで勝利`;
         }
 
-        let multiplier = (90 / winChancePercent);
+        // 還元率96.5%に基づく倍率計算
+        let multiplier = (96.5 / winChancePercent);
         if (multiplier < 1.01) multiplier = 1.01;
 
         document.getElementById("stat-multiplier").innerText = multiplier.toFixed(2) + "x";
