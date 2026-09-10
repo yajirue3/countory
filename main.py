@@ -149,7 +149,6 @@ def signup(user: UserAuth):
     try:
         res = supabase.auth.sign_up({"email": user.email, "password": user.password})
         if res.user:
-            supabase.table("profiles").insert({"id": res.user.id, "nickname": "名無しの労働奴隷", "role": "slave"}).execute()
             ensure_default_wallet(res.user.id)
         return {"message": "国民登録が完了しました！"}
     except Exception as e:
@@ -203,27 +202,21 @@ def pay_tax(data: PayTaxRequest, authorization: str = Header(None)):
     user = get_user_from_token(authorization)
     today_str = str(date.today())
 
-    prof_res = supabase.table("profiles").select("*").eq("id", user.id).execute()
+    try:
+        supabase.rpc("claim_daily_tax", {
+            "p_user_id": str(user.id),
+            "p_wallet_id": str(data.wallet_id),
+            "p_today": today_str
+        }).execute()
 
-    if prof_res.data and prof_res.data[0].get("last_tax_date") == today_str:
-        raise HTTPException(status_code=400, detail="本日の納税は完了しています！")
-
-    wallet_res = supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
-    if not wallet_res.data:
-        raise HTTPException(status_code=400, detail="指定された受取口座が存在しないか、所有権がありません。")
-
-    target_wallet = wallet_res.data[0]
-
-    # 日付更新を先に実行（失敗した場合はここで400エラーになり残高加算されない）
-    update_res = supabase.table("profiles").update({"last_tax_date": today_str}).eq("id", user.id).execute()
-    if not update_res.data:
-        raise HTTPException(status_code=400, detail="納税処理に失敗しました。時間をおいて再試行してください。")
-
-    current_balance = target_wallet.get("balance") or 0
-    new_balance = current_balance + 100
-    supabase.table("wallets").update({"balance": new_balance}).eq("id", target_wallet["id"]).execute()
-
-    return {"message": f"納税完了！「{target_wallet['wallet_name']}」（{target_wallet['wallet_id']}）に100Gold獲得！"}
+        return {"message": "納税完了！100Gold獲得しました！"}
+    except Exception as e:
+        err_msg = getattr(e, "message", str(e))
+        if "本日の受け取りは完了しています" in err_msg:
+            raise HTTPException(status_code=400, detail="本日の納税は完了しています！")
+        if "指定された口座が存在しません" in err_msg:
+            raise HTTPException(status_code=400, detail="指定された受取口座が存在しないか、所有権がありません。")
+        raise HTTPException(status_code=400, detail=f"納税処理エラー: {err_msg}")
 
 @app.get("/api/wallets")
 def get_wallets(authorization: str = Header(None)):
