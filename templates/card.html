@@ -13,124 +13,125 @@
             --neon-yellow: #ffe600;
             --neon-green: #00ff66;
             --neon-red: #ff003c;
-            --neon-purple: #b000ff;
+            --bg-dark: #07030e;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: 'M PLUS 1p', 'Black Ops One', sans-serif;
-            background: #05020a;
+            background: var(--bg-dark);
             background-image: 
-                radial-gradient(circle at 50% 50%, #1a0022 0%, #000 90%),
-                linear-gradient(0deg, rgba(255, 0, 127, 0.08) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 243, 255, 0.08) 1px, transparent 1px);
-            background-size: 100% 100%, 20px 20px, 20px 20px;
+                radial-gradient(circle at 50% 50%, #1a0022 0%, #000 100%),
+                linear-gradient(0deg, rgba(255, 0, 127, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
+            background-size: 100% 100%, 16px 16px, 16px 16px;
             color: #fff;
-            min-height: 100dvh;
+            height: 100dvh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-            user-select: none;
             overflow: hidden;
+            user-select: none;
         }
 
+        /* 📱 アプリメイン枠 */
         .container {
             width: 100%;
-            max-width: 460px;
+            max-width: 480px;
             height: 100dvh;
-            max-height: 920px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            padding: 10px;
+            padding: 8px;
+            gap: 8px;
         }
 
         .card-main {
-            background: rgba(12, 4, 22, 0.95);
+            background: rgba(15, 6, 25, 0.92);
             border: 2px solid var(--neon-pink);
-            border-radius: 20px;
-            padding: 12px;
-            box-shadow: 0 0 35px rgba(255, 0, 127, 0.4);
+            border-radius: 16px;
+            padding: 10px;
+            box-shadow: 0 0 25px rgba(255, 0, 127, 0.35);
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
             height: 100%;
+            overflow: hidden;
             position: relative;
         }
 
+        /* ヘッダー */
         .header-area {
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px solid var(--neon-cyan);
-            padding-bottom: 6px;
+            padding-bottom: 4px;
+            flex-shrink: 0;
         }
 
         .header-title {
-            font-size: clamp(1.1rem, 4vw, 1.35rem);
+            font-size: 1.1rem;
             font-weight: 900;
             color: var(--neon-yellow);
-            text-shadow: 0 0 10px var(--neon-yellow);
-            letter-spacing: 1px;
+            text-shadow: 0 0 8px var(--neon-yellow);
         }
 
         .btn-rule-open {
             background: rgba(0, 243, 255, 0.15);
-            border: 1.5px solid var(--neon-cyan);
+            border: 1px solid var(--neon-cyan);
             color: var(--neon-cyan);
-            padding: 4px 10px;
-            border-radius: 8px;
+            padding: 3px 8px;
+            border-radius: 6px;
             font-size: 0.75rem;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.2s ease;
         }
-        .btn-rule-open:active { transform: scale(0.95); }
 
+        /* ステータス表示 */
         .status-display {
             background: #000;
-            border: 2px solid var(--neon-cyan);
-            border-radius: 12px;
-            padding: 8px 12px;
+            border: 1.5px solid var(--neon-cyan);
+            border-radius: 8px;
+            padding: 6px;
             text-align: center;
-            box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.25);
+            flex-shrink: 0;
+            box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.2);
         }
 
         .status-text {
-            font-size: clamp(0.85rem, 3.2vw, 1.0rem);
+            font-size: 0.85rem;
             font-weight: 900;
             color: var(--neon-yellow);
-            text-shadow: 0 0 8px currentColor;
+            text-shadow: 0 0 6px currentColor;
+            line-height: 1.2;
         }
 
-        /* 🎛️ バトルフィールド */
+        /* ⚔️ 対戦フィールド */
         .field {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            flex: 1;
+            gap: 8px;
+            flex-shrink: 0;
         }
 
         .player-box {
-            background: rgba(22, 18, 38, 0.85);
-            border: 1.5px solid rgba(0, 243, 255, 0.4);
-            border-radius: 14px;
-            padding: 8px;
+            background: rgba(25, 20, 42, 0.85);
+            border: 1px solid rgba(0, 243, 255, 0.4);
+            border-radius: 10px;
+            padding: 6px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            gap: 4px;
         }
 
         .player-name {
-            font-size: clamp(0.8rem, 3vw, 0.95rem);
+            font-size: 0.8rem;
             color: var(--neon-cyan);
             font-weight: bold;
-            text-align: center;
             width: 100%;
+            text-align: center;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -138,12 +139,11 @@
 
         .hp-bar-container {
             width: 100%;
-            height: 16px;
-            background: #151520;
-            border-radius: 8px;
+            height: 14px;
+            background: #111;
+            border-radius: 7px;
             overflow: hidden;
             border: 1px solid #333;
-            margin: 4px 0;
             position: relative;
         }
 
@@ -151,83 +151,95 @@
             height: 100%;
             background: linear-gradient(90deg, var(--neon-red), var(--neon-green));
             width: 100%;
-            transition: width 0.4s ease-out;
+            transition: width 0.3s ease-out;
         }
 
         .hp-text {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             text-align: center;
-            line-height: 16px;
+            line-height: 14px;
             font-weight: bold;
             color: #fff;
-            text-shadow: 0 0 3px #000;
+            text-shadow: 0 0 2px #000;
         }
 
         .card-slot {
-            width: 100%;
-            max-width: 100px;
-            aspect-ratio: 2/3;
+            width: 60px;
+            height: 80px;
             border: 2px dashed rgba(255,255,255,0.25);
-            border-radius: 12px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(0,0,0,0.5);
-            font-size: 2rem;
-            transition: all 0.3s ease;
+            background: rgba(0,0,0,0.4);
+            font-size: 1.5rem;
+            margin-top: 2px;
         }
 
-        /* 🎎 手札エリア */
+        /* 🎴 手札エリア */
         .hand-container {
             display: flex;
             gap: 8px;
             justify-content: center;
-            min-height: 110px;
+            align-items: center;
             background: rgba(0,0,0,0.3);
             padding: 8px;
-            border-radius: 12px;
+            border-radius: 10px;
             border: 1px solid rgba(255,0,127,0.25);
+            min-height: 95px;
+            flex-shrink: 0;
         }
 
         .card-item {
             flex: 1;
-            max-width: 85px;
-            aspect-ratio: 2/3;
+            max-width: 80px;
+            height: 85px;
             background: linear-gradient(135deg, #252138, #3c395c);
             border: 2px solid var(--neon-cyan);
-            border-radius: 10px;
+            border-radius: 8px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: space-around;
             padding: 4px;
             cursor: pointer;
-            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.15s ease, border-color 0.15s ease;
         }
 
-        .card-item:not(.disabled):active { transform: scale(0.95); }
         .card-item.selected {
             border-color: var(--neon-yellow);
-            box-shadow: 0 0 18px var(--neon-yellow);
-            transform: translateY(-8px);
+            box-shadow: 0 0 12px var(--neon-yellow);
+            transform: translateY(-6px);
         }
 
         .card-item.disabled {
-            opacity: 0.35;
+            opacity: 0.3;
             filter: grayscale(1);
             cursor: not-allowed;
         }
 
-        /* 🎛️ ルームリスト表示 */
+        /* 📜 スクロール可能な部屋一覧（ここがしっかり見えるよう修正） */
         .room-list-box {
             background: rgba(0,0,0,0.5);
-            border: 1px solid rgba(0, 243, 255, 0.4);
-            border-radius: 10px;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 8px;
             padding: 6px;
-            max-height: 110px;
-            overflow-y: auto;
+            flex: 1; /* 残り高さを埋める */
+            min-height: 80px;
+            overflow-y: auto; /* 縦スクロール可能に */
+        }
+
+        .room-list-title {
+            font-size: 0.7rem;
+            color: #aaa;
+            text-align: center;
+            margin-bottom: 4px;
+            position: sticky;
+            top: 0;
+            background: rgba(0,0,0,0.8);
+            padding: 2px;
         }
 
         .room-item {
@@ -237,23 +249,29 @@
             padding: 6px 8px;
             border-bottom: 1px solid rgba(255,255,255,0.08);
             font-size: 0.75rem;
+            background: rgba(255,255,255,0.02);
+            margin-bottom: 4px;
+            border-radius: 4px;
         }
 
         .btn-join {
             background: var(--neon-green);
             color: #000;
             border: none;
-            padding: 3px 10px;
-            border-radius: 6px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
             font-weight: 900;
             cursor: pointer;
         }
 
-        /* 🎛️ 操作・設定エリア */
+        /* 🎛️ 操作エリア */
         .controls {
             display: flex;
             flex-direction: column;
             gap: 6px;
+            flex-shrink: 0;
+            margin-top: auto;
         }
 
         .input-row {
@@ -265,47 +283,46 @@
         select, input {
             width: 100%;
             padding: 8px;
-            border-radius: 8px;
-            border: 1.5px solid var(--neon-cyan);
+            border-radius: 6px;
+            border: 1px solid var(--neon-cyan);
             background: #090914;
             color: #fff;
-            font-size: clamp(0.75rem, 2.8vw, 0.85rem);
+            font-size: 0.8rem;
             font-weight: bold;
         }
 
-        button.main-action-btn {
+        button.main-btn {
             width: 100%;
             padding: 10px;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             font-weight: 900;
-            font-size: clamp(0.85rem, 3.2vw, 1.0rem);
+            font-size: 0.9rem;
             cursor: pointer;
-            transition: all 0.2s ease;
         }
 
-        .btn-action { background: linear-gradient(135deg, #ff0055, #ff00a0); color: #fff; box-shadow: 0 0 15px var(--neon-pink); }
-        .btn-submit { background: linear-gradient(135deg, #00ff66, #009933); color: #000; box-shadow: 0 0 15px var(--neon-green); }
+        .btn-action { background: linear-gradient(135deg, #ff0055, #ff00a0); color: #fff; box-shadow: 0 0 10px var(--neon-pink); }
+        .btn-submit { background: linear-gradient(135deg, #00ff66, #009933); color: #000; box-shadow: 0 0 10px var(--neon-green); }
         .btn-submit:disabled { opacity: 0.4; box-shadow: none; cursor: not-allowed; }
-        .btn-back { background: #111; color: #888; border: 1px solid #333; font-size: 0.75rem; padding: 6px; margin-top: 2px; }
+        .btn-back { background: #111; color: #888; border: 1px solid #333; font-size: 0.75rem; padding: 6px; }
 
-        /* 📖 ルールダイアログ */
+        /* モーダル */
         .rule-modal {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.92);
-            border-radius: 20px;
-            padding: 18px;
+            background: rgba(0,0,0,0.95);
+            border-radius: 16px;
+            padding: 16px;
             display: none;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
             z-index: 100;
             overflow-y: auto;
         }
 
         .rule-modal.active { display: flex; }
-        .rule-modal h2 { color: var(--neon-yellow); border-bottom: 2px solid var(--neon-pink); padding-bottom: 4px; }
-        .rule-modal ul { font-size: 0.8rem; line-height: 1.6; color: #ddd; padding-left: 18px; }
+        .rule-modal h2 { color: var(--neon-yellow); border-bottom: 2px solid var(--neon-pink); padding-bottom: 4px; font-size: 1.1rem; }
+        .rule-modal ul { font-size: 0.8rem; line-height: 1.5; color: #ddd; padding-left: 16px; }
     </style>
 </head>
 <body>
@@ -318,7 +335,7 @@
         </div>
 
         <div class="status-display">
-            <div id="status-text" class="status-text">対戦部屋を作成するか、下のリストから参加してください</div>
+            <div id="status-text" class="status-text">部屋を作成するか、一覧から参加してください</div>
         </div>
 
         <div class="field">
@@ -343,7 +360,7 @@
         <div id="hand-area" class="hand-container"></div>
 
         <div id="room-list-box" class="room-list-box">
-            <div style="font-size:0.7rem; color:#888; text-align:center; margin-bottom:4px;">--- 待機中の部屋一覧 ---</div>
+            <div class="room-list-title">--- 待機中の対戦部屋 ---</div>
             <div id="room-items"></div>
         </div>
 
@@ -352,19 +369,19 @@
                 <select id="wallet-select"></select>
                 <input type="number" id="bet-amount" value="100" min="10" placeholder="賭け金">
             </div>
-            <button id="main-btn" class="main-action-btn btn-action">🚀 部屋を作成して待機</button>
-            <button id="submit-card-btn" class="main-action-btn btn-submit" style="display:none;" disabled>🔥 カードを提出する</button>
-            <button class="main-action-btn btn-back" onclick="location.href='/casino'">◀ カジノ一覧へ戻る</button>
+            <button id="main-btn" class="main-btn btn-action">🚀 部屋を作成して待機</button>
+            <button id="submit-card-btn" class="main-btn btn-submit" style="display:none;" disabled>🔥 カードを提出する</button>
+            <button class="main-btn btn-back" onclick="location.href='/casino'">◀ カジノ一覧へ戻る</button>
         </div>
 
         <div id="rule-modal" class="rule-modal">
             <h2>📜 属性バトルのルール</h2>
             <ul>
                 <li><strong>属性相性 (じゃんけん):</strong><br>🔥 炎は 🌲 樹に勝ち、🌲 樹は 💧 水に勝ち、💧 水は 🔥 炎に勝ちます。</li>
-                <li><strong>ダメージ計算:</strong><br>相性勝利したプレイヤーは<strong>【攻撃力 (ATK) × 1.5倍】</strong>のダメージを与え、相手からのダメージを相殺します。同属性の場合は相殺されず両者ダメージを受けます。</li>
-                <li><strong>勝敗と報酬:</strong><br>先に相手のHP(100)を0にしたプレイヤーの勝利。勝利者は賭け金の総額（2倍）を獲得します！</li>
+                <li><strong>ダメージ計算:</strong><br>相性勝利した側は<strong>【ATK × 1.5倍】</strong>を与え、相手の攻撃を打ち消します。引き分け時は互いに直撃を受けます。</li>
+                <li><strong>勝利条件:</strong><br>先に相手のHPを0にした側が全額（2倍）獲得！</li>
             </ul>
-            <button class="main-action-btn btn-action" onclick="toggleRule(false)" style="margin-top:auto;">閉じる</button>
+            <button class="main-btn btn-action" onclick="toggleRule(false)" style="margin-top:auto;">閉じる</button>
         </div>
     </div>
 </div>
@@ -412,7 +429,7 @@
             const rooms = await res.json();
             const container = document.getElementById("room-items");
             if (rooms.length === 0) {
-                container.innerHTML = '<div style="font-size:0.7rem; color:#666; text-align:center; padding:4px;">待機中の部屋はありません</div>';
+                container.innerHTML = '<div style="font-size:0.7rem; color:#666; text-align:center; padding:8px;">待機中の部屋はありません</div>';
                 return;
             }
             container.innerHTML = rooms.map(r => `
@@ -495,8 +512,8 @@
         
         handArea.innerHTML = hand.map((card, idx) => `
             <div class="card-item ${selectedHandIndex === idx ? 'selected' : ''} ${!isActive ? 'disabled' : ''}" onclick="selectCard(${idx})">
-                <div style="font-size: 1.5rem;">${ELEMENT_ICONS[card.type] || '❓'}</div>
-                <div style="font-size: 0.85rem; font-weight:900; color:var(--neon-yellow);">ATK ${card.atk}</div>
+                <div style="font-size: 1.3rem;">${ELEMENT_ICONS[card.type] || '❓'}</div>
+                <div style="font-size: 0.75rem; font-weight:900; color:var(--neon-yellow);">ATK ${card.atk}</div>
             </div>
         `).join('');
     }
