@@ -11,6 +11,7 @@ from supabase import create_client, Client
 from casino import router as casino_router
 from inventory import router as inventory_router
 from policy import router as policy_router
+from fastapi.staticfiles import StaticFiles
 
 
 app = FastAPI(title="村岡王国 ポータル")
