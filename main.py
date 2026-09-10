@@ -12,6 +12,7 @@ from casino import router as casino_router
 from inventory import router as inventory_router
 from policy import router as policy_router
 from fastapi.staticfiles import StaticFiles
+from factory import router as factory_router
 
 
 app = FastAPI(title="村岡王国 ポータル")
@@ -561,3 +562,4 @@ def create_report(data: ReportCreate, authorization: str = Header(None)):
 app.include_router(casino_router) 
 app.include_router(inventory_router)
 app.include_router(policy_router)
+app.include_router(factory_router)
