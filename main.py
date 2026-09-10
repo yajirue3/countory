@@ -13,6 +13,7 @@ from inventory import router as inventory_router
 from policy import router as policy_router
 from fastapi.staticfiles import StaticFiles
 from factory import router as factory_router
+from card import router as card_router
 
 
 app = FastAPI(title="村岡王国 ポータル")
@@ -563,3 +564,4 @@ app.include_router(casino_router)
 app.include_router(inventory_router)
 app.include_router(policy_router)
 app.include_router(factory_router)
+app.include_router(card_router)
