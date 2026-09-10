@@ -202,7 +202,7 @@
     }
 </script>
 
-<!-- 利用規約同意モーダル -->
+<!-- ================= 規約同意モーダル ================= -->
 <div id="terms-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center;">
     <div style="background: #222; border: 2px solid #d4af37; border-radius: 12px; width: 90%; max-width: 420px; padding: 20px; box-shadow: 0 0 20px rgba(212,175,55,0.4); color: #fff; font-family: sans-serif;">
         <h3 style="color: #ffd700; margin-top: 0; text-align: center;">📜 利用規約の同意</h3>
@@ -224,10 +224,14 @@
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
     const token = localStorage.getItem("access_token");
-    if (!token) return;
+    const modalEl = document.getElementById("terms-modal");
+    const contentBoxEl = document.getElementById("terms-content-box");
+    const agreeBtn = document.getElementById("agree-terms-btn");
+
+    if (!token || !modalEl || !contentBoxEl || !agreeBtn) return;
 
     try {
-        // 1. 同意が必要かチェック
+        // 1. 同意ステータスを取得
         const statusRes = await fetch("/api/policy/status", {
             headers: { "Authorization": `Bearer ${token}` }
         });
@@ -235,39 +239,41 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!statusRes.ok) return;
         const statusData = await statusRes.json();
 
-        // 同意が必要な場合モーダル表示
+        // 2. 未同意（agreed_version < current_version）なら表示
         if (statusData.needs_agreement) {
-            // 最新の規約文章を取得
             const latestRes = await fetch("/api/policy/latest");
-            if (latestRes.ok) {
-                const latestData = await latestRes.json();
-                document.getElementById("terms-content-box").innerText = latestData.content;
-                document.getElementById("terms-modal").style.display = "flex";
+            if (!latestRes.ok) return;
 
-                // 同意ボタンのクリックイベント
-                document.getElementById("agree-terms-btn").onclick = async () => {
-                    try {
-                        const agreeRes = await fetch("/api/policy/agree", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "Authorization": `Bearer ${token}`
-                            },
-                            body: JSON.stringify({ version: latestData.version })
-                        });
+            const latestData = await latestRes.json();
+            contentBoxEl.innerText = latestData.content;
+            modalEl.style.display = "flex";
 
-                        if (agreeRes.ok) {
-                            document.getElementById("terms-modal").style.display = "none";
-                        } else {
-                            const errData = await agreeRes.json();
-                            alert("エラーが発生しました: " + (errData.detail || "送信失敗"));
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        alert("通信エラーが発生しました。");
+            // 3. 同意ボタンのクリック処理
+            agreeBtn.onclick = async () => {
+                agreeBtn.disabled = true;
+                try {
+                    const agreeRes = await fetch("/api/policy/agree", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ version: latestData.version })
+                    });
+
+                    if (agreeRes.ok) {
+                        modalEl.style.display = "none";
+                    } else {
+                        const errData = await agreeRes.json();
+                        alert("エラーが発生しました: " + (errData.detail || "送信失敗"));
+                        agreeBtn.disabled = false;
                     }
-                };
-            }
+                } catch (err) {
+                    console.error("Agree request error:", err);
+                    alert("通信エラーが発生しました。");
+                    agreeBtn.disabled = false;
+                }
+            };
         }
     } catch (e) {
         console.error("規約確認エラー:", e);
