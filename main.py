@@ -177,11 +177,17 @@ def get_profile(authorization: str = Header(None)):
     user = get_user_from_token(authorization)
     ensure_default_wallet(user.id)
     res = supabase.table("profiles").select("*").eq("id", user.id).execute()
-    if not res.data:
-        new_prof = {"id": user.id, "nickname": "名無しの労働奴隷", "role": "slave"}
-        supabase.table("profiles").insert(new_prof).execute()
-        return new_prof
-    return res.data[0]
+    
+    if res.data and len(res.data) > 0:
+        return res.data[0]
+        
+    return {
+        "id": user.id, 
+        "nickname": "名無しの労働奴隷", 
+        "role": "slave",
+        "agreed_terms_version": 0
+    }
+
 
 @app.post("/api/profile")
 def update_profile(data: ProfileUpdate, authorization: str = Header(None)):
