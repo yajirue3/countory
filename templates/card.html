@@ -13,6 +13,7 @@
             --neon-yellow: #ffe600;
             --neon-green: #00ff66;
             --neon-red: #ff003c;
+            --neon-purple: #b000ff;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -26,7 +27,6 @@
                 linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
             background-size: 100% 100%, 16px 16px, 16px 16px;
             color: #fff;
-            /* dvhで画面一杯に広げつつ、スマホのノッチや画面端見切れを防止 */
             min-height: 100dvh;
             display: flex;
             justify-content: center;
@@ -40,12 +40,12 @@
             width: 100%;
             max-width: 480px;
             height: 100dvh;
-            max-height: 900px;
+            max-height: 920px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             padding: 8px;
-            gap: 8px;
+            gap: 6px;
         }
 
         .card-main {
@@ -58,20 +58,37 @@
             flex-direction: column;
             gap: 8px;
             height: 100%;
-            overflow-y: auto;
+            overflow: hidden;
+            position: relative;
         }
 
-        .header {
-            font-size: 1.3rem;
-            font-weight: 900;
-            color: var(--neon-yellow);
-            text-align: center;
+        .header-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             border-bottom: 2px solid var(--neon-cyan);
             padding-bottom: 4px;
+        }
+
+        .header-title {
+            font-size: clamp(1.1rem, 4vw, 1.4rem);
+            font-weight: 900;
+            color: var(--neon-yellow);
             text-shadow: 0 0 10px var(--neon-yellow);
         }
 
-        /* 🎰 ステータス表示エリア (文字サイズ拡大) */
+        .btn-rule-open {
+            background: rgba(0, 243, 255, 0.2);
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* 🎰 ステータス表示エリア */
         .status-display {
             background: #000;
             border: 2px solid var(--neon-cyan);
@@ -82,7 +99,7 @@
         }
 
         .status-text {
-            font-size: 0.95rem;
+            font-size: clamp(0.85rem, 3.2vw, 1.05rem);
             font-weight: 900;
             color: var(--neon-yellow);
             min-height: 24px;
@@ -90,7 +107,7 @@
         }
 
         .timer-display {
-            font-size: 1.4rem;
+            font-size: 1.5rem;
             font-weight: 900;
             color: var(--neon-red);
             font-family: 'Black Ops One', monospace;
@@ -106,8 +123,8 @@
 
         .player-box {
             background: rgba(20, 20, 35, 0.9);
-            border: 1px solid rgba(0, 243, 255, 0.4);
-            border-radius: 10px;
+            border: 1.5px solid rgba(0, 243, 255, 0.4);
+            border-radius: 12px;
             padding: 8px;
             display: flex;
             flex-direction: column;
@@ -116,71 +133,100 @@
         }
 
         .player-name {
-            font-size: 0.85rem;
+            font-size: clamp(0.8rem, 3vw, 0.95rem);
             color: var(--neon-cyan);
             font-weight: bold;
         }
 
         .hp-bar-container {
             width: 100%;
-            height: 12px;
+            height: 14px;
             background: #222;
-            border-radius: 6px;
+            border-radius: 7px;
             overflow: hidden;
             border: 1px solid #444;
             margin: 4px 0;
+            position: relative;
         }
 
         .hp-bar-fill {
             height: 100%;
             background: linear-gradient(90deg, #ff0055, #00ff66);
             width: 100%;
-            transition: width 0.3s ease;
+            transition: width 0.4s ease;
+        }
+
+        .hp-text {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            font-size: 0.65rem;
+            text-align: center;
+            line-height: 14px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 3px #000;
         }
 
         .card-slot {
             width: 100%;
+            max-width: 110px;
             aspect-ratio: 2/3;
-            max-height: 140px;
-            border: 2px dashed rgba(255,255,255,0.2);
-            border-radius: 8px;
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 10px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 1.8rem;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
             margin: 4px 0;
+            position: relative;
         }
+
+        .slot-type { font-size: 1.8rem; }
+        .slot-atk { font-size: 0.85rem; font-weight: 900; color: var(--neon-yellow); }
 
         /* 🎎 手札エリア */
         .hand-container {
             display: flex;
             gap: 6px;
             justify-content: center;
-            min-height: 85px;
+            min-height: 95px;
+            background: rgba(0,0,0,0.4);
+            padding: 6px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,0,127,0.3);
         }
 
         .card-item {
             flex: 1;
-            max-width: 80px;
+            max-width: 75px;
             aspect-ratio: 2/3;
-            background: linear-gradient(135deg, #1f1c2c, #928dab);
+            background: linear-gradient(135deg, #1f1c2c, #3a3858);
             border: 2px solid var(--neon-cyan);
             border-radius: 8px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            font-weight: bold;
+            justify-content: space-around;
+            padding: 4px;
             cursor: pointer;
-            transition: transform 0.1s;
+            transition: transform 0.15s ease, border-color 0.15s ease;
         }
 
-        .card-item:active { transform: scale(0.92); }
-        .card-item.selected { border-color: var(--neon-yellow); box-shadow: 0 0 12px var(--neon-yellow); }
+        .card-item:not(.disabled):hover { transform: translateY(-4px); }
+        .card-item.selected {
+            border-color: var(--neon-yellow);
+            box-shadow: 0 0 15px var(--neon-yellow);
+            transform: translateY(-8px);
+        }
 
-        /* 🎛️ 操作エリア */
+        .card-item.disabled {
+            opacity: 0.3;
+            filter: grayscale(1);
+            cursor: not-allowed;
+        }
+
+        /* 🎛️ 操作・設定エリア */
         .controls {
             display: flex;
             flex-direction: column;
@@ -200,7 +246,7 @@
             border: 1.5px solid var(--neon-cyan);
             background: #0d0d18;
             color: #fff;
-            font-size: 0.85rem;
+            font-size: clamp(0.75rem, 2.8vw, 0.9rem);
             font-weight: bold;
         }
 
@@ -210,39 +256,63 @@
             border: none;
             border-radius: 10px;
             font-weight: 900;
-            font-size: 0.95rem;
+            font-size: clamp(0.85rem, 3.2vw, 1.0rem);
             cursor: pointer;
-            transition: filter 0.1s;
         }
 
-        button:active { filter: brightness(1.2); }
         .btn-action { background: linear-gradient(135deg, #ff0055, #ff00a0); color: #fff; box-shadow: 0 0 15px var(--neon-pink); }
-        .btn-action:disabled { background: #333; box-shadow: none; color: #666; cursor: not-allowed; }
-
+        .btn-submit { background: linear-gradient(135deg, #00ff66, #009933); color: #000; box-shadow: 0 0 15px var(--neon-green); }
         .btn-back { background: #111; color: #aaa; border: 1px solid #333; font-size: 0.75rem; padding: 6px; }
+
+        /* 📖 ルールダイアログ */
+        .rule-modal {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.92);
+            border-radius: 16px;
+            padding: 16px;
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .rule-modal.active { display: flex; }
+        .rule-modal h2 { color: var(--neon-yellow); border-bottom: 2px solid var(--neon-pink); padding-bottom: 4px; }
+        .rule-modal ul { font-size: 0.8rem; line-height: 1.5; color: #ddd; padding-left: 18px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="card-main">
-        <div class="header">⚔️ 究極カードバトル ⚔️</div>
+        <div class="header-area">
+            <div class="header-title">⚔️ 究極属性バトル ⚔️</div>
+            <button class="btn-rule-open" onclick="toggleRule(true)">📖 ルール</button>
+        </div>
 
         <div class="status-display">
-            <div id="status-text" class="status-text">対戦部屋を選択してください</div>
+            <div id="status-text" class="status-text">対戦部屋を作成するかIDを入力してください</div>
             <div id="timer" class="timer-display">--</div>
         </div>
 
         <div class="field">
             <div class="player-box">
-                <div id="host-name" class="player-name">Host: ---</div>
-                <div class="hp-bar-container"><div id="host-hp" class="hp-bar-fill"></div></div>
-                <div id="host-card" class="card-slot">❓</div>
+                <div id="host-name" class="player-name">Host: 待機中</div>
+                <div class="hp-bar-container">
+                    <div id="host-hp-fill" class="hp-bar-fill"></div>
+                    <div id="host-hp-text" class="hp-text">100/100</div>
+                </div>
+                <div id="host-card" class="card-slot"><div class="slot-type">❓</div></div>
             </div>
             <div class="player-box">
-                <div id="guest-name" class="player-name">Guest: ---</div>
-                <div class="hp-bar-container"><div id="guest-hp" class="hp-bar-fill"></div></div>
-                <div id="guest-card" class="card-slot">❓</div>
+                <div id="guest-name" class="player-name">Guest: 待機中</div>
+                <div class="hp-bar-container">
+                    <div id="guest-hp-fill" class="hp-bar-fill"></div>
+                    <div id="guest-hp-text" class="hp-text">100/100</div>
+                </div>
+                <div id="guest-card" class="card-slot"><div class="slot-type">❓</div></div>
             </div>
         </div>
 
@@ -253,8 +323,20 @@
                 <select id="wallet-select"></select>
                 <input type="number" id="bet-amount" value="100" min="10" placeholder="賭け金">
             </div>
-            <button id="main-btn" class="btn-action">部屋を作成して待機</button>
-            <button class="btn-back" onclick="location.href='/casino'">◀ カジノ一覧へ戻る</button>
+            <button id="main-btn" class="btn-action">🚀 部屋を作成して待機</button>
+            <button id="submit-card-btn" class="btn-submit" style="display:none;" disabled>🔥 カードを提出する</button>
+            <button class="btn-back" onclick="location.href='/casino'">◀ カジino一覧へ戻る</button>
+        </div>
+
+        <!-- 📖 ルール説明モーダル -->
+        <div id="rule-modal" class="rule-modal">
+            <h2>📜 究極カードバトルのルール</h2>
+            <ul>
+                <li><strong>属性相性 (じゃんけん):</strong><br>🔥 炎は 🌲 樹に勝ち、🌲 樹は 💧 水に勝ち、💧 水は 🔥 炎に勝ちます。</li>
+                <li><strong>ダメージ判定:</strong><br>相性勝ちした側は<strong>【自分のATK × 1.5倍】</strong>のダメージを与えます。あいこ・引き分けの場合は互いのATKがそのままダメージになります。</li>
+                <li><strong>勝利条件:</strong><br>先に相手のHP(100)を0にしたプレイヤーが勝利となり、賭け金の全額を獲得します！</li>
+            </ul>
+            <button class="btn-action" onclick="toggleRule(false)">閉じる</button>
         </div>
     </div>
 </div>
@@ -265,12 +347,19 @@
 
     let ws = null;
     let currentRoomId = null;
-    let selectedCard = null;
+    let myUserId = null;
+    let selectedHandIndex = null;
+    let currentHandData = [];
 
     document.addEventListener("DOMContentLoaded", () => {
         loadWallets();
-        document.getElementById("main-btn").addEventListener("click", handleMainBtnClick);
+        document.getElementById("main-btn").addEventListener("click", createRoom);
+        document.getElementById("submit-card-btn").addEventListener("click", submitCard);
     });
+
+    function toggleRule(show) {
+        document.getElementById("rule-modal").classList.toggle("active", show);
+    }
 
     async function loadWallets() {
         try {
@@ -282,12 +371,11 @@
         } catch (e) { console.error(e); }
     }
 
-    async function handleMainBtnClick() {
+    async function createRoom() {
         const walletId = document.getElementById("wallet-select").value;
         const amount = parseInt(document.getElementById("bet-amount").value, 10);
-        if (!walletId || !amount) return alert("入力内容を確認してください");
+        if (!walletId || !amount) return alert("正しい入力をお願いします");
 
-        // 部屋作成API呼び出し
         const res = await fetch("/api/card/create", {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
@@ -306,35 +394,60 @@
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            if (data.type === "ERROR") {
-                alert(data.message);
-                return;
-            }
+            if (data.type === "ERROR") return alert(data.message);
             renderState(data);
-        };
-
-        ws.onclose = () => {
-            document.getElementById("status-text").innerText = "切断されました";
         };
     }
 
     function renderState(state) {
-        document.getElementById("status-text").innerText = state.message || state.status;
+        myUserId = state.your_user_id;
+        document.getElementById("status-text").innerText = state.message;
         document.getElementById("timer").innerText = state.timer_seconds ?? "--";
-        
+
         document.getElementById("host-name").innerText = state.host_name || "Host";
         document.getElementById("guest-name").innerText = state.guest_name || "待機中...";
-        
-        document.getElementById("host-hp").style.width = `${(state.host_hp / 100) * 100}%`;
-        document.getElementById("guest-hp").style.width = `${(state.guest_hp / 100) * 100}%`;
 
-        // 画面の活性/非活性ハンドリング
-        const inputs = document.getElementById("setup-inputs");
-        const mainBtn = document.getElementById("main-btn");
-        if (state.status !== "WAITING") {
-            inputs.style.display = "none";
-            mainBtn.style.display = "none";
+        // HPバー
+        document.getElementById("host-hp-fill").style.width = `${state.host_hp}%`;
+        document.getElementById("host-hp-text").innerText = `${state.host_hp}/100`;
+        document.getElementById("guest-hp-fill").style.width = `${state.guest_hp}%`;
+        document.getElementById("guest-hp-text").innerText = `${state.guest_hp}/100`;
+
+        // 手札描画
+        const isHost = (myUserId === state.host_id);
+        currentHandData = isHost ? state.host_hand : state.guest_hand;
+        renderHand(currentHandData, state.status === "BATTLE");
+
+        // UI切替
+        if (state.status === "BATTLE") {
+            document.getElementById("setup-inputs").style.display = "none";
+            document.getElementById("main-btn").style.display = "none";
+            document.getElementById("submit-card-btn").style.display = "block";
         }
+    }
+
+    function renderHand(hand, isActive) {
+        const handArea = document.getElementById("hand-area");
+        if (!hand) return handArea.innerHTML = "";
+        
+        handArea.innerHTML = hand.map((card, idx) => `
+            <div class="card-item ${selectedHandIndex === idx ? 'selected' : ''} ${!isActive ? 'disabled' : ''}" onclick="selectCard(${idx})">
+                <div style="font-size: 1.4rem;">${card.type === 'FIRE' ? '🔥' : card.type === 'WATER' ? '💧' : '🌲'}</div>
+                <div style="font-size: 0.8rem; font-weight:900; color:var(--neon-yellow);">ATK ${card.atk}</div>
+            </div>
+        `).join('');
+    }
+
+    function selectCard(index) {
+        selectedHandIndex = index;
+        document.getElementById("submit-card-btn").disabled = false;
+        renderHand(currentHandData, true);
+    }
+
+    function submitCard() {
+        if (selectedHandIndex === null || !ws) return;
+        ws.send(JSON.stringify({ action: "SUBMIT_CARD", hand_index: selectedHandIndex }));
+        document.getElementById("submit-card-btn").disabled = true;
     }
 </script>
 </body>
