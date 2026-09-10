@@ -5,13 +5,21 @@ from supabase import create_client, Client
 
 router = APIRouter()
 
-# Supabaseクライアントの初期化
+# --------------------------------------------------
+# Supabase クライアント初期化
+# SERVICE_ROLE_KEY を優先使用することで RLS 関連のエラーを確実に回避
+# --------------------------------------------------
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY", "")
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise RuntimeError("Supabase の環境変数が設定されていません。")
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # --------------------------------------------------
-# 規約設定
+# 規約バージョン & テキスト設定
+# 規約を改定した場合は CURRENT_TERMS_VERSION を 2, 3... と繰り上げてください
 # --------------------------------------------------
 CURRENT_TERMS_VERSION = 1
 
@@ -47,35 +55,40 @@ class TermsAgreeRequest(BaseModel):
     version: int
 
 
-# トークンからユーザーを取得する共通関数
+# --------------------------------------------------
+# 共通処理: トークンによるユーザー検証
+# --------------------------------------------------
 def get_user_from_token(authorization: str):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="認証トークンが必要です。")
+    
     token = authorization.split(" ")[1]
     
-    user_res = supabase.auth.get_user(token)
-    if not user_res or not user_res.user:
-        raise HTTPException(status_code=401, detail="無効なトークンです。")
-    
-    return user_res.user
+    try:
+        user_res = supabase.auth.get_user(token)
+        if not user_res or not user_res.user:
+            raise HTTPException(status_code=401, detail="無効なトークンです。")
+        return user_res.user
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"認証エラー: {str(e)}")
 
 
 # --------------------------------------------------
-# APIエンドポイント (すべて同期 def で定義)
+# API エンドポイント
 # --------------------------------------------------
 
-# 最新の規約内容とバージョンを取得
 @router.get("/api/policy/latest")
 def get_latest_policy():
+    """最新の利用規約テキストとバージョンを取得"""
     return {
         "version": CURRENT_TERMS_VERSION,
         "content": TERMS_TEXT.strip()
     }
 
 
-# ログイン中ユーザーの規約同意状態を取得
 @router.get("/api/policy/status")
 def get_policy_status(authorization: str = Header(None)):
+    """ログイン中ユーザーの規約同意ステータスを取得"""
     user = get_user_from_token(authorization)
 
     # profiles テーブルを参照
@@ -94,15 +107,15 @@ def get_policy_status(authorization: str = Header(None)):
     }
 
 
-# 規約に同意する
 @router.post("/api/policy/agree")
 def agree_policy(data: TermsAgreeRequest, authorization: str = Header(None)):
+    """利用規約に同意して DB のバージョンを更新"""
     user = get_user_from_token(authorization)
 
     if data.version != CURRENT_TERMS_VERSION:
         raise HTTPException(status_code=400, detail="無効な規約バージョンです。")
 
-    # profiles テーブルの同意済みバージョンを更新
+    # profiles テーブルの同意バージョンを更新
     supabase.table("profiles").update({"agreed_terms_version": data.version}).eq("id", user.id).execute()
 
     return {
