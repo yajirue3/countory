@@ -102,13 +102,13 @@
             0 〜 10000 の出目を予想せよ！目標数値を設定して一獲千金を狙え！
         </p>
 
-        <!-- 出目・結果表示エリア -->
+        <!-- 1. 出目・結果表示エリア -->
         <div class="dice-display">
             <div id="dice-num" class="dice-number">????</div>
             <div id="dice-status" class="dice-status" style="color: #aaa;">ベットしてサイコロを振ってください</div>
         </div>
 
-        <!-- 確率・倍率表示エリア -->
+        <!-- 2. 確率・倍率表示エリア -->
         <div class="stats-grid">
             <div class="stat-box">
                 <div class="stat-label">配当倍率</div>
@@ -120,29 +120,30 @@
             </div>
         </div>
 
-        <!-- 口座選択 -->
-        <div class="label">支払口座を選択</div>
-        <select id="wallet-select"></select>
-
-        <!-- 賭け金入力 -->
-        <div class="label">賭け金 (Gold)</div>
-        <input type="number" id="bet-amount" min="10" value="100" placeholder="例: 100">
-
-        <!-- 判定モード切り替え -->
+        <!-- 3. ゲーム条件設定エリア -->
         <div class="label">勝利条件</div>
         <div class="mode-selector">
             <div id="mode-under" class="mode-btn active">UNDER (未満)</div>
             <div id="mode-over" class="mode-btn">OVER (超え)</div>
         </div>
 
-        <!-- ターゲット値設定スライダー -->
         <div class="label" style="display: flex; justify-content: space-between;">
             <span>ターゲット値: <b id="target-val-text" style="color: #f39c12;">5000</b></span>
             <span id="condition-desc" style="color: #3498db;">5000 未満で勝利</span>
         </div>
         <input type="range" id="target-slider" min="100" max="9500" step="50" value="5000">
 
-        <!-- 設定パネル（演出スキップ＆自動ベット条件） -->
+        <!-- 4. 口座・賭け金入力エリア -->
+        <div class="label">支払口座を選択</div>
+        <select id="wallet-select"></select>
+
+        <div class="label">賭け金 (Gold)</div>
+        <input type="number" id="bet-amount" min="10" value="100" placeholder="例: 100">
+
+        <!-- 5. ベットアクションボタン -->
+        <button id="roll-btn" class="btn-roll">🎲 サイコロを振る</button>
+
+        <!-- 6. 詳細オプション・自動設定パネル -->
         <div class="option-box">
             <label class="checkbox-label">
                 <input type="checkbox" id="skip-anim">
@@ -170,11 +171,9 @@
                     <input type="number" id="take-profit" value="0" min="0" placeholder="0">
                 </div>
             </div>
-        </div>
 
-        <!-- ベットボタン -->
-        <button id="roll-btn" class="btn-roll">🎲 サイコロを振る</button>
-        <button id="auto-btn" class="btn-auto">▶ 自動賭けスタート</button>
+            <button id="auto-btn" class="btn-auto">▶ 自動賭けスタート</button>
+        </div>
     </div>
 
     <!-- 戻るボタン -->
@@ -254,7 +253,6 @@
             document.getElementById("condition-desc").innerText = `${target} 超えで勝利`;
         }
 
-        // 還元率96.5%に基づく倍率計算
         let multiplier = (96.5 / winChancePercent);
         if (multiplier < 1.01) multiplier = 1.01;
 
@@ -328,19 +326,16 @@
         const stopLoss = parseInt(document.getElementById("stop-loss").value, 10) || 0;
         const takeProfit = parseInt(document.getElementById("take-profit").value, 10) || 0;
 
-        // 回数制限チェック
         if (maxCount > 0 && executedCount >= maxCount) {
             stopAutoBet(`指定回数 (${maxCount}回) に達しました`);
             return;
         }
 
-        // 損切りチェック
         if (stopLoss > 0 && currentBalance <= stopLoss) {
             stopAutoBet(`損切りライン (${stopLoss}G 以下) に達しました`);
             return;
         }
 
-        // 利確チェック
         if (takeProfit > 0 && currentBalance >= takeProfit) {
             stopAutoBet(`利確ライン (${takeProfit}G 以上) に達しました`);
             return;
@@ -352,7 +347,7 @@
         executedCount++;
 
         let interval = parseInt(document.getElementById("auto-interval").value, 10) || 600;
-        if (interval < 500) interval = 500; // サーバー保護用最低500ms設定
+        if (interval < 500) interval = 500;
 
         autoTimer = setTimeout(runAutoLoop, interval);
     }
