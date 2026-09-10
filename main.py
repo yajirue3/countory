@@ -139,6 +139,9 @@ def admin_items_page(request: Request):
 def get_tower(request: Request):
     return templates.TemplateResponse(request=request, name="tower.html")
 
+@app.get("/factory", response_class=HTMLResponse)
+def get_factory(request: Request):
+    return templates.TemplateResponse(request=request, name="factory.html")
 
 app.mount("/templates", StaticFiles(directory="templates"), name="templates")
 
