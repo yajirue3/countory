@@ -2,159 +2,279 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contract Duel - Strategic Card Battle</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>村岡王国 - カード対戦 (Duel)</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+JP:wght@500;700;900&display=swap');
-        :root {
-            --bg-primary: #0a0c10; --bg-surface: #12161f; --bg-card: #181e2b;
-            --border-color: #2a3447; --accent-blue: #2563eb; --accent-cyan: #06b6d4;
-            --accent-gold: #f59e0b; --text-main: #f8fafc; --text-muted: #94a3b8;
-            --danger: #ef4444; --success: #10b981;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', 'Noto Sans JP', sans-serif; }
-        body { background: var(--bg-primary); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; padding: 12px; }
-        .app-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 12px; }
-        
-        .panel { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        .panel-header { font-size: 1.1rem; font-weight: 800; text-align: center; color: var(--text-main); letter-spacing: 0.05em; margin-bottom: 12px; }
-        
-        select, input, button { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); font-size: 0.9rem; margin-top: 6px; }
-        button { background: var(--accent-blue); border: none; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-        button:hover { background: #1d4ed8; }
-        button:disabled { background: #1e293b; color: var(--text-muted); cursor: not-allowed; }
+        @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=M+PLUS+1p:wght@900&display=swap');
 
-        .room-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        
-        /* ゲームボード設計 */
-        .status-bar { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 700; background: #0f172a; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); }
-        .hero-node { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; display: flex; justify-content: space-between; align-items: center; margin: 6px 0; }
-        .field-zone { min-height: 90px; background: rgba(255,255,255,0.02); border: 1px dashed var(--border-color); border-radius: 8px; padding: 6px; display: flex; gap: 8px; overflow-x: auto; margin: 6px 0; }
-        
-        /* カードコンポーネント */
-        .duel-card { width: 85px; height: 115px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px; display: flex; flex-direction: column; justify-content: space-between; position: relative; flex-shrink: 0; cursor: pointer; user-select: none; }
-        .duel-card.active-atk { border-color: var(--success); box-shadow: 0 0 8px rgba(16,185,129,0.4); }
-        .duel-card.selected { border-color: var(--accent-gold); box-shadow: 0 0 10px rgba(245,158,11,0.5); transform: translateY(-4px); }
-        .duel-card.taunt { border: 2px solid var(--accent-gold); }
-        
-        .card-cost { position: absolute; top: -6px; left: -6px; background: var(--accent-blue); color: #fff; width: 20px; height: 20px; border-radius: 50%; font-size: 0.75rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
-        .card-title { font-size: 0.7rem; font-weight: 700; color: var(--text-main); margin-top: 4px; }
-        .card-desc { font-size: 0.55rem; color: var(--text-muted); line-height: 1.1; }
-        .card-stats { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 800; }
-        
-        .val-atk { color: var(--danger); }
-        .val-hp { color: var(--success); }
+        :root {
+            --neon-pink: #ff007f;
+            --neon-cyan: #00f3ff;
+            --neon-yellow: #ffe600;
+            --neon-green: #00ff66;
+            --neon-red: #ff003c;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body { 
+            font-family: 'M PLUS 1p', 'Black Ops One', sans-serif; 
+            background: #000;
+            background-image: 
+                radial-gradient(circle at 50% 50%, #1a0022 0%, #000000 90%),
+                linear-gradient(0deg, rgba(255, 0, 127, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
+            background-size: 100% 100%, 12px 12px, 12px 12px;
+            color: #fff; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            min-height: 100vh;
+            padding: 4px;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .container { width: 100%; max-width: 400px; display: flex; flex-direction: column; }
+
+        .card { 
+            background: rgba(10, 2, 18, 0.95); 
+            border: 2px solid var(--neon-pink); 
+            border-radius: 14px; 
+            padding: 6px; 
+            box-shadow: 0 0 25px rgba(255, 0, 127, 0.5); 
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .header { 
+            font-size: 1.0rem; 
+            font-weight: 900; 
+            color: var(--neon-yellow); 
+            text-align: center; 
+            border-bottom: 2px solid var(--neon-cyan); 
+            padding-bottom: 2px; 
+            text-shadow: 0 0 10px var(--neon-yellow);
+            letter-spacing: 1px;
+        }
+
+        /* 画面上部ステータス */
+        .status-display { 
+            background: #000; 
+            border: 1.5px solid var(--neon-cyan); 
+            border-radius: 8px; 
+            padding: 4px; 
+            text-align: center; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-text { font-size: 0.75rem; font-weight: 900; color: var(--neon-yellow); }
+        .timer-text { font-size: 0.85rem; font-weight: 900; color: var(--neon-cyan); font-family: 'Black Ops One', monospace; }
+
+        /* ロビー用入力 */
+        .inputs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+        .input-group { display: flex; flex-direction: column; }
+        .label { font-size: 0.6rem; color: var(--neon-cyan); font-weight: 900; margin-bottom: 1px; }
+        input, select { 
+            width: 100%; padding: 4px 6px; border-radius: 6px; border: 1.5px solid var(--neon-cyan); 
+            background: rgba(10, 10, 20, 0.9); color: #fff; font-size: 0.75rem; font-weight: bold; outline: none;
+        }
+
+        button { 
+            width: 100%; padding: 6px; border: none; border-radius: 8px; font-weight: 900; 
+            cursor: pointer; font-size: 0.8rem; box-shadow: 0 0 10px var(--neon-yellow); transition: transform 0.05s ease;
+        }
+        button:active:not(:disabled) { transform: scale(0.95); }
+        .btn-action { 
+            background: linear-gradient(135deg, #ff0055 0%, #7928ca 100%); 
+            color: #fff; border: 1px solid #fff; box-shadow: 0 0 12px var(--neon-pink);
+        }
+        .btn-action:disabled { background: #222; border: none; color: #555; box-shadow: none; cursor: not-allowed; }
+
+        .room-item {
+            background: rgba(20, 20, 35, 0.9); border: 1px solid rgba(0, 243, 255, 0.4);
+            border-radius: 6px; padding: 4px 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;
+        }
+
+        /* 1画面ゲームフィールド */
+        .game-board { display: flex; flex-direction: column; gap: 4px; }
+        .hero-row { 
+            background: #000; border: 1px solid var(--neon-cyan); border-radius: 6px; padding: 4px 8px; 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .hero-hp { font-size: 0.9rem; font-weight: 900; color: var(--neon-red); font-family: 'Black Ops One', monospace; }
+        .hero-mp { font-size: 0.75rem; font-weight: 900; color: var(--neon-cyan); font-family: 'Black Ops One', monospace; }
+
+        .field-zone { 
+            min-height: 72px; background: rgba(0, 0, 0, 0.5); border: 1px dashed rgba(0, 243, 255, 0.3); 
+            border-radius: 6px; padding: 3px; display: flex; gap: 4px; overflow-x: auto; align-items: center;
+        }
+
+        /* コンパクトカードデザイン */
+        .card-node {
+            width: 60px; height: 80px; background: rgba(15, 15, 25, 0.95); border: 1px solid var(--neon-cyan);
+            border-radius: 4px; padding: 3px; display: flex; flex-direction: column; justify-content: space-between;
+            flex-shrink: 0; cursor: pointer; position: relative;
+        }
+        .card-node.selected { border-color: var(--neon-yellow); box-shadow: 0 0 10px var(--neon-yellow); transform: translateY(-2px); }
+        .card-node.can-atk { border-color: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); }
+        .card-node.taunt { border: 2px solid var(--neon-yellow); }
+
+        .card-cost { 
+            position: absolute; top: -4px; left: -4px; background: var(--neon-pink); color: #fff; 
+            width: 16px; height: 16px; border-radius: 50%; font-size: 0.6rem; font-weight: 900; 
+            display: flex; align-items: center; justify-content: center; font-family: 'Black Ops One', monospace;
+        }
+        .card-name { font-size: 0.55rem; font-weight: 900; color: #fff; line-height: 1.1; margin-top: 2px; }
+        .card-stats { display: flex; justify-content: space-between; font-size: 0.6rem; font-weight: 900; font-family: 'Black Ops One', monospace; }
+
+        .btn-back { background: #111; color: #888; border: 1px solid #333; font-size: 0.65rem; padding: 3px 6px; width: auto; box-shadow: none; }
     </style>
 </head>
 <body>
-<div class="app-container">
-    <!-- ロビー画面 -->
-    <div class="panel" id="lobby-panel">
-        <div class="panel-header">CONTRACT DUEL</div>
-        <label style="font-size: 0.75rem; color: var(--text-muted);">使用口座</label>
-        <select id="wallet-select"></select>
-        <label style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; display: block;">契約賭け金 (Gold)</label>
-        <input type="number" id="bet-amount" value="100" min="1">
-        <button onclick="createNewRoom()" style="margin-top: 12px;">対戦契約を作成</button>
 
-        <div style="margin-top: 20px;">
-            <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">アクティブな募集</div>
-            <div id="room-list-target">部屋一覧を取得中...</div>
-        </div>
-    </div>
+<div class="container">
+    <div class="card">
+        <div class="header">⚔️ カード対戦 ⚔️</div>
 
-    <!-- ゲーム画面 -->
-    <div class="panel" id="game-panel" style="display: none;">
-        <div class="status-bar">
-            <span id="turn-indicator">対戦待機中</span>
-            <span id="timer-label" style="color: var(--accent-gold);">⏱️ 30s</span>
-        </div>
-
-        <!-- ドラフトフェイズ UI -->
-        <div id="draft-container" style="display: none; margin-top: 12px;">
-            <div style="font-size: 0.8rem; text-align: center; color: var(--text-muted); margin-bottom: 8px;">デッキ構築：カードを選択してください</div>
-            <div style="display: flex; justify-content: center; gap: 8px;" id="draft-cards-target"></div>
-        </div>
-
-        <!-- バトルフェイズ UI -->
-        <div id="battle-container" style="display: none; margin-top: 8px;">
-            <!-- 敵対者ステータス -->
-            <div class="hero-node" onclick="handleTargetClick('hero', opponentUserId)">
-                <div>
-                    <div style="font-size: 0.85rem; font-weight: 700;" id="opp-name-display">Opponent</div>
-                    <div style="font-size: 0.65rem; color: var(--text-muted);" id="opp-deck-label">Deck: 0</div>
+        <!-- ロビービュー -->
+        <div id="lobby-view" style="display: flex; flex-direction: column; gap: 6px;">
+            <div class="inputs-grid">
+                <div class="input-group">
+                    <div class="label">💳 支払口座</div>
+                    <select id="wallet-select"></select>
                 </div>
-                <div style="font-size: 1rem; font-weight: 800; color: var(--danger);">HP <span id="opp-hp-display">20</span></div>
+                <div class="input-group">
+                    <div class="label">💎 賭け金 (Gold)</div>
+                    <input type="number" id="bet-amount" min="10" value="100">
+                </div>
+            </div>
+            <button class="btn-action" onclick="createRoom()">🚀 対戦ルーム作成</button>
+
+            <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 4px;">
+                <div class="label" style="margin-bottom: 4px;">対戦相手を募集中のルーム</div>
+                <div id="room-list-target">読み込み中...</div>
+            </div>
+            <button class="btn-back" onclick="location.href='/casino'">◀ カジノ一覧に戻る</button>
+        </div>
+
+        <!-- ゲーム対戦ビュー -->
+        <div id="game-view" style="display: none;" class="game-board">
+            <div class="status-display">
+                <div id="game-status" class="status-text">待機中</div>
+                <div id="timer-label" class="timer-text">30s</div>
             </div>
 
-            <div class="field-zone" id="opp-board-target"></div>
-            <div class="field-zone" id="my-board-target"></div>
-
-            <!-- プレイヤー自身ステータス -->
-            <div class="hero-node">
-                <div>
-                    <div style="font-size: 0.85rem; font-weight: 700;">Player (You)</div>
-                    <div style="font-size: 0.7rem; color: var(--accent-cyan); font-weight: 700;">MP <span id="my-mp-display">1/1</span></div>
-                </div>
-                <div style="font-size: 1rem; font-weight: 800; color: var(--success);">HP <span id="my-hp-display">20</span></div>
+            <!-- ドラフトコンテナ -->
+            <div id="draft-container" style="display: none;">
+                <div class="label" style="text-align: center; margin-bottom: 4px;">デッキ構築：1枚選択してください</div>
+                <div style="display: flex; justify-content: center; gap: 8px;" id="draft-options-target"></div>
             </div>
 
-            <button id="end-turn-button" onclick="dispatchEndTurn()" style="margin: 6px 0; background: var(--bg-card); border: 1px solid var(--border-color);">ターンエンド</button>
+            <!-- バトルコンテナ -->
+            <div id="battle-container" style="display: none;" class="game-board">
+                <!-- 相手ヒーロー -->
+                <div class="hero-row" onclick="handleTargetClick('hero', oppUserId)">
+                    <div>
+                        <span style="font-size: 0.7rem; font-weight: bold;" id="opp-name">Opponent</span>
+                        <span style="font-size: 0.55rem; color: #aaa;" id="opp-deck">Deck: 0</span>
+                    </div>
+                    <div class="hero-hp">HP <span id="opp-hp">20</span></div>
+                </div>
 
-            <!-- 手札エリア -->
-            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">所持手札:</div>
-            <div style="display: flex; gap: 6px; overflow-x: auto; padding-top: 4px;" id="my-hand-target"></div>
+                <div class="field-zone" id="opp-board-target"></div>
+                <div class="field-zone" id="my-board-target"></div>
+
+                <!-- プレイヤーヒーロー -->
+                <div class="hero-row">
+                    <div>
+                        <span style="font-size: 0.7rem; font-weight: bold;">You</span>
+                        <span class="hero-mp">MP <span id="my-mp">1/1</span></span>
+                    </div>
+                    <div class="hero-hp" style="color: var(--neon-green);">HP <span id="my-hp">20</span></div>
+                </div>
+
+                <button id="end-turn-btn" class="btn-action" onclick="sendEndTurn()" style="padding: 4px;">ターン終了</button>
+
+                <!-- 手札ゾーン -->
+                <div class="field-zone" style="min-height: 86px; border-style: solid;" id="my-hand-target"></div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    const authToken = localStorage.getItem("access_token") || "test_token";
+    const token = localStorage.getItem("access_token");
     let socket = null;
-    let currentUserId = null;
-    let opponentUserId = null;
+    let myUserId = null;
+    let oppUserId = null;
     let activeSession = null;
 
     let selectedHandCardId = null;
     let selectedAttackerId = null;
 
-    initializeLobby();
-
-    async function initializeLobby() {
-        const res = await fetch("/api/card/rooms");
-        if (res.ok) {
-            const data = await res.json();
-            document.getElementById("room-list-target").innerHTML = data.rooms.length ? data.rooms.map(r => `
-                <div class="room-card">
-                    <div><b>${r.host_name}</b> (${r.bet_amount} G)</div>
-                    <button style="width: auto; padding: 4px 12px;" onclick="joinRoom('${r.room_id}')">対戦</button>
-                </div>
-            `).join('') : '<div style="font-size:0.75rem; color:#666;">募集中の対戦はありません</div>';
-        }
+    if (!token) {
+        window.location.href = "/";
+    } else {
+        loadWallets();
+        fetchRooms();
     }
 
-    async function createNewRoom() {
-        const wallet_id = "default_wallet";
-        const bet_amount = parseInt(document.getElementById("bet-amount").value, 10);
+    async function loadWallets() {
+        try {
+            const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
+            if (!res.ok) return;
+            const wallets = await res.json();
+            document.getElementById("wallet-select").innerHTML = wallets.map(w => `
+                <option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} - ${w.balance}G</option>
+            `).join('');
+        } catch (e) { console.error(e); }
+    }
+
+    async function fetchRooms() {
+        try {
+            const res = await fetch("/api/card/rooms");
+            if (!res.ok) return;
+            const data = await res.json();
+            document.getElementById("room-list-target").innerHTML = data.rooms.length ? data.rooms.map(r => `
+                <div class="room-item">
+                    <span style="font-size:0.7rem; font-weight:bold;">${escapeHtml(r.host_name)} (${r.bet_amount}G)</span>
+                    <button class="btn-action" style="width:auto; padding:2px 8px; font-size:0.65rem;" onclick="joinRoom('${r.room_id}')">参戦</button>
+                </div>
+            `).join('') : '<div style="font-size:0.65rem; color:#666;">現在募集中のルームはありません</div>';
+        } catch (e) { console.error(e); }
+    }
+
+    async function createRoom() {
+        const wallet_id = document.getElementById("wallet-select").value;
+        const amount = parseInt(document.getElementById("bet-amount").value, 10);
+        if (!wallet_id || !amount) return alert("入力内容を確認してください");
+
         const res = await fetch("/api/card/create", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${authToken}` },
-            body: JSON.stringify({ wallet_id, bet_amount })
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({ wallet_id, amount })
         });
         if (res.ok) {
             const data = await res.json();
-            connectGameSocket(data.room_id);
+            connectWebSocket(data.room_id);
+        } else {
+            const err = await res.json();
+            alert(err.detail || "作成失敗");
         }
     }
 
-    function joinRoom(roomId) { connectGameSocket(roomId); }
+    function joinRoom(roomId) { connectWebSocket(roomId); }
 
-    function connectGameSocket(roomId) {
-        document.getElementById("lobby-panel").style.display = "none";
-        document.getElementById("game-panel").style.display = "block";
+    function connectWebSocket(roomId) {
+        document.getElementById("lobby-view").style.display = "none";
+        document.getElementById("game-view").style.display = "flex";
 
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        socket = new WebSocket(`${protocol}//${window.location.host}/ws/card/${roomId}?token=${authToken}`);
+        socket = new WebSocket(`${protocol}//${window.location.host}/ws/card/${roomId}?token=${token}`);
 
         socket.onmessage = (e) => {
             const msg = JSON.parse(e.data);
@@ -164,84 +284,82 @@
 
     function renderState(session) {
         activeSession = session;
-        if (!currentUserId) {
-            currentUserId = session.guest ? (session.host.id === currentUserId ? session.host.id : session.guest.id) : session.host.id;
+        if (!myUserId) {
+            myUserId = session.guest ? (session.host.id === myUserId ? session.host.id : session.guest.id) : session.host.id;
         }
-        opponentUserId = (currentUserId === session.host.id) ? (session.guest ? session.guest.id : null) : session.host.id;
+        oppUserId = (myUserId === session.host.id) ? (session.guest ? session.guest.id : null) : session.host.id;
 
-        document.getElementById("timer-label").innerText = `⏱️ ${session.time_limit}s`;
-        const isMyTurn = session.turn_user_id === currentUserId;
+        document.getElementById("timer-label").innerText = `${session.time_limit}s`;
+        const isMyTurn = session.turn_user_id === myUserId;
 
         if (session.status === "WAITING") {
-            document.getElementById("turn-indicator").innerText = "対戦相手の接続を待機中...";
+            document.getElementById("game-status").innerText = "対戦相手の参加を待機中...";
         } else if (session.status === "DRAFT") {
             document.getElementById("draft-container").style.display = "block";
             document.getElementById("battle-container").style.display = "none";
-            document.getElementById("turn-indicator").innerText = isMyTurn ? "カードを選択してください" : "相手がカードを撰択中";
+            document.getElementById("game-status").innerText = isMyTurn ? "カードを選んでください" : "相手が選択中...";
 
-            document.getElementById("draft-cards-target").innerHTML = isMyTurn ? session.draft_options.map(c => `
-                <div class="duel-card" onclick="dispatchDraftPick('${c.id}')" style="width: 100px; height: 130px;">
+            document.getElementById("draft-options-target").innerHTML = isMyTurn ? session.draft_options.map(c => `
+                <div class="card-node" style="width:80px; height:105px;" onclick="sendDraftPick('${c.id}')">
                     <div class="card-cost">${c.cost}</div>
-                    <div class="card-title">${c.name}</div>
-                    <div class="card-desc">${c.desc}</div>
-                    ${c.atk ? `<div class="card-stats"><span class="val-atk">⚔️${c.atk}</span><span class="val-hp">🛡️${c.hp}</span></div>` : ''}
+                    <div class="card-name">${c.name}</div>
+                    <div style="font-size:0.5rem; color:#aaa; margin:2px 0;">${c.desc}</div>
+                    ${c.atk ? `<div class="card-stats"><span style="color:var(--neon-red)">⚔️${c.atk}</span><span style="color:var(--neon-green)">🛡️${c.hp}</span></div>` : ''}
                 </div>
             `).join('') : '';
         } else if (session.status === "BATTLE" || session.status === "ENDED") {
             document.getElementById("draft-container").style.display = "none";
-            document.getElementById("battle-container").style.display = "block";
-            
-            document.getElementById("turn-indicator").innerText = isMyTurn ? "あなたのターン" : "相手のターン";
-            document.getElementById("end-turn-button").disabled = !isMyTurn || session.status === "ENDED";
+            document.getElementById("battle-container").style.display = "flex";
 
-            document.getElementById("opp-name-display").innerText = opponentUserId === session.host.id ? session.host.name : (session.guest ? session.guest.name : "Opponent");
-            document.getElementById("opp-hp-display").innerText = session.hp[opponentUserId] || 0;
-            document.getElementById("opp-deck-label").innerText = `Deck: ${session.deck_counts[opponentUserId] || 0}`;
+            document.getElementById("game-status").innerText = isMyTurn ? "あなたのターン" : "相手のターン";
+            document.getElementById("end-turn-btn").disabled = !isMyTurn || session.status === "ENDED";
 
-            document.getElementById("my-hp-display").innerText = session.hp[currentUserId] || 0;
-            document.getElementById("my-mp-display").innerText = `${session.mp[currentUserId] || 0}/${session.max_mp[currentUserId] || 0}`;
+            document.getElementById("opp-name").innerText = oppUserId === session.host.id ? session.host.name : (session.guest ? session.guest.name : "Opponent");
+            document.getElementById("opp-hp").innerText = session.hp[oppUserId] || 0;
+            document.getElementById("opp-deck").innerText = `Deck:${session.deck_counts[oppUserId] || 0}`;
+
+            document.getElementById("my-hp").innerText = session.hp[myUserId] || 0;
+            document.getElementById("my-mp").innerText = `${session.mp[myUserId] || 0}/${session.max_mp[myUserId] || 0}`;
 
             // 敵盤面
-            document.getElementById("opp-board-target").innerHTML = (session.boards[opponentUserId] || []).map(u => `
-                <div class="duel-card ${u.taunt ? 'taunt' : ''}" onclick="handleTargetClick('unit', '${u.instance_id}')">
-                    <div class="card-title">${u.name}</div>
-                    <div class="card-stats"><span class="val-atk">⚔️${u.atk}</span><span class="val-hp">🛡️${u.curr_hp}/${u.max_hp}</span></div>
+            document.getElementById("opp-board-target").innerHTML = (session.boards[oppUserId] || []).map(u => `
+                <div class="card-node ${u.taunt ? 'taunt' : ''}" onclick="handleTargetClick('unit', '${u.instance_id}')">
+                    <div class="card-name">${u.name}</div>
+                    <div class="card-stats"><span style="color:var(--neon-red)">⚔️${u.atk}</span><span style="color:var(--neon-green)">🛡️${u.curr_hp}</span></div>
                 </div>
             `).join('');
 
             // 自盤面
-            document.getElementById("my-board-target").innerHTML = (session.boards[currentUserId] || []).map(u => `
-                <div class="duel-card ${u.can_attack && isMyTurn ? 'active-atk' : ''} ${selectedAttackerId === u.instance_id ? 'selected' : ''}" 
+            document.getElementById("my-board-target").innerHTML = (session.boards[myUserId] || []).map(u => `
+                <div class="card-node ${u.can_attack && isMyTurn ? 'can-atk' : ''} ${selectedAttackerId === u.instance_id ? 'selected' : ''}"
                      onclick="selectAttacker('${u.instance_id}', ${u.can_attack && isMyTurn})">
-                    <div class="card-title">${u.name}</div>
-                    <div class="card-stats"><span class="val-atk">⚔️${u.atk}</span><span class="val-hp">🛡️${u.curr_hp}/${u.max_hp}</span></div>
+                    <div class="card-name">${u.name}</div>
+                    <div class="card-stats"><span style="color:var(--neon-red)">⚔️${u.atk}</span><span style="color:var(--neon-green)">🛡️${u.curr_hp}</span></div>
                 </div>
             `).join('');
 
             // 手札
-            document.getElementById("my-hand-target").innerHTML = (session.hands[currentUserId] || []).map(c => `
-                <div class="duel-card ${selectedHandCardId === c.instance_id ? 'selected' : ''}" onclick="selectHandCard('${c.instance_id}')">
+            document.getElementById("my-hand-target").innerHTML = (session.hands[myUserId] || []).map(c => `
+                <div class="card-node ${selectedHandCardId === c.instance_id ? 'selected' : ''}" onclick="selectHandCard('${c.instance_id}')">
                     <div class="card-cost">${c.cost}</div>
-                    <div class="card-title">${c.name}</div>
-                    <div class="card-desc">${c.desc}</div>
-                    ${c.atk ? `<div class="card-stats"><span class="val-atk">⚔️${c.atk}</span><span class="val-hp">🛡️${c.hp}</span></div>` : ''}
+                    <div class="card-name">${c.name}</div>
+                    ${c.atk ? `<div class="card-stats"><span style="color:var(--neon-red)">⚔️${c.atk}</span><span style="color:var(--neon-green)">🛡️${c.hp}</span></div>` : ''}
                 </div>
             `).join('');
 
             if (session.status === "ENDED") {
-                document.getElementById("turn-indicator").innerText = session.winner_id === currentUserId ? "VICTORY" : (session.winner_id ? "DEFEAT" : "DRAW");
+                document.getElementById("game-status").innerText = session.winner_id === myUserId ? "🎉 勝利！" : (session.winner_id ? "💀 敗北..." : "引き分け");
             }
         }
     }
 
-    function dispatchDraftPick(cardId) {
+    function sendDraftPick(cardId) {
         socket.send(JSON.stringify({ action: "PICK_CARD", card_id: cardId }));
     }
 
     function selectHandCard(instanceId) {
-        if (activeSession.turn_user_id !== currentUserId) return;
-        const card = activeSession.hands[currentUserId].find(c => c.instance_id === instanceId);
-        
+        if (activeSession.turn_user_id !== myUserId) return;
+        const card = activeSession.hands[myUserId].find(c => c.instance_id === instanceId);
         if (card.type === "unit" || !card.need_target) {
             socket.send(JSON.stringify({ action: "PLAY_HAND", card_instance_id: instanceId }));
             selectedHandCardId = null;
@@ -260,26 +378,24 @@
     function handleTargetClick(targetType, targetId) {
         if (selectedHandCardId) {
             socket.send(JSON.stringify({
-                action: "PLAY_HAND",
-                card_instance_id: selectedHandCardId,
-                target: { type: targetType, id: targetId }
+                action: "PLAY_HAND", card_instance_id: selectedHandCardId, target: { type: targetType, id: targetId }
             }));
             selectedHandCardId = null;
         } else if (selectedAttackerId) {
             socket.send(JSON.stringify({
-                action: "DECLARE_ATTACK",
-                attacker_id: selectedAttackerId,
-                target: { type: targetType, id: targetId }
+                action: "DECLARE_ATTACK", attacker_id: selectedAttackerId, target: { type: targetType, id: targetId }
             }));
             selectedAttackerId = null;
         }
     }
 
-    function dispatchEndTurn() {
+    function sendEndTurn() {
         selectedHandCardId = null;
         selectedAttackerId = null;
         socket.send(JSON.stringify({ action: "END_TURN" }));
     }
+
+    function escapeHtml(str) { return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
 </script>
 </body>
 </html>
