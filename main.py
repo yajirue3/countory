@@ -201,9 +201,9 @@ def update_profile(data: ProfileUpdate, authorization: str = Header(None)):
 @app.post("/api/pay-tax")
 def pay_tax(data: PayTaxRequest, authorization: str = Header(None)):
     user = get_user_from_token(authorization)
-    
-    prof_res = supabase.table("profiles").select("*").eq("id", user.id).execute()
     today_str = str(date.today())
+
+    prof_res = supabase.table("profiles").select("*").eq("id", user.id).execute()
 
     if prof_res.data and prof_res.data[0].get("last_tax_date") == today_str:
         raise HTTPException(status_code=400, detail="本日の納税は完了しています！")
@@ -213,11 +213,15 @@ def pay_tax(data: PayTaxRequest, authorization: str = Header(None)):
         raise HTTPException(status_code=400, detail="指定された受取口座が存在しないか、所有権がありません。")
 
     target_wallet = wallet_res.data[0]
+
+    # 日付更新を先に実行（失敗した場合はここで400エラーになり残高加算されない）
+    update_res = supabase.table("profiles").update({"last_tax_date": today_str}).eq("id", user.id).execute()
+    if not update_res.data:
+        raise HTTPException(status_code=400, detail="納税処理に失敗しました。時間をおいて再試行してください。")
+
     current_balance = target_wallet.get("balance") or 0
     new_balance = current_balance + 100
-
     supabase.table("wallets").update({"balance": new_balance}).eq("id", target_wallet["id"]).execute()
-    supabase.table("profiles").update({"last_tax_date": today_str}).eq("id", user.id).execute()
 
     return {"message": f"納税完了！「{target_wallet['wallet_name']}」（{target_wallet['wallet_id']}）に100Gold獲得！"}
 
