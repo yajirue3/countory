@@ -13,8 +13,8 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from supabase import AsyncClient
 
-# main.py の get_supabase をインポート
-from main import get_supabase
+# db.py の get_supabase をインポート
+from db import get_supabase
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("CardEngine")
