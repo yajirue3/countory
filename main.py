@@ -9,7 +9,6 @@ from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
-from supabase import create_async_client, AsyncClient
 from casino import router as casino_router
 from inventory import router as inventory_router
 from policy import router as policy_router
@@ -17,19 +16,10 @@ from fastapi.staticfiles import StaticFiles
 from factory import router as factory_router
 from card import router as card_router
 
+from db import get_supabase
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
-
-supabase: Optional[AsyncClient] = None
-
-async def get_supabase() -> AsyncClient:
-    global supabase
-    if supabase is None:
-        if not SUPABASE_URL or not SUPABASE_KEY:
-            raise RuntimeError("Supabase の環境変数が設定されていません。")
-        supabase = await create_async_client(SUPABASE_URL, SUPABASE_KEY)
-    return supabase
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
