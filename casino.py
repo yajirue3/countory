@@ -6,8 +6,8 @@ from pathlib import Path
 import random
 import uuid
 
-# main.py の get_supabase をインポート
-from main import get_supabase
+# db.py の get_supabase をインポート
+from db import get_supabase
 
 # ルーターの定義
 router = APIRouter()
