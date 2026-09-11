@@ -104,8 +104,8 @@ def reset_session(user_id: str) -> Dict[str, Any]:
 # エンドポイント
 # -------------------------------------------------------------------
 @router.get("/status")
-def get_factory_status(authorization: str = Header(None)):
-    user = main.get_user_from_token(authorization)
+async def get_factory_status(authorization: str = Header(None)):
+    user = await main.get_user_from_token(authorization)
     
     if user.id not in factory_sessions:
         log_system_event("info", f"New assembly session initialized for User: {user.id}")
@@ -118,7 +118,7 @@ def get_factory_status(authorization: str = Header(None)):
     }
 
 @router.get("/diagnostics")
-def get_diagnostics():
+async def get_diagnostics():
     uptime = int(time.time()) - factory_metrics["system_up_time_sec"]
     return SystemDiagnostics(
         status="OPERATIONAL",
@@ -128,8 +128,8 @@ def get_diagnostics():
     )
 
 @router.post("/process")
-def process_step(data: ProcessAction, authorization: str = Header(None)):
-    user = main.get_user_from_token(authorization)
+async def process_step(data: ProcessAction, authorization: str = Header(None)):
+    user = await main.get_user_from_token(authorization)
     session = factory_sessions.get(user.id)
 
     if not session or session["current_step"] != data.step:
@@ -204,7 +204,7 @@ def process_step(data: ProcessAction, authorization: str = Header(None)):
 
         reward_gold = random.randint(15, 25)
         
-        w_res = main.supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
+        w_res = await main.supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
         if not w_res.data:
             raise HTTPException(
                 status_code=400, 
@@ -212,7 +212,7 @@ def process_step(data: ProcessAction, authorization: str = Header(None)):
             )
 
         current_balance = int(w_res.data[0]["balance"])
-        main.supabase.table("wallets").update({"balance": current_balance + reward_gold}).eq("id", w_res.data[0]["id"]).execute()
+        await main.supabase.table("wallets").update({"balance": current_balance + reward_gold}).eq("id", w_res.data[0]["id"]).execute()
 
         factory_metrics["total_units_produced"] += 1
         completed_serial = session.get("serial_number", "UNKNOWN")
