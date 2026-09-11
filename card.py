@@ -11,7 +11,10 @@ from fastapi import APIRouter, HTTPException, Header, Request, WebSocket, WebSoc
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
-from supabase import create_async_client, AsyncClient
+from supabase import AsyncClient
+
+# main.py の get_supabase をインポート
+from main import get_supabase
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("CardEngine")
@@ -20,16 +23,12 @@ router = APIRouter()
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
-# Supabaseクライアント初期化
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
-supabase: Optional[AsyncClient] = create_async_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
-
 async def get_user_from_token_async(authorization: str):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="認証トークンがありません")
     token = authorization.split(" ")[1]
     try:
+        supabase = await get_supabase()
         user_res = await supabase.auth.get_user(token)
         return user_res.user
     except Exception:
@@ -95,6 +94,7 @@ async def get_rooms():
 @router.post("/api/card/create")
 async def create_room(data: CreateRoomRequest, authorization: str = Header(None)):
     user = await get_user_from_token_async(authorization)
+    supabase = await get_supabase()
 
     if supabase:
         w_res = await supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
@@ -137,6 +137,7 @@ async def card_websocket(websocket: WebSocket, room_id: str, token: str):
 
     async with session.lock:
         if session.status == "WAITING" and session.host_id != user_id:
+            supabase = await get_supabase()
             if supabase:
                 w_res = await supabase.table("wallets").select("*").eq("user_id", user.id).gte("balance", session.bet_amount).execute()
                 if not w_res or not w_res.data:
@@ -196,6 +197,7 @@ async def handle_disconnect(room_id: str, user_id: str):
         await cleanup_room(room_id)
 
 async def refund_wallet(wallet_id: str, amount: int):
+    supabase = await get_supabase()
     if not supabase or not wallet_id: return
     w_res = await supabase.table("wallets").select("balance").eq("wallet_id", wallet_id).execute()
     if w_res and w_res.data:
@@ -443,6 +445,7 @@ async def check_battle_state(session: CardGameSession):
         await settle_payout(session, winner=winner)
 
 async def settle_payout(session: CardGameSession, winner: Optional[str]):
+    supabase = await get_supabase()
     if not supabase: return
     if winner is None:
         await refund_wallet(session.host_wallet_id, session.bet_amount)
