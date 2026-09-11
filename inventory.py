@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel
 from supabase import AsyncClient
 
-# main.py の AsyncClient 取得ヘルパー関数をインポート
-from main import get_supabase
+# db.py の AsyncClient 取得ヘルパー関数をインポート
+from db import get_supabase
 
 router = APIRouter(prefix="/api", tags=["inventory"])
 
