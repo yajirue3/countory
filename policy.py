@@ -1,27 +1,9 @@
 import os
 from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
-from supabase import create_async_client, AsyncClient
+from db import get_supabase
 
 router = APIRouter()
-
-# --------------------------------------------------
-# Supabase クライアント初期化
-# SERVICE_ROLE_KEY を優先使用することで RLS 関連のエラーを確実に回避
-# --------------------------------------------------
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY", "")
-
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise RuntimeError("Supabase の環境変数が設定されていません。")
-
-supabase: AsyncClient = None
-
-async def get_supabase() -> AsyncClient:
-    global supabase
-    if supabase is None:
-        supabase = await create_async_client(SUPABASE_URL, SUPABASE_KEY)
-    return supabase
 
 # --------------------------------------------------
 # 規約バージョン & テキスト設定
