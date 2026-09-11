@@ -4,6 +4,7 @@ import string
 from pathlib import Path
 from datetime import date
 from contextlib import asynccontextmanager
+from typing import Optional
 from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -20,13 +21,20 @@ from card import router as card_router
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
-supabase: AsyncClient = None
+supabase: Optional[AsyncClient] = None
+
+async def get_supabase() -> AsyncClient:
+    global supabase
+    if supabase is None:
+        if not SUPABASE_URL or not SUPABASE_KEY:
+            raise RuntimeError("Supabase の環境変数が設定されていません。")
+        supabase = await create_async_client(SUPABASE_URL, SUPABASE_KEY)
+    return supabase
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global supabase
     if SUPABASE_URL and SUPABASE_KEY:
-        supabase = await create_async_client(SUPABASE_URL, SUPABASE_KEY)
+        await get_supabase()
     yield
 
 app = FastAPI(title="村岡王国 ポータル", lifespan=lifespan)
@@ -77,14 +85,16 @@ async def get_user_from_token(authorization: str):
         raise HTTPException(status_code=401, detail="認証トークンがありません")
     token = authorization.split(" ")[1]
     try:
-        user_res = await supabase.auth.get_user(token)
+        client = await get_supabase()
+        user_res = await client.auth.get_user(token)
         return user_res.user
     except Exception:
         raise HTTPException(status_code=401, detail="無効なトークンです")
 
 async def is_king(user_id: str) -> bool:
     try:
-        res = await supabase.table("profiles").select("role").eq("id", user_id).execute()
+        client = await get_supabase()
+        res = await client.table("profiles").select("role").eq("id", user_id).execute()
         if res.data and res.data[0].get("role") == "king":
             return True
     except Exception:
@@ -93,10 +103,11 @@ async def is_king(user_id: str) -> bool:
 
 async def ensure_default_wallet(user_id: str):
     try:
-        res = await supabase.table("wallets").select("id").eq("user_id", user_id).execute()
+        client = await get_supabase()
+        res = await client.table("wallets").select("id").eq("user_id", user_id).execute()
         if not res.data:
             w_id = generate_wallet_id()
-            await supabase.table("wallets").insert({
+            await client.table("wallets").insert({
                 "wallet_id": w_id,
                 "user_id": user_id,
                 "wallet_name": "メイン口座",
@@ -159,10 +170,9 @@ app.mount("/templates", StaticFiles(directory="templates"), name="templates")
 # --------------------------------------------------
 @app.post("/signup")
 async def signup(user: UserAuth):
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Supabase未設定")
+    client = await get_supabase()
     try:
-        res = await supabase.auth.sign_up({"email": user.email, "password": user.password})
+        res = await client.auth.sign_up({"email": user.email, "password": user.password})
         if res.user:
             await ensure_default_wallet(res.user.id)
         return {"message": "国民登録が完了しました！"}
@@ -171,10 +181,9 @@ async def signup(user: UserAuth):
 
 @app.post("/login")
 async def login(user: UserAuth):
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Supabase未設定")
+    client = await get_supabase()
     try:
-        res = await supabase.auth.sign_in_with_password({"email": user.email, "password": user.password})
+        res = await client.auth.sign_in_with_password({"email": user.email, "password": user.password})
         return {
             "message": "入国が許可されました！",
             "access_token": res.session.access_token,
@@ -190,7 +199,8 @@ async def login(user: UserAuth):
 async def get_profile(authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
     await ensure_default_wallet(user.id)
-    res = await supabase.table("profiles").select("*").eq("id", user.id).execute()
+    client = await get_supabase()
+    res = await client.table("profiles").select("*").eq("id", user.id).execute()
     
     if res.data and len(res.data) > 0:
         return res.data[0]
@@ -205,7 +215,8 @@ async def get_profile(authorization: str = Header(None)):
 @app.post("/api/profile")
 async def update_profile(data: ProfileUpdate, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
-    await supabase.table("profiles").update({
+    client = await get_supabase()
+    await client.table("profiles").update({
         "nickname": data.nickname,
         "real_name": data.real_name
     }).eq("id", user.id).execute()
@@ -217,7 +228,8 @@ async def pay_tax(data: PayTaxRequest, authorization: str = Header(None)):
     today_str = str(date.today())
 
     try:
-        await supabase.rpc("claim_daily_tax", {
+        client = await get_supabase()
+        await client.rpc("claim_daily_tax", {
             "p_user_id": str(user.id),
             "p_wallet_id": str(data.wallet_id),
             "p_today": today_str
@@ -236,7 +248,8 @@ async def pay_tax(data: PayTaxRequest, authorization: str = Header(None)):
 async def get_wallets(authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
     await ensure_default_wallet(user.id)
-    res = await supabase.table("wallets").select("*").eq("user_id", user.id).order("created_at").execute()
+    client = await get_supabase()
+    res = await client.table("wallets").select("*").eq("user_id", user.id).order("created_at").execute()
     return res.data
 
 @app.post("/api/wallets")
@@ -244,7 +257,8 @@ async def create_wallet(data: WalletCreate, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
     w_id = generate_wallet_id()
     try:
-        await supabase.table("wallets").insert({
+        client = await get_supabase()
+        await client.table("wallets").insert({
             "wallet_id": w_id,
             "user_id": user.id,
             "wallet_name": data.wallet_name or "サブ口座",
@@ -258,14 +272,15 @@ async def create_wallet(data: WalletCreate, authorization: str = Header(None)):
 async def transfer_gold(data: TransferRequest, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
     try:
-        await supabase.rpc("transfer_gold_by_wallet", {
+        client = await get_supabase()
+        await client.rpc("transfer_gold_by_wallet", {
             "sender_wallet_id": data.sender_wallet_id,
             "receiver_wallet_id": data.receiver_wallet_id,
             "amount": data.amount,
             "auth_user_id": user.id
         }).execute()
 
-        await supabase.table("transfer_logs").insert({
+        await client.table("transfer_logs").insert({
             "sender_wallet_id": data.sender_wallet_id,
             "receiver_wallet_id": data.receiver_wallet_id,
             "amount": data.amount
@@ -278,14 +293,15 @@ async def transfer_gold(data: TransferRequest, authorization: str = Header(None)
 @app.get("/api/transfer-logs")
 async def get_transfer_logs(authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
-    my_wallets_res = await supabase.table("wallets").select("wallet_id").eq("user_id", user.id).execute()
+    client = await get_supabase()
+    my_wallets_res = await client.table("wallets").select("wallet_id").eq("user_id", user.id).execute()
     my_wallet_ids = [w["wallet_id"] for w in my_wallets_res.data] if my_wallets_res.data else []
 
     if not my_wallet_ids:
         return {"logs": [], "my_wallets": []}
 
     filter_str = f"sender_wallet_id.in.({','.join(my_wallet_ids)}),receiver_wallet_id.in.({','.join(my_wallet_ids)})"
-    res = await supabase.table("transfer_logs").select("*").or_(filter_str).order("created_at", desc=True).limit(20).execute()
+    res = await client.table("transfer_logs").select("*").or_(filter_str).order("created_at", desc=True).limit(20).execute()
     
     return {"logs": res.data, "my_wallets": my_wallet_ids}
 
@@ -297,14 +313,15 @@ async def get_transfer_logs(authorization: str = Header(None)):
 @app.get("/api/contracts")
 async def get_contracts(authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
-    res = await supabase.table("contracts").select("*").order("created_at", desc=True).execute()
+    client = await get_supabase()
+    res = await client.table("contracts").select("*").order("created_at", desc=True).execute()
     contracts = res.data or []
     
     contract_ids = [c["id"] for c in contracts]
     reviews_map = {}
     if contract_ids:
         try:
-            rev_res = await supabase.table("contract_reviews").select("*").in_("contract_id", contract_ids).execute()
+            rev_res = await client.table("contract_reviews").select("*").in_("contract_id", contract_ids).execute()
             for r in (rev_res.data or []):
                 cid = r["contract_id"]
                 if cid not in reviews_map:
@@ -327,7 +344,8 @@ async def get_contracts(authorization: str = Header(None)):
 async def get_my_contracts(authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
     uid = user.id
-    res = await supabase.table("contracts").select("*")\
+    client = await get_supabase()
+    res = await client.table("contracts").select("*")\
         .or_(f"creator_user_id.eq.{uid},acceptor_user_id.eq.{uid}")\
         .order("created_at", desc=True).execute()
     
@@ -336,7 +354,7 @@ async def get_my_contracts(authorization: str = Header(None)):
     reviews_map = {}
     if contract_ids:
         try:
-            rev_res = await supabase.table("contract_reviews").select("*").in_("contract_id", contract_ids).execute()
+            rev_res = await client.table("contract_reviews").select("*").in_("contract_id", contract_ids).execute()
             for r in (rev_res.data or []):
                 cid = r["contract_id"]
                 if cid not in reviews_map:
@@ -354,11 +372,12 @@ async def get_my_contracts(authorization: str = Header(None)):
 @app.post("/api/contracts")
 async def create_contract(data: ContractCreate, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
+    client = await get_supabase()
     
-    prof_res = await supabase.table("profiles").select("nickname").eq("id", user.id).execute()
+    prof_res = await client.table("profiles").select("nickname").eq("id", user.id).execute()
     nickname = prof_res.data[0]["nickname"] if prof_res.data else "名無しの労働奴隷"
 
-    wallet_res = await supabase.table("wallets").select("*").eq("wallet_id", data.creator_wallet_id).eq("user_id", user.id).execute()
+    wallet_res = await client.table("wallets").select("*").eq("wallet_id", data.creator_wallet_id).eq("user_id", user.id).execute()
     if not wallet_res.data:
         raise HTTPException(status_code=400, detail="指定された支払口座が存在しないか、所有権がありません。")
 
@@ -368,9 +387,9 @@ async def create_contract(data: ContractCreate, authorization: str = Header(None
 
     # 作成時点で金額をエスクロー引き落とし
     new_balance = wallet["balance"] - data.amount
-    await supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+    await client.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
 
-    await supabase.table("contracts").insert({
+    await client.table("contracts").insert({
         "title": data.title,
         "description": data.description,
         "amount": data.amount,
@@ -386,8 +405,9 @@ async def create_contract(data: ContractCreate, authorization: str = Header(None
 @app.post("/api/contracts/{contract_id}/accept")
 async def accept_contract(contract_id: int, data: ContractAccept, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
+    client = await get_supabase()
     
-    c_res = await supabase.table("contracts").select("*").eq("id", contract_id).execute()
+    c_res = await client.table("contracts").select("*").eq("id", contract_id).execute()
     if not c_res.data:
         raise HTTPException(status_code=404, detail="契約書が見つかりません。")
     contract = c_res.data[0]
@@ -398,11 +418,11 @@ async def accept_contract(contract_id: int, data: ContractAccept, authorization:
     if contract["creator_user_id"] == user.id:
         raise HTTPException(status_code=400, detail="自分が発行した契約を受注することはできません。")
 
-    w_res = await supabase.table("wallets").select("*").eq("wallet_id", data.acceptor_wallet_id).eq("user_id", user.id).execute()
+    w_res = await client.table("wallets").select("*").eq("wallet_id", data.acceptor_wallet_id).eq("user_id", user.id).execute()
     if not w_res.data:
         raise HTTPException(status_code=400, detail="指定された受取口座が存在しないか、所有権がありません。")
 
-    await supabase.table("contracts").update({
+    await client.table("contracts").update({
         "acceptor_user_id": user.id,
         "acceptor_wallet_id": data.acceptor_wallet_id,
         "status": "SIGNED"
@@ -414,8 +434,9 @@ async def accept_contract(contract_id: int, data: ContractAccept, authorization:
 @app.post("/api/contracts/{contract_id}/cancel")
 async def cancel_contract(contract_id: int, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
+    client = await get_supabase()
     
-    c_res = await supabase.table("contracts").select("*").eq("id", contract_id).execute()
+    c_res = await client.table("contracts").select("*").eq("id", contract_id).execute()
     if not c_res.data:
         raise HTTPException(status_code=404, detail="契約書が見つかりません。")
     contract = c_res.data[0]
@@ -426,12 +447,12 @@ async def cancel_contract(contract_id: int, authorization: str = Header(None)):
     if contract["status"] != "OPEN":
         raise HTTPException(status_code=400, detail="受注前の募集（OPEN）状態でのみ取り消しが可能です。")
 
-    cr_w_res = await supabase.table("wallets").select("*").eq("wallet_id", contract["creator_wallet_id"]).execute()
+    cr_w_res = await client.table("wallets").select("*").eq("wallet_id", contract["creator_wallet_id"]).execute()
     if cr_w_res.data:
         cw = cr_w_res.data[0]
-        await supabase.table("wallets").update({"balance": cw["balance"] + contract["amount"]}).eq("id", cw["id"]).execute()
+        await client.table("wallets").update({"balance": cw["balance"] + contract["amount"]}).eq("id", cw["id"]).execute()
 
-    await supabase.table("contracts").update({"status": "CANCELLED"}).eq("id", contract_id).execute()
+    await client.table("contracts").update({"status": "CANCELLED"}).eq("id", contract_id).execute()
 
     return {"message": "契約を取り消し、仮預かり金を返金しました。"}
 
@@ -439,8 +460,9 @@ async def cancel_contract(contract_id: int, authorization: str = Header(None)):
 @app.post("/api/contracts/{contract_id}/complete")
 async def complete_contract(contract_id: int, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
+    client = await get_supabase()
     
-    c_res = await supabase.table("contracts").select("*").eq("id", contract_id).execute()
+    c_res = await client.table("contracts").select("*").eq("id", contract_id).execute()
     if not c_res.data:
         raise HTTPException(status_code=404, detail="契約書が見つかりません。")
     contract = c_res.data[0]
@@ -451,18 +473,18 @@ async def complete_contract(contract_id: int, authorization: str = Header(None))
     if contract["creator_user_id"] != user.id:
         raise HTTPException(status_code=403, detail="契約の完了承認は依頼主のみが行えます。")
 
-    acceptor_w_res = await supabase.table("wallets").select("*").eq("wallet_id", contract["acceptor_wallet_id"]).execute()
+    acceptor_w_res = await client.table("wallets").select("*").eq("wallet_id", contract["acceptor_wallet_id"]).execute()
     if not acceptor_w_res.data:
         raise HTTPException(status_code=400, detail="受注者の受取口座が見つかりません。")
     
     acceptor_wallet = acceptor_w_res.data[0]
     new_acceptor_balance = acceptor_wallet["balance"] + contract["amount"]
-    await supabase.table("wallets").update({"balance": new_acceptor_balance}).eq("id", acceptor_wallet["id"]).execute()
+    await client.table("wallets").update({"balance": new_acceptor_balance}).eq("id", acceptor_wallet["id"]).execute()
 
-    await supabase.table("contracts").update({"status": "COMPLETED"}).eq("id", contract_id).execute()
+    await client.table("contracts").update({"status": "COMPLETED"}).eq("id", contract_id).execute()
 
     try:
-        await supabase.table("transfer_logs").insert({
+        await client.table("transfer_logs").insert({
             "sender_wallet_id": contract["creator_wallet_id"],
             "receiver_wallet_id": contract["acceptor_wallet_id"],
             "amount": contract["amount"]
@@ -480,7 +502,8 @@ async def review_contract(contract_id: int, data: ReviewCreate, authorization: s
     if data.rating < 1 or data.rating > 5:
         raise HTTPException(status_code=400, detail="評価は1〜5の星で指定してください。")
 
-    c_res = await supabase.table("contracts").select("*").eq("id", contract_id).execute()
+    client = await get_supabase()
+    c_res = await client.table("contracts").select("*").eq("id", contract_id).execute()
     if not c_res.data:
         raise HTTPException(status_code=404, detail="契約が見つかりません。")
     contract = c_res.data[0]
@@ -496,7 +519,7 @@ async def review_contract(contract_id: int, data: ReviewCreate, authorization: s
     target_user_id = contract["acceptor_user_id"] if is_creator else contract["creator_user_id"]
 
     try:
-        await supabase.table("contract_reviews").insert({
+        await client.table("contract_reviews").insert({
             "contract_id": contract_id,
             "reviewer_user_id": user.id,
             "target_user_id": target_user_id,
@@ -515,7 +538,8 @@ async def king_override_contract(contract_id: int, action: dict, authorization: 
     if not await is_king(user.id):
         raise HTTPException(status_code=403, detail="権限がありません（国王専用コマンド）")
 
-    c_res = await supabase.table("contracts").select("*").eq("id", contract_id).execute()
+    client = await get_supabase()
+    c_res = await client.table("contracts").select("*").eq("id", contract_id).execute()
     if not c_res.data:
         raise HTTPException(status_code=404, detail="契約書が見つかりません。")
     contract = c_res.data[0]
@@ -524,19 +548,19 @@ async def king_override_contract(contract_id: int, action: dict, authorization: 
 
     if mode == "force_complete":
         if contract.get("acceptor_wallet_id"):
-            acc_w_res = await supabase.table("wallets").select("*").eq("wallet_id", contract["acceptor_wallet_id"]).execute()
+            acc_w_res = await client.table("wallets").select("*").eq("wallet_id", contract["acceptor_wallet_id"]).execute()
             if acc_w_res.data:
                 aw = acc_w_res.data[0]
-                await supabase.table("wallets").update({"balance": aw["balance"] + contract["amount"]}).eq("id", aw["id"]).execute()
-        await supabase.table("contracts").update({"status": "COMPLETED"}).eq("id", contract_id).execute()
+                await client.table("wallets").update({"balance": aw["balance"] + contract["amount"]}).eq("id", aw["id"]).execute()
+        await client.table("contracts").update({"status": "COMPLETED"}).eq("id", contract_id).execute()
         return {"message": "【国王裁定】強制的に契約を完了させ、受注者へ報酬を送金しました。"}
 
     elif mode == "force_cancel":
-        cr_w_res = await supabase.table("wallets").select("*").eq("wallet_id", contract["creator_wallet_id"]).execute()
+        cr_w_res = await client.table("wallets").select("*").eq("wallet_id", contract["creator_wallet_id"]).execute()
         if cr_w_res.data:
             cw = cr_w_res.data[0]
-            await supabase.table("wallets").update({"balance": cw["balance"] + contract["amount"]}).eq("id", cw["id"]).execute()
-        await supabase.table("contracts").update({"status": "CANCELLED"}).eq("id", contract_id).execute()
+            await client.table("wallets").update({"balance": cw["balance"] + contract["amount"]}).eq("id", cw["id"]).execute()
+        await client.table("contracts").update({"status": "CANCELLED"}).eq("id", contract_id).execute()
         return {"message": "【国王裁定】強制的に契約を破棄し、エスクロー資金を依頼主に返金しました。"}
 
     raise HTTPException(status_code=400, detail="無効な裁定モードです。")
@@ -546,16 +570,18 @@ async def king_override_contract(contract_id: int, action: dict, authorization: 
 # --------------------------------------------------
 @app.get("/api/reports")
 async def get_reports():
-    res = await supabase.table("reports").select("id, nickname, content, created_at").order("id", desc=True).limit(10).execute()
+    client = await get_supabase()
+    res = await client.table("reports").select("id, nickname, content, created_at").order("id", desc=True).limit(10).execute()
     return res.data
 
 @app.post("/api/reports")
 async def create_report(data: ReportCreate, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
-    prof_res = await supabase.table("profiles").select("nickname").eq("id", user.id).execute()
+    client = await get_supabase()
+    prof_res = await client.table("profiles").select("nickname").eq("id", user.id).execute()
     nickname = prof_res.data[0]["nickname"] if prof_res.data else "名無しの労働奴隷"
 
-    await supabase.table("reports").insert({
+    await client.table("reports").insert({
         "user_id": user.id,
         "nickname": nickname,
         "content": data.content
