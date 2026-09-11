@@ -1,8 +1,11 @@
 import os
 from typing import Optional, Any
-from fastapi import APIRouter, Depends, HTTPException, Header, status, Request
+from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel
 from supabase import AsyncClient
+
+# main.py の AsyncClient 取得ヘルパー関数をインポート
+from main import get_supabase
 
 router = APIRouter(prefix="/api", tags=["inventory"])
 
@@ -25,14 +28,7 @@ class TransferItemRequest(BaseModel):
     target_email: str
 
 
-# --- Supabaseクライアントおよび認証処理 ---
-def get_supabase(request: Request) -> AsyncClient:
-    # main.py の app.state やモジュールグローバルの AsyncClient を取得するための構造
-    import main
-    if not main.supabase:
-        raise HTTPException(status_code=500, detail="Supabase環境変数が設定されていません")
-    return main.supabase
-
+# --- 認証ヘルパー処理 ---
 async def get_current_user_from_header(authorization: str = Header(None), supabase: AsyncClient = Depends(get_supabase)) -> Any:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="認証トークンがありません")
