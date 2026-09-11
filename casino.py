@@ -5,7 +5,8 @@ from pydantic import BaseModel
 from pathlib import Path
 import random
 import os
-from supabase import create_client, Client
+import uuid
+from supabase import create_async_client, AsyncClient
 
 # ルーターの定義
 router = APIRouter()
@@ -17,7 +18,7 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 # Supabaseクライアントの初期化
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
+supabase: AsyncClient = create_async_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
 
 
 # --- リクエストモデル ---
@@ -35,14 +36,33 @@ class TowerFinishRequest(BaseModel):
     wallet_id: str
     payout: int
 
+class TowerStepRequest(BaseModel):
+    game_id: str
+    floor: int
+    tile_index: int
+
+class TowerCashoutRequest(BaseModel):
+    game_id: str
+
+
+# セッション保持用辞書 (メモリ管理)
+TOWER_SESSIONS = {}
+
+
+# 還元率 90.0% (ハウスエッジ 10.0%) の倍率計算関数
+def get_tower_multiplier(floor: int) -> float:
+    if floor <= 0:
+        return 1.0
+    return round((2.70) ** floor, 2)
+
 
 # --- 共通関数：トークン検証 ---
-def get_user_from_token(authorization: str):
+async def get_user_from_token(authorization: str):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="認証トークンがありません")
     token = authorization.split(" ")[1]
     try:
-        user_res = supabase.auth.get_user(token)
+        user_res = await supabase.auth.get_user(token)
         return user_res.user
     except Exception:
         raise HTTPException(status_code=401, detail="無効なトークンです")
@@ -52,15 +72,15 @@ def get_user_from_token(authorization: str):
 # カジノ画面配信ルート
 # --------------------------------------------------
 @router.get("/casino", response_class=HTMLResponse)
-def get_casino(request: Request):
+async def get_casino(request: Request):
     return templates.TemplateResponse(request=request, name="casino.html")
 
 @router.get("/dice", response_class=HTMLResponse)
-def get_dice(request: Request):
+async def get_dice(request: Request):
     return templates.TemplateResponse(request=request, name="dice.html")
 
 @router.get("/tower", response_class=HTMLResponse)
-def get_tower(request: Request):
+async def get_tower(request: Request):
     return templates.TemplateResponse(request=request, name="tower.html")
 
 
@@ -68,8 +88,8 @@ def get_tower(request: Request):
 # カジノAPI：ダイスゲーム実行
 # --------------------------------------------------
 @router.post("/api/dice/play")
-def play_dice(data: DicePlayRequest, authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
+async def play_dice(data: DicePlayRequest, authorization: str = Header(None)):
+    user = await get_user_from_token(authorization)
 
     # 1. バリデーションチェック
     if data.amount <= 0:
@@ -80,7 +100,7 @@ def play_dice(data: DicePlayRequest, authorization: str = Header(None)):
         raise HTTPException(status_code=400, detail="無効なゲームモードです。")
 
     # 2. 口座と残高の検証
-    wallet_res = supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
+    wallet_res = await supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
     if not wallet_res.data:
         raise HTTPException(status_code=400, detail="指定された口座が存在しないか、所有権がありません。")
 
@@ -119,7 +139,7 @@ def play_dice(data: DicePlayRequest, authorization: str = Header(None)):
         new_balance = current_balance - data.amount
 
     # 口座残高の更新
-    supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+    await supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
 
     return {
         "roll": roll_result,
@@ -131,44 +151,16 @@ def play_dice(data: DicePlayRequest, authorization: str = Header(None)):
 
 
 # --------------------------------------------------
-# カジノAPI：タワーゲーム実行
-# --------------------------------------------------
-# --- リクエストモデルに追加・変更 ---
-import uuid
-
-# セッション保持用辞書 (メモリ管理)
-TOWER_SESSIONS = {}
-
-class TowerStartRequest(BaseModel):
-    wallet_id: str
-    amount: int
-
-class TowerStepRequest(BaseModel):
-    game_id: str
-    floor: int
-    tile_index: int
-
-class TowerCashoutRequest(BaseModel):
-    game_id: str
-
-# 還元率 90.0% (ハウスエッジ 10.0%) の倍率計算関数
-def get_tower_multiplier(floor: int) -> float:
-    if floor <= 0:
-        return 1.0
-    return round((2.70) ** floor, 2)
-
-
-# --------------------------------------------------
 # カジノAPI：タワーゲーム（イカサマ防止 & RTP 90.0%）
 # --------------------------------------------------
 @router.post("/api/tower/start")
-def start_tower(data: TowerStartRequest, authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
+async def start_tower(data: TowerStartRequest, authorization: str = Header(None)):
+    user = await get_user_from_token(authorization)
 
     if data.amount <= 0:
         raise HTTPException(status_code=400, detail="賭け金は1Gold以上を指定してください。")
 
-    wallet_res = supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
+    wallet_res = await supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
     if not wallet_res.data:
         raise HTTPException(status_code=400, detail="指定された口座が存在しないか、所有権がありません。")
 
@@ -178,7 +170,7 @@ def start_tower(data: TowerStartRequest, authorization: str = Header(None)):
 
     # 賭け金を即時引き落とし
     new_balance = wallet["balance"] - data.amount
-    supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+    await supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
 
     # 正解データをサーバー側でのみ保持 (レスポンスには含めない)
     safe_tiles = [random.randint(0, 2) for _ in range(15)]
@@ -200,8 +192,8 @@ def start_tower(data: TowerStartRequest, authorization: str = Header(None)):
 
 
 @router.post("/api/tower/step")
-def step_tower(data: TowerStepRequest, authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
+async def step_tower(data: TowerStepRequest, authorization: str = Header(None)):
+    user = await get_user_from_token(authorization)
 
     session = TOWER_SESSIONS.get(data.game_id)
     if not session or not session["is_active"]:
@@ -223,10 +215,10 @@ def step_tower(data: TowerStepRequest, authorization: str = Header(None)):
         # 15階全制覇時
         if data.floor == 15:
             session["is_active"] = False
-            wallet_res = supabase.table("wallets").select("*").eq("wallet_id", session["wallet_id"]).execute()
+            wallet_res = await supabase.table("wallets").select("*").eq("wallet_id", session["wallet_id"]).execute()
             wallet = wallet_res.data[0]
             new_balance = wallet["balance"] + current_payout
-            supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+            await supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
 
             return {
                 "is_safe": True,
@@ -259,8 +251,8 @@ def step_tower(data: TowerStepRequest, authorization: str = Header(None)):
 
 
 @router.post("/api/tower/cashout")
-def cashout_tower(data: TowerCashoutRequest, authorization: str = Header(None)):
-    user = get_user_from_token(authorization)
+async def cashout_tower(data: TowerCashoutRequest, authorization: str = Header(None)):
+    user = await get_user_from_token(authorization)
 
     session = TOWER_SESSIONS.get(data.game_id)
     if not session or not session["is_active"]:
@@ -277,10 +269,10 @@ def cashout_tower(data: TowerCashoutRequest, authorization: str = Header(None)):
 
     session["is_active"] = False
 
-    wallet_res = supabase.table("wallets").select("*").eq("wallet_id", session["wallet_id"]).execute()
+    wallet_res = await supabase.table("wallets").select("*").eq("wallet_id", session["wallet_id"]).execute()
     wallet = wallet_res.data[0]
     new_balance = wallet["balance"] + payout
-    supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+    await supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
 
     return {
         "payout": payout,
