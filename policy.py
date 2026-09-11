@@ -15,7 +15,13 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise RuntimeError("Supabase の環境変数が設定されていません。")
 
-supabase: AsyncClient = create_async_client(SUPABASE_URL, SUPABASE_KEY)
+supabase: AsyncClient = None
+
+async def get_supabase() -> AsyncClient:
+    global supabase
+    if supabase is None:
+        supabase = await create_async_client(SUPABASE_URL, SUPABASE_KEY)
+    return supabase
 
 # --------------------------------------------------
 # 規約バージョン & テキスト設定
@@ -65,7 +71,8 @@ async def get_user_from_token(authorization: str):
     token = authorization.split(" ")[1]
     
     try:
-        user_res = await supabase.auth.get_user(token)
+        client = await get_supabase()
+        user_res = await client.auth.get_user(token)
         if not user_res or not user_res.user:
             raise HTTPException(status_code=401, detail="無効なトークンです。")
         return user_res.user
@@ -92,7 +99,8 @@ async def get_policy_status(authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
 
     # profiles テーブルを参照
-    res = await supabase.table("profiles").select("agreed_terms_version").eq("id", user.id).execute()
+    client = await get_supabase()
+    res = await client.table("profiles").select("agreed_terms_version").eq("id", user.id).execute()
     
     agreed_version = 0
     if res.data and len(res.data) > 0:
@@ -116,7 +124,8 @@ async def agree_policy(data: TermsAgreeRequest, authorization: str = Header(None
         raise HTTPException(status_code=400, detail="無効な規約バージョンです。")
 
     # profiles テーブルの同意バージョンを更新
-    await supabase.table("profiles").update({"agreed_terms_version": data.version}).eq("id", user.id).execute()
+    client = await get_supabase()
+    await client.table("profiles").update({"agreed_terms_version": data.version}).eq("id", user.id).execute()
 
     return {
         "status": "success",
