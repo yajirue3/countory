@@ -4,9 +4,10 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from pathlib import Path
 import random
-import os
 import uuid
-from supabase import create_async_client, AsyncClient
+
+# main.py の get_supabase をインポート
+from main import get_supabase
 
 # ルーターの定義
 router = APIRouter()
@@ -14,11 +15,6 @@ router = APIRouter()
 # テンプレートの設定
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
-
-# Supabaseクライアントの初期化
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
-supabase: AsyncClient = create_async_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
 
 
 # --- リクエストモデル ---
@@ -62,6 +58,7 @@ async def get_user_from_token(authorization: str):
         raise HTTPException(status_code=401, detail="認証トークンがありません")
     token = authorization.split(" ")[1]
     try:
+        supabase = await get_supabase()
         user_res = await supabase.auth.get_user(token)
         return user_res.user
     except Exception:
@@ -90,6 +87,7 @@ async def get_tower(request: Request):
 @router.post("/api/dice/play")
 async def play_dice(data: DicePlayRequest, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
+    supabase = await get_supabase()
 
     # 1. バリデーションチェック
     if data.amount <= 0:
@@ -156,6 +154,7 @@ async def play_dice(data: DicePlayRequest, authorization: str = Header(None)):
 @router.post("/api/tower/start")
 async def start_tower(data: TowerStartRequest, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
+    supabase = await get_supabase()
 
     if data.amount <= 0:
         raise HTTPException(status_code=400, detail="賭け金は1Gold以上を指定してください。")
@@ -194,6 +193,7 @@ async def start_tower(data: TowerStartRequest, authorization: str = Header(None)
 @router.post("/api/tower/step")
 async def step_tower(data: TowerStepRequest, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
+    supabase = await get_supabase()
 
     session = TOWER_SESSIONS.get(data.game_id)
     if not session or not session["is_active"]:
@@ -253,6 +253,7 @@ async def step_tower(data: TowerStepRequest, authorization: str = Header(None)):
 @router.post("/api/tower/cashout")
 async def cashout_tower(data: TowerCashoutRequest, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
+    supabase = await get_supabase()
 
     session = TOWER_SESSIONS.get(data.game_id)
     if not session or not session["is_active"]:
