@@ -1,9 +1,10 @@
 import random
 import time
-import main
 from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
+
+from db import get_supabase
 
 router = APIRouter(prefix="/api/factory", tags=["factory"])
 
@@ -43,6 +44,17 @@ class SystemDiagnostics(BaseModel):
 # -------------------------------------------------------------------
 # 補助関数
 # -------------------------------------------------------------------
+async def get_user_from_token(authorization: str):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="認証トークンがありません")
+    token = authorization.split(" ")[1]
+    try:
+        client = await get_supabase()
+        user_res = await client.auth.get_user(token)
+        return user_res.user
+    except Exception:
+        raise HTTPException(status_code=401, detail="無効なトークンです")
+
 def generate_serial_number() -> str:
     prefix = "MRK-SYS"
     timestamp = int(time.time()) % 100000
@@ -105,7 +117,7 @@ def reset_session(user_id: str) -> Dict[str, Any]:
 # -------------------------------------------------------------------
 @router.get("/status")
 async def get_factory_status(authorization: str = Header(None)):
-    user = await main.get_user_from_token(authorization)
+    user = await get_user_from_token(authorization)
     
     if user.id not in factory_sessions:
         log_system_event("info", f"New assembly session initialized for User: {user.id}")
@@ -129,7 +141,7 @@ async def get_diagnostics():
 
 @router.post("/process")
 async def process_step(data: ProcessAction, authorization: str = Header(None)):
-    user = await main.get_user_from_token(authorization)
+    user = await get_user_from_token(authorization)
     session = factory_sessions.get(user.id)
 
     if not session or session["current_step"] != data.step:
@@ -204,7 +216,7 @@ async def process_step(data: ProcessAction, authorization: str = Header(None)):
 
         reward_gold = random.randint(15, 25)
         
-        supabase = await main.get_supabase()
+        supabase = await get_supabase()
         w_res = await supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
         if not w_res.data:
             raise HTTPException(
