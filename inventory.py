@@ -1,8 +1,8 @@
 import os
 from typing import Optional, Any
-from fastapi import APIRouter, Depends, HTTPException, Header, status
+from fastapi import APIRouter, Depends, HTTPException, Header, status, Request
 from pydantic import BaseModel
-from supabase import create_client, Client
+from supabase import AsyncClient
 
 router = APIRouter(prefix="/api", tags=["inventory"])
 
@@ -26,31 +26,29 @@ class TransferItemRequest(BaseModel):
 
 
 # --- Supabaseクライアントおよび認証処理 ---
-def get_supabase() -> Client:
-    SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-    SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
-    if not SUPABASE_URL or not SUPABASE_KEY:
+def get_supabase(request: Request) -> AsyncClient:
+    # main.py の app.state やモジュールグローバルの AsyncClient を取得するための構造
+    import main
+    if not main.supabase:
         raise HTTPException(status_code=500, detail="Supabase環境変数が設定されていません")
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+    return main.supabase
 
-def get_current_user_from_header(authorization: str = Header(None)) -> Any:
+async def get_current_user_from_header(authorization: str = Header(None), supabase: AsyncClient = Depends(get_supabase)) -> Any:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="認証トークンがありません")
     token = authorization.split(" ")[1]
-    supabase = get_supabase()
     try:
-        user_res = supabase.auth.get_user(token)
+        user_res = await supabase.auth.get_user(token)
         if not user_res.user:
             raise HTTPException(status_code=401, detail="無効なトークンです")
         return user_res.user
     except Exception:
         raise HTTPException(status_code=401, detail="トークンの検証に失敗しました")
 
-def verify_king_user(authorization: str = Header(None)) -> Any:
-    user = get_current_user_from_header(authorization)
-    supabase = get_supabase()
+async def verify_king_user(authorization: str = Header(None), supabase: AsyncClient = Depends(get_supabase)) -> Any:
+    user = await get_current_user_from_header(authorization, supabase)
     try:
-        res = supabase.table("profiles").select("role").eq("id", user.id).execute()
+        res = await supabase.table("profiles").select("role").eq("id", user.id).execute()
         if not res.data or res.data[0].get("role") != "king":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -71,27 +69,24 @@ def verify_king_user(authorization: str = Header(None)) -> Any:
 # ==========================================
 
 @router.get("/admin/items")
-def get_admin_items(current_user: Any = Depends(verify_king_user)):
-    supabase = get_supabase()
-    res = supabase.table("items").select("*").order("created_at").execute()
+async def get_admin_items(current_user: Any = Depends(verify_king_user), supabase: AsyncClient = Depends(get_supabase)):
+    res = await supabase.table("items").select("*").order("created_at").execute()
     return res.data
 
 @router.post("/admin/items")
-def upsert_admin_item(item: ItemCreateUpdate, current_user: Any = Depends(verify_king_user)):
-    supabase = get_supabase()
+async def upsert_admin_item(item: ItemCreateUpdate, current_user: Any = Depends(verify_king_user), supabase: AsyncClient = Depends(get_supabase)):
     data = {
         "item_id": item.item_id,
         "name": item.name,
         "description": item.description,
         "base_price": item.base_price
     }
-    res = supabase.table("items").upsert(data).execute()
+    res = await supabase.table("items").upsert(data).execute()
     return {"message": "アイテム情報を更新しました", "data": res.data}
 
 @router.delete("/admin/items/{item_id}")
-def delete_admin_item(item_id: str, current_user: Any = Depends(verify_king_user)):
-    supabase = get_supabase()
-    supabase.table("items").delete().eq("item_id", item_id).execute()
+async def delete_admin_item(item_id: str, current_user: Any = Depends(verify_king_user), supabase: AsyncClient = Depends(get_supabase)):
+    await supabase.table("items").delete().eq("item_id", item_id).execute()
     return {"message": f"アイテム({item_id})を削除しました"}
 
 
@@ -100,18 +95,17 @@ def delete_admin_item(item_id: str, current_user: Any = Depends(verify_king_user
 # ==========================================
 
 @router.get("/inventory")
-def get_user_inventory(current_user: Any = Depends(get_current_user_from_header)):
-    supabase = get_supabase()
+async def get_user_inventory(current_user: Any = Depends(get_current_user_from_header), supabase: AsyncClient = Depends(get_supabase)):
     user_id = current_user.id
 
     # ユーザー権限確認（is_king 判定用）
     is_king = False
-    prof_res = supabase.table("profiles").select("role").eq("id", user_id).execute()
+    prof_res = await supabase.table("profiles").select("role").eq("id", user_id).execute()
     if prof_res.data and prof_res.data[0].get("role") == "king":
         is_king = True
 
     # インベントリデータ取得
-    inv_res = supabase.table("user_inventories") \
+    inv_res = await supabase.table("user_inventories") \
         .select("id, item_id, quantity, updated_at, items!inner(item_id, name, description, base_price)") \
         .eq("user_id", user_id) \
         .gt("quantity", 0) \
@@ -126,14 +120,13 @@ def get_user_inventory(current_user: Any = Depends(get_current_user_from_header)
 
 
 @router.post("/sell-item")
-def sell_item(req: SellItemRequest, current_user: Any = Depends(get_current_user_from_header)):
-    supabase = get_supabase()
+async def sell_item(req: SellItemRequest, current_user: Any = Depends(get_current_user_from_header), supabase: AsyncClient = Depends(get_supabase)):
     user_id = current_user.id
 
     if req.quantity <= 0:
         raise HTTPException(status_code=400, detail="個数は1以上を指定してください")
 
-    inv_res = supabase.table("user_inventories") \
+    inv_res = await supabase.table("user_inventories") \
         .select("*, items!inner(base_price, name)") \
         .eq("user_id", user_id) \
         .eq("item_id", req.item_id) \
@@ -146,7 +139,7 @@ def sell_item(req: SellItemRequest, current_user: Any = Depends(get_current_user
     unit_price = inventory_item["items"]["base_price"]
     total_earned = unit_price * req.quantity
 
-    wallet_res = supabase.table("wallets") \
+    wallet_res = await supabase.table("wallets") \
         .select("*") \
         .eq("wallet_id", req.wallet_id) \
         .eq("user_id", user_id) \
@@ -160,19 +153,19 @@ def sell_item(req: SellItemRequest, current_user: Any = Depends(get_current_user
     # 残量が0になる場合はレコード削除、残る場合は主キー(id)で数量減算
     new_qty = inventory_item["quantity"] - req.quantity
     if new_qty > 0:
-        supabase.table("user_inventories") \
+        await supabase.table("user_inventories") \
             .update({"quantity": new_qty}) \
             .eq("id", inventory_item["id"]) \
             .execute()
     else:
-        supabase.table("user_inventories") \
+        await supabase.table("user_inventories") \
             .delete() \
             .eq("id", inventory_item["id"]) \
             .execute()
 
     # 口座残高加算
     new_balance = wallet["balance"] + total_earned
-    supabase.table("wallets") \
+    await supabase.table("wallets") \
         .update({"balance": new_balance}) \
         .eq("id", wallet["id"]) \
         .execute()
@@ -183,15 +176,14 @@ def sell_item(req: SellItemRequest, current_user: Any = Depends(get_current_user
 
 
 @router.post("/transfer-item")
-def transfer_item(req: TransferItemRequest, current_user: Any = Depends(get_current_user_from_header)):
-    supabase = get_supabase()
+async def transfer_item(req: TransferItemRequest, current_user: Any = Depends(get_current_user_from_header), supabase: AsyncClient = Depends(get_supabase)):
     sender_id = current_user.id
 
     if req.quantity <= 0:
         raise HTTPException(status_code=400, detail="個数は1以上を指定してください")
 
     # 1. 差出人の所持チェック
-    sender_inv = supabase.table("user_inventories") \
+    sender_inv = await supabase.table("user_inventories") \
         .select("*, items!inner(name)") \
         .eq("user_id", sender_id) \
         .eq("item_id", req.item_id) \
@@ -203,14 +195,14 @@ def transfer_item(req: TransferItemRequest, current_user: Any = Depends(get_curr
     # 2. 譲渡先ユーザーの検索
     target_id = None
     try:
-        rpc_res = supabase.rpc("get_user_id_by_email", {"email_input": req.target_email}).execute()
+        rpc_res = await supabase.rpc("get_user_id_by_email", {"email_input": req.target_email}).execute()
         if rpc_res.data:
             target_id = rpc_res.data
     except Exception:
         pass
 
     if not target_id:
-        prof_res = supabase.table("profiles").select("id").eq("email", req.target_email).execute()
+        prof_res = await supabase.table("profiles").select("id").eq("email", req.target_email).execute()
         if prof_res.data:
             target_id = prof_res.data[0]["id"]
 
@@ -224,30 +216,30 @@ def transfer_item(req: TransferItemRequest, current_user: Any = Depends(get_curr
     sender_item = sender_inv.data[0]
     new_qty = sender_item["quantity"] - req.quantity
     if new_qty > 0:
-        supabase.table("user_inventories") \
+        await supabase.table("user_inventories") \
             .update({"quantity": new_qty}) \
             .eq("id", sender_item["id"]) \
             .execute()
     else:
-        supabase.table("user_inventories") \
+        await supabase.table("user_inventories") \
             .delete() \
             .eq("id", sender_item["id"]) \
             .execute()
 
     # 4. 譲渡先のインベントリ加算
-    target_inv = supabase.table("user_inventories") \
+    target_inv = await supabase.table("user_inventories") \
         .select("*") \
         .eq("user_id", target_id) \
         .eq("item_id", req.item_id) \
         .execute()
 
     if target_inv.data:
-        supabase.table("user_inventories") \
+        await supabase.table("user_inventories") \
             .update({"quantity": target_inv.data[0]["quantity"] + req.quantity}) \
             .eq("id", target_inv.data[0]["id"]) \
             .execute()
     else:
-        supabase.table("user_inventories").insert({
+        await supabase.table("user_inventories").insert({
             "user_id": target_id,
             "item_id": req.item_id,
             "quantity": req.quantity
