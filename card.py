@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException, Header, Request, WebSocket, WebSoc
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
-from supabase import create_client, Client
+from supabase import create_async_client, AsyncClient
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("CardEngine")
@@ -23,18 +23,14 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 # Supabaseクライアント初期化
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
-supabase: Optional[Client] = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
-
-async def async_supabase_exec(query):
-    if not supabase: return None
-    return await asyncio.to_thread(query.execute)
+supabase: Optional[AsyncClient] = create_async_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
 
 async def get_user_from_token_async(authorization: str):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="認証トークンがありません")
     token = authorization.split(" ")[1]
     try:
-        user_res = await asyncio.to_thread(supabase.auth.get_user, token)
+        user_res = await supabase.auth.get_user(token)
         return user_res.user
     except Exception:
         raise HTTPException(status_code=401, detail="無効なトークンです")
@@ -101,15 +97,15 @@ async def create_room(data: CreateRoomRequest, authorization: str = Header(None)
     user = await get_user_from_token_async(authorization)
 
     if supabase:
-        w_res = await async_supabase_exec(supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id))
+        w_res = await supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
         if not w_res.data or w_res.data[0]["balance"] < data.amount:
             raise HTTPException(status_code=400, detail="残高が不足しています")
         
         # 部屋作成時にホストの賭け金を即時引き落とし
         new_bal = w_res.data[0]["balance"] - data.amount
-        await async_supabase_exec(supabase.table("wallets").update({"balance": new_bal}).eq("wallet_id", data.wallet_id))
+        await supabase.table("wallets").update({"balance": new_bal}).eq("wallet_id", data.wallet_id).execute()
 
-        p_res = await async_supabase_exec(supabase.table("profiles").select("nickname").eq("id", user.id))
+        p_res = await supabase.table("profiles").select("nickname").eq("id", user.id).execute()
         name = p_res.data[0]["nickname"] if p_res and p_res.data and "nickname" in p_res.data[0] else f"Player-{str(user.id)[:4]}"
     else:
         name = f"Player-{str(user.id)[:4]}"
@@ -142,7 +138,7 @@ async def card_websocket(websocket: WebSocket, room_id: str, token: str):
     async with session.lock:
         if session.status == "WAITING" and session.host_id != user_id:
             if supabase:
-                w_res = await async_supabase_exec(supabase.table("wallets").select("*").eq("user_id", user.id).gte("balance", session.bet_amount))
+                w_res = await supabase.table("wallets").select("*").eq("user_id", user.id).gte("balance", session.bet_amount).execute()
                 if not w_res or not w_res.data:
                     await websocket.send_json({"type": "ERROR", "message": "参加資金が不足しています"})
                     await websocket.close()
@@ -150,9 +146,9 @@ async def card_websocket(websocket: WebSocket, room_id: str, token: str):
                 
                 guest_w = w_res.data[0]
                 # ゲストの賭け金を即時引き落とし
-                await async_supabase_exec(supabase.table("wallets").update({"balance": guest_w["balance"] - session.bet_amount}).eq("wallet_id", guest_w["wallet_id"]))
+                await supabase.table("wallets").update({"balance": guest_w["balance"] - session.bet_amount}).eq("wallet_id", guest_w["wallet_id"]).execute()
 
-                p_res = await async_supabase_exec(supabase.table("profiles").select("nickname").eq("id", user.id))
+                p_res = await supabase.table("profiles").select("nickname").eq("id", user.id).execute()
                 session.guest_name = p_res.data[0]["nickname"] if p_res and p_res.data and "nickname" in p_res.data[0] else f"Player-{user_id[:4]}"
                 session.guest_wallet_id = guest_w["wallet_id"]
             else:
@@ -201,9 +197,9 @@ async def handle_disconnect(room_id: str, user_id: str):
 
 async def refund_wallet(wallet_id: str, amount: int):
     if not supabase or not wallet_id: return
-    w_res = await async_supabase_exec(supabase.table("wallets").select("balance").eq("wallet_id", wallet_id))
+    w_res = await supabase.table("wallets").select("balance").eq("wallet_id", wallet_id).execute()
     if w_res and w_res.data:
-        await async_supabase_exec(supabase.table("wallets").update({"balance": w_res.data[0]["balance"] + amount}).eq("wallet_id", wallet_id))
+        await supabase.table("wallets").update({"balance": w_res.data[0]["balance"] + amount}).eq("wallet_id", wallet_id).execute()
 
 async def cleanup_room(room_id: str):
     if room_id in CARD_SESSIONS: del CARD_SESSIONS[room_id]
@@ -453,9 +449,9 @@ async def settle_payout(session: CardGameSession, winner: Optional[str]):
         await refund_wallet(session.guest_wallet_id, session.bet_amount)
     else:
         win_wid = session.host_wallet_id if winner == session.host_id else session.guest_wallet_id
-        w_res = await async_supabase_exec(supabase.table("wallets").select("balance").eq("wallet_id", win_wid))
+        w_res = await supabase.table("wallets").select("balance").eq("wallet_id", win_wid).execute()
         if w_res and w_res.data:
-            await async_supabase_exec(supabase.table("wallets").update({"balance": w_res.data[0]["balance"] + (session.bet_amount * 2)}).eq("wallet_id", win_wid))
+            await supabase.table("wallets").update({"balance": w_res.data[0]["balance"] + (session.bet_amount * 2)}).eq("wallet_id", win_wid).execute()
 
 async def broadcast_state(room_id: str):
     session = CARD_SESSIONS.get(room_id)
