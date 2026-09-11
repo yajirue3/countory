@@ -510,6 +510,15 @@
         document.getElementById("roll-btn").addEventListener("click", () => playDice(false));
         document.getElementById("auto-btn").addEventListener("click", toggleAutoBet);
 
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                const rollBtn = document.getElementById("roll-btn");
+                if (!rollBtn.disabled) {
+                    playDice(false);
+                }
+            }
+        });
+
         const bgmPlayer = document.getElementById("bgm-player");
         const bgmToggle = document.getElementById("bgm-toggle");
 
