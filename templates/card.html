@@ -190,8 +190,8 @@
 <div class="container" id="main-container">
 
 <!-- ルールモーダル -->
-<div id="rules-modal">
-    <div class="rule-content">
+<div id="rules-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center;">
+    <div class="rule-content" style="max-height: 85vh; overflow-y: auto; width: 90%; max-width: 460px; box-sizing: border-box; padding: 16px;">
         <h3>📖 超究極ルールガイド</h3>
 
         <!-- 勝利条件（目的） -->
@@ -250,7 +250,7 @@
             </ul>
         </div>
 
-        <div style="text-align: center;">
+        <div style="text-align: center; padding-bottom: 4px;">
             <button onclick="document.getElementById('rules-modal').style.display='none'">閉じる</button>
         </div>
     </div>
