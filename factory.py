@@ -2,7 +2,7 @@ import random
 import time
 from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from db import get_supabase
 
@@ -12,6 +12,7 @@ router = APIRouter(prefix="/api/factory", tags=["factory"])
 # メモリ保持データ
 # -------------------------------------------------------------------
 factory_sessions: Dict[str, Dict[str, Any]] = {}
+user_wear: Dict[str, int] = {}  # 設備摩耗度のトラッキング (0-100%)
 
 factory_metrics: Dict[str, int] = {
     "total_units_produced": 0,
@@ -21,7 +22,7 @@ factory_metrics: Dict[str, int] = {
 
 PROCESS_STEPS = [
     "① コンポーネント選定（規格部品の受入）",
-    "② 回路抵抗値のキャリブレーション（オームの法則）",
+    "② 回路抵抗値のキャリブレーション（カラーコード選定）",
     "③ クラッチ・トルクの同期（回転角調整）",
     "④ 圧着シリンダーの油圧加圧",
     "⑤ 最終精度検査および出荷シリアル発行"
@@ -80,14 +81,15 @@ def generate_step_data(step: int) -> Dict[str, Any]:
         })
 
     elif step == 2:
-        # 必ず整数で割り切れる数値を生成（無限小数を排除）
-        current = random.choice([2, 3, 4, 6])
-        multiplier = random.randint(2, 10)
-        voltage = current * multiplier
+        # カラーコードロジック (1桁目, 2桁目, 乗数)
+        d1 = random.randint(1, 9)
+        d2 = random.randint(0, 9)
+        mult = random.randint(0, 4)
+        target_ohm = (d1 * 10 + d2) * (10 ** mult)
         
         base.update({
-            "math_question": f"回路電圧 {voltage}V / 規定電流 {current}A の適正抵抗値 [Ω] を設定せよ",
-            "math_answer": multiplier
+            "math_question": f"目標抵抗値: {target_ohm} Ω をカラーコードで設定せよ",
+            "color_ans": [d1, d2, mult]
         })
 
     elif step == 3:
@@ -122,27 +124,33 @@ async def get_factory_status(authorization: str = Header(None)):
     if user.id not in factory_sessions:
         log_system_event("info", f"New assembly session initialized for User: {user.id}")
         reset_session(user.id)
+        user_wear[user.id] = 0
 
     return {
         "session": factory_sessions[user.id],
         "steps_total": len(PROCESS_STEPS),
-        "system_status": "ONLINE"
+        "system_status": "ONLINE",
+        "wear": user_wear.get(user.id, 0)
     }
 
-@router.get("/diagnostics")
-async def get_diagnostics():
-    uptime = int(time.time()) - factory_metrics["system_up_time_sec"]
-    return SystemDiagnostics(
-        status="OPERATIONAL",
-        uptime_seconds=uptime,
-        total_units_produced=factory_metrics["total_units_produced"],
-        error_count=factory_metrics["total_calibration_errors"]
-    )
+@router.post("/maintain")
+async def maintain_system(authorization: str = Header(None)):
+    user = await get_user_from_token(authorization)
+    user_wear[user.id] = 0
+    log_system_event("info", f"Maintenance performed by User: {user.id}")
+    return {"message": "[SYSTEM] エアパージ・給油完了。稼働を再開します。", "wear": 0}
 
 @router.post("/process")
 async def process_step(data: ProcessAction, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
     session = factory_sessions.get(user.id)
+    current_wear = user_wear.get(user.id, 0)
+
+    if current_wear >= 100:
+        raise HTTPException(
+            status_code=400, 
+            detail="[ERROR: TOOL WEAR LIMIT] 設備が摩耗限界です。メンテナンスを実行してください。"
+        )
 
     if not session or session["current_step"] != data.step:
         log_system_event("warn", f"Desync detected for User: {user.id} at Step: {data.step}")
@@ -150,6 +158,9 @@ async def process_step(data: ProcessAction, authorization: str = Header(None)):
             status_code=400, 
             detail="[ERROR: DESYNC] 工程シーケンスが不整合です。ラインを再読み込みしてください。"
         )
+
+    # 摩耗の進行 (5%〜12%)
+    user_wear[user.id] = min(100, current_wear + random.randint(5, 12))
 
     # ステップ 1 バリデーション
     if data.step == 1:
@@ -161,19 +172,20 @@ async def process_step(data: ProcessAction, authorization: str = Header(None)):
                 detail=f"[ERROR: MISMATCH] 不適合パーツ（{data.answer}）が挿入されました。要求: {session['target_part']}"
             )
 
-    # ステップ 2 バリデーション
+    # ステップ 2 バリデーション (カラーコード)
     elif data.step == 2:
         try:
-            user_ans = int(data.answer)
+            ans_list = [int(x) for x in data.answer]
+            if len(ans_list) != 3: raise ValueError
         except (ValueError, TypeError):
-            raise HTTPException(status_code=400, detail="[ERROR: INVALID INPUT] 整数を入力してください。")
+            raise HTTPException(status_code=400, detail="[ERROR: INVALID INPUT] カラーコード配列が不正です。")
 
-        if user_ans != session["math_answer"]:
+        if ans_list != session["color_ans"]:
             factory_metrics["total_calibration_errors"] += 1
-            log_system_event("error", f"Calibration error by User: {user.id}")
+            log_system_event("error", f"Color code error by User: {user.id}")
             raise HTTPException(
                 status_code=400, 
-                detail=f"[ERROR: CALIBRATION FAILED] 抵抗値演算エラー。算出値: {user_ans} Ω"
+                detail=f"[ERROR: CALIBRATION FAILED] 抵抗値が不一致です。入力値: {ans_list}"
             )
 
     # ステップ 3 バリデーション
@@ -237,6 +249,7 @@ async def process_step(data: ProcessAction, authorization: str = Header(None)):
             "completed": True,
             "reward": reward_gold,
             "serial": completed_serial,
+            "wear": user_wear[user.id],
             "message": f"[SYSTEM] 製品出荷完了。SERIAL: {completed_serial} | ＋{reward_gold} Gold 獲得。",
             "next_step": next_session
         }
@@ -249,5 +262,6 @@ async def process_step(data: ProcessAction, authorization: str = Header(None)):
 
     return {
         "completed": False,
+        "wear": user_wear[user.id],
         "next_step": factory_sessions[user.id]
     }
