@@ -315,7 +315,7 @@ async def spin_slot(data: SlotSpinRequest, authorization: str = Header(None)):
     # 1. 賭け金を即時引き落とし
     new_balance = current_balance - data.bet_amount
     
-    # 2. 内部抽選 (RTP 95%想定: 空白図柄を排除し完全な実機確率へ)
+    # 2. 内部抽選 (RTP 95%想定: 脳汁が出る尖った確率配分)
     rand_val = random.randint(0, 999)
     
     # 図柄: "7", "BAR", "BELL", "GRAPE", "CHERRY", "REPLAY"
