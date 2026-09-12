@@ -8,140 +8,104 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
-            --bg-color: #1a1d20;
-            --panel-bg: #1e2227;
-            --border-color: #3b414a;
-            --accent-color: #4a90e2;
+            --bg-color: #0b0c10;
+            --panel-bg: #1f2833;
+            --border-color: #45a29e;
+            --accent-color: #66fcf1;
             --accent-orange: #d97706;
-            --success-color: #10b981;
-            --text-main: #d1d5db;
-            --text-dim: #6b7280;
+            --text-main: #c5c6c7;
         }
 
         body { 
-            background: var(--bg-color); 
-            color: var(--text-main); 
+            background: var(--bg-color); color: var(--text-main); 
             font-family: 'Consolas', 'Courier New', monospace; 
-            padding: 10px; 
-            display: flex;
-            justify-content: center;
-            margin: 0;
-            overflow-x: hidden;
+            padding: 10px; display: flex; justify-content: center; margin: 0; overflow-x: hidden;
         }
 
         .factory-container { 
-            width: 100%;
-            max-width: 640px; 
-            background: var(--panel-bg); 
+            width: 100%; max-width: 680px; background: var(--panel-bg); 
             border: 2px solid var(--border-color);
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.5), 0 8px 20px rgba(0,0,0,0.6);
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
+            box-shadow: 0 0 20px rgba(102, 252, 241, 0.1); box-sizing: border-box;
+            display: flex; flex-direction: column;
         }
 
-        /* 3D Viewport */
         #viewport-3d {
-            width: 100%;
-            height: 240px;
-            background: #000;
+            width: 100%; height: 280px; background: #000;
             border-bottom: 2px solid var(--border-color);
-            position: relative;
-            overflow: hidden;
+            position: relative; overflow: hidden;
         }
 
-        /* OSD (On-Screen Display) Overlay for CCTV */
         .cctv-osd {
-            position: absolute;
-            top: 5px; left: 10px; right: 10px;
-            pointer-events: none;
-            color: #fff;
-            font-size: 0.75rem;
-            text-shadow: 1px 1px 0 #000;
-            display: flex;
-            justify-content: space-between;
+            position: absolute; top: 10px; left: 10px; right: 10px; pointer-events: none;
+            color: #fff; font-size: 0.8rem; text-shadow: 1px 1px 2px #000;
+            display: flex; justify-content: space-between; font-weight: bold;
+            opacity: 0.8;
         }
         .cctv-osd .red-dot {
-            display: inline-block; width: 8px; height: 8px; background: red; border-radius: 50%;
-            animation: blink 1s infinite; margin-right: 5px;
+            display: inline-block; width: 10px; height: 10px; background: #ff003c; border-radius: 50%;
+            animation: blink 1s infinite; margin-right: 6px; box-shadow: 0 0 8px #ff003c;
         }
-        @keyframes blink { 50% { opacity: 0; } }
+        @keyframes blink { 50% { opacity: 0.3; } }
 
         .ui-section { padding: 15px; }
-
         .header-panel {
-            border-bottom: 1px dashed var(--border-color);
-            padding-bottom: 10px;
-            margin-bottom: 10px;
+            border-bottom: 1px dashed var(--border-color); padding-bottom: 10px; margin-bottom: 10px;
             display: flex; justify-content: space-between; align-items: flex-end;
         }
-        .header-panel h2 { margin: 0; font-size: 1.1rem; color: #f3f4f6; }
+        .header-panel h2 { margin: 0; font-size: 1.2rem; color: var(--accent-color); }
 
-        select {
-            background: #111827; color: #3b82f6; border: 1px solid var(--border-color);
-            padding: 4px 8px; font-family: inherit; border-radius: 4px;
-        }
+        select { background: #0b0c10; color: var(--accent-color); border: 1px solid var(--border-color); padding: 4px 8px; font-family: inherit; }
 
-        /* Tools Wear Gauge */
-        .wear-container {
-            font-size: 0.8rem; margin-top: 5px; color: var(--accent-orange);
-            display: flex; align-items: center; gap: 10px;
-        }
-        .wear-bar-bg { flex: 1; height: 8px; background: #111; border: 1px solid #333; position: relative; }
+        .wear-container { font-size: 0.8rem; margin-top: 5px; color: var(--accent-orange); display: flex; align-items: center; gap: 10px; }
+        .wear-bar-bg { flex: 1; height: 10px; background: #111; border: 1px solid #333; }
         .wear-bar-fill { height: 100%; background: var(--accent-orange); width: 0%; transition: width 0.3s; }
 
-        .track-container {
-            background: #111827; height: 20px; border: 1px solid var(--border-color);
-            margin: 10px 0; display: flex; align-items: center; padding: 0 4px;
-        }
-        .track-node { flex: 1; height: 8px; background: #1f2937; margin: 0 2px; transition: all 0.3s; }
-        .track-node.active { background: var(--accent-color); box-shadow: 0 0 8px var(--accent-color); }
-        .track-node.completed { background: #374151; }
+        .track-container { background: #0b0c10; height: 16px; border: 1px solid var(--border-color); margin: 15px 0; display: flex; align-items: center; padding: 0 2px; }
+        .track-node { flex: 1; height: 6px; background: #222; margin: 0 2px; transition: all 0.3s; }
+        .track-node.active { background: var(--accent-color); box-shadow: 0 0 10px var(--accent-color); }
+        .track-node.completed { background: #45a29e; }
 
-        .control-panel { 
-            background: #15181c; padding: 15px; border: 1px solid var(--border-color); 
-            min-height: 120px;
-        }
-        .panel-title { font-size: 0.9rem; color: var(--accent-orange); margin-bottom: 12px; border-left: 3px solid var(--accent-orange); padding-left: 8px; }
+        .control-panel { background: #15181c; padding: 15px; border: 1px solid #333; min-height: 130px; }
+        .panel-title { font-size: 0.95rem; color: var(--accent-color); margin-bottom: 12px; border-left: 4px solid var(--accent-color); padding-left: 8px; }
 
         .btn-machinery { 
-            background: #374151; color: #f9fafb; border: 1px solid #4b5563; border-bottom: 3px solid #1f2937;
-            padding: 8px 12px; font-weight: bold; font-family: inherit; cursor: pointer; 
-            margin: 4px; display: inline-block; transition: all 0.1s; font-size: 0.85rem;
+            background: #2b323c; color: #fff; border: 1px solid #45a29e; border-bottom: 4px solid #1a1f26;
+            padding: 10px 14px; font-weight: bold; font-family: inherit; cursor: pointer; 
+            margin: 4px; transition: all 0.1s; font-size: 0.85rem;
         }
-        .btn-machinery:active { transform: translateY(2px); border-bottom-width: 1px; }
-        .btn-machinery:hover { background: #4b5563; }
-        .btn-action { background: #2563eb; border-color: #1d4ed8; }
-        .btn-action:hover { background: #1d4ed8; }
-        .btn-maint { background: #b91c1c; border-color: #7f1d1d; width: 100%; margin: 10px 0; display: none; }
+        .btn-machinery:active { transform: translateY(3px); border-bottom-width: 1px; }
+        .btn-machinery:hover { background: #3c4654; }
+        
+        .btn-action { background: #145250; border-color: #66fcf1; }
+        .btn-action:hover { background: #1a6b68; }
+        .btn-maint { background: #7a1f1f; border-color: #ff4d4d; width: 100%; margin: 10px 0; display: none; }
 
-        /* Color Code UI */
-        .color-selectors { display: flex; gap: 5px; margin-bottom: 10px; }
-        .color-sel { flex: 1; text-align: center; }
+        .color-selectors { display: flex; gap: 4px; margin-bottom: 10px; }
+        .color-sel { flex: 1; text-align: center; font-size: 0.8rem; font-weight: bold; }
 
-        .gauge-container { width: 100%; background: #111827; height: 24px; border: 1px solid var(--border-color); position: relative; margin: 12px 0; }
-        .gauge-target { position: absolute; left: 45%; width: 10%; height: 100%; background: rgba(16, 185, 129, 0.3); border-left: 1px solid var(--success-color); border-right: 1px solid var(--success-color); }
-        .gauge-pointer { position: absolute; width: 2px; height: 100%; background: #ef4444; left: 0%; }
+        .gauge-container { width: 100%; background: #0b0c10; height: 24px; border: 1px solid var(--border-color); position: relative; margin: 12px 0; overflow: hidden; }
+        .gauge-target { position: absolute; left: 45%; width: 10%; height: 100%; background: rgba(102, 252, 241, 0.2); border-left: 2px solid var(--accent-color); border-right: 2px solid var(--accent-color); }
+        .gauge-pointer { position: absolute; width: 3px; height: 100%; background: #ff003c; left: 0%; box-shadow: 0 0 5px #ff003c; }
 
-        .console-log { background: #0d1117; border: 1px solid var(--border-color); padding: 8px; height: 80px; overflow-y: auto; font-size: 0.75rem; color: #10b981; }
-        .btn-back { background: #374151; color: #ccc; border: none; padding: 8px; margin-top: 10px; cursor: pointer; width: 100%; font-family: inherit; }
+        .console-log { background: #0b0c10; border: 1px solid #333; padding: 10px; height: 80px; overflow-y: auto; font-size: 0.8rem; color: #45a29e; margin-top: 10px; }
+        .btn-back { background: #222; color: #888; border: 1px solid #444; padding: 10px; margin-top: 10px; cursor: pointer; width: 100%; font-family: inherit; }
+        .btn-back:hover { color: #fff; background: #333; }
 
-        .shake { animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
         @keyframes shake {
-            10%, 90% { transform: translate3d(-1px, 0, 0); }
-            20%, 80% { transform: translate3d(2px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-            40%, 60% { transform: translate3d(4px, 0, 0); }
+            10%, 90% { transform: translate3d(-2px, 2px, 0) rotate(-1deg); }
+            20%, 80% { transform: translate3d(3px, -2px, 0) rotate(1deg); }
+            30%, 50%, 70% { transform: translate3d(-5px, 3px, 0) rotate(-2deg); }
+            40%, 60% { transform: translate3d(5px, -3px, 0) rotate(2deg); }
         }
     </style>
 </head>
 <body>
 
 <div class="factory-container" id="main-container">
-    <!-- 3D Viewport -->
     <div id="viewport-3d">
         <div class="cctv-osd">
-            <div><span class="red-dot"></span>REC</div>
+            <div><span class="red-dot"></span>SYS_REC</div>
             <div id="cctv-cam">CAM-01 [RECEIVE]</div>
         </div>
     </div>
@@ -149,7 +113,7 @@
     <div class="ui-section">
         <div class="header-panel">
             <div>
-                <h2>NATIONAL_FACTORY_01</h2>
+                <h2>FACTORY_MURAOKA_01</h2>
                 <div class="wear-container">
                     <span>TOOL WEAR:</span>
                     <div class="wear-bar-bg"><div class="wear-bar-fill" id="wearBar"></div></div>
@@ -162,7 +126,7 @@
             </div>
         </div>
 
-        <button id="btnMaint" class="btn-machinery btn-maint" onclick="performMaintenance()">⚠️ 設備摩耗限界 - エアパージ実行</button>
+        <button id="btnMaint" class="btn-machinery btn-maint" onclick="performMaintenance()">⚠️ 設備摩耗限界 - 手動パージ実行</button>
 
         <div class="track-container">
             <div id="node1" class="track-node"></div><div id="node2" class="track-node"></div>
@@ -175,102 +139,172 @@
             <div id="actionArea"></div>
         </div>
 
-        <div class="console-log" id="consoleLog">> SYSTEM READY.<br></div>
-        <button class="btn-back" onclick="location.href='/dashboard'">◀ 国民証に戻る</button>
+        <div class="console-log" id="consoleLog">> SYSTEM BOOT.<br></div>
+        <button class="btn-back" onclick="location.href='/dashboard'">◀ 退出</button>
     </div>
 </div>
 
 <script>
-// --- Web Audio API (オシレーター合成音響) ---
+// --- Web Audio API ---
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playSound(type) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-
+    osc.connect(gain); gain.connect(audioCtx.destination);
     const now = audioCtx.currentTime;
+
     if (type === 'click') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(800, now);
-        osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
-        gain.gain.setValueAtTime(0.1, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+        osc.type = 'square'; osc.frequency.setValueAtTime(900, now); osc.frequency.exponentialRampToValueAtTime(300, now + 0.05);
+        gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
         osc.start(now); osc.stop(now + 0.05);
     } else if (type === 'error') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, now);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.linearRampToValueAtTime(0, now + 0.3);
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now);
+        gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.4);
+        osc.start(now); osc.stop(now + 0.4);
+    } else if (type === 'heavy') { 
+        osc.type = 'square'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(20, now + 0.3);
+        gain.gain.setValueAtTime(0.4, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
         osc.start(now); osc.stop(now + 0.3);
-    } else if (type === 'success') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(600, now);
-        osc.frequency.setValueAtTime(800, now + 0.1);
-        gain.gain.setValueAtTime(0.1, now);
-        gain.gain.linearRampToValueAtTime(0, now + 0.3);
-        osc.start(now); osc.stop(now + 0.3);
-    } else if (type === 'heavy') { // Press / Shock
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(100, now);
-        osc.frequency.exponentialRampToValueAtTime(20, now + 0.2);
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-        osc.start(now); osc.stop(now + 0.2);
     }
 }
 
-// --- Three.js 3D Setup ---
+// --- Three.js Setup (ディテールアップ版) ---
 const vp = document.getElementById('viewport-3d');
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x000000, 5, 25);
-const camera = new THREE.PerspectiveCamera(50, vp.clientWidth / vp.clientHeight, 0.1, 100);
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+scene.fog = new THREE.Fog(0x050505, 5, 20);
+const camera = new THREE.PerspectiveCamera(45, vp.clientWidth / vp.clientHeight, 0.1, 100);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer.setSize(vp.clientWidth, vp.clientHeight);
+renderer.setClearColor(0x050505);
+renderer.shadowMap.enabled = true; // 影を有効化
 vp.appendChild(renderer.domElement);
 
-// Lights
-const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
+// Lighting
+const ambientLight = new THREE.AmbientLight(0x222222);
 scene.add(ambientLight);
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-dirLight.position.set(5, 10, 5);
-scene.add(dirLight);
+const spotLight = new THREE.SpotLight(0xffffff, 1.2);
+spotLight.position.set(2, 8, 4);
+spotLight.angle = Math.PI / 4;
+spotLight.penumbra = 0.5;
+spotLight.castShadow = true;
+scene.add(spotLight);
 
-// Common Materials
-const matMetal = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.6, metalness: 0.8 });
-const matHighlight = new THREE.MeshStandardMaterial({ color: 0x4a90e2, roughness: 0.3, metalness: 0.9 });
-const matRed = new THREE.MeshBasicMaterial({ color: 0x220000 });
-const matYellow = new THREE.MeshBasicMaterial({ color: 0x222200 });
-const matGreen = new THREE.MeshBasicMaterial({ color: 0x002200 });
+// Materials
+const matBase = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8, metalness: 0.3 });
+const matSteel = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.5, metalness: 0.7 });
+const matBrass = new THREE.MeshStandardMaterial({ color: 0x886633, roughness: 0.3, metalness: 0.9 });
+const matPatliteOff = new THREE.MeshBasicMaterial({ color: 0x111111 });
 
-// 1. Conveyor / Base
-const baseGeo = new THREE.BoxGeometry(20, 0.5, 5);
-const baseMesh = new THREE.Mesh(baseGeo, matMetal);
-scene.add(baseMesh);
+// Background Stage
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), matBase);
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true;
+scene.add(floor);
+const backWall = new THREE.Mesh(new THREE.BoxGeometry(20, 10, 1), matBase);
+backWall.position.set(0, 5, -3); backWall.receiveShadow = true;
+scene.add(backWall);
 
-// 2. Patlite (Signal Tower)
-const patliteGroup = new THREE.Group();
-patliteGroup.position.set(-3, 1, -1);
-const lRed = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.4), matRed); lRed.position.y = 1.2;
-const lYel = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.4), matYellow); lYel.position.y = 0.8;
-const lGrn = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.4), matGreen); lGrn.position.y = 0.4;
-patliteGroup.add(lRed, lYel, lGrn, new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.4), matMetal));
-scene.add(patliteGroup);
+// Central Object Group (切り替え用)
+let centerGroup = new THREE.Group();
+scene.add(centerGroup);
 
-// 3. Center Target (Changes based on step)
-let targetMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), matHighlight);
-targetMesh.position.y = 0.75;
-scene.add(targetMesh);
+// Patlite
+const patlite = new THREE.Group();
+patlite.position.set(-2, 3, -1);
+const lRed = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.3), matPatliteOff); lRed.position.y = 0.9;
+const lYel = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.3), matPatliteOff); lYel.position.y = 0.6;
+const lGrn = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.3), matPatliteOff); lGrn.position.y = 0.3;
+patlite.add(lRed, lYel, lGrn, new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.3), matSteel));
+scene.add(patlite);
 
-// Camera Positions for Steps
+function setPatlite(status) {
+    lRed.material = matPatliteOff; lYel.material = matPatliteOff; lGrn.material = matPatliteOff;
+    if(status === 'error') lRed.material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    if(status === 'warn') lYel.material = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+    if(status === 'ok') lGrn.material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+}
+
+// Helper: Build Resistor (工程2)
+function createResistor() {
+    const group = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.2, 16), new THREE.MeshStandardMaterial({color: 0xeebb99}));
+    body.rotation.z = Math.PI / 2; body.castShadow = true; group.add(body);
+    // Caps
+    const cap1 = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.2, 16), matSteel);
+    cap1.rotation.z = Math.PI / 2; cap1.position.x = 0.7; group.add(cap1);
+    const cap2 = cap1.clone(); cap2.position.x = -0.7; group.add(cap2);
+    // Wires
+    const wire = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.0), matSteel);
+    wire.rotation.z = Math.PI / 2; wire.position.x = 1.3; group.add(wire);
+    const wire2 = wire.clone(); wire2.position.x = -1.3; group.add(wire2);
+    
+    // 4 Bands (Update dynamically)
+    const bandGeo = new THREE.CylinderGeometry(0.31, 0.31, 0.1, 16);
+    const bands = [];
+    for(let i=0; i<4; i++) {
+        const b = new THREE.Mesh(bandGeo, new THREE.MeshBasicMaterial({color:0x000000}));
+        b.rotation.z = Math.PI / 2; b.position.x = -0.4 + (i * 0.25);
+        group.add(b); bands.push(b);
+    }
+    return { mesh: group, bands: bands };
+}
+
+// Helper: Build Gear (工程3)
+function createGear() {
+    const shape = new THREE.Shape();
+    const teeth = 12; const rOut = 0.8; const rIn = 0.6;
+    for(let i=0; i<teeth*2; i++) {
+        const a = (i / (teeth*2)) * Math.PI * 2;
+        const r = i % 2 === 0 ? rOut : rIn;
+        if(i===0) shape.moveTo(Math.cos(a)*r, Math.sin(a)*r);
+        else shape.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+    }
+    const extrudeSettings = { depth: 0.2, bevelEnabled: false };
+    const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+    const mesh = new THREE.Mesh(geo, matBrass);
+    mesh.castShadow = true;
+    return mesh;
+}
+
+let activeResistorBands = null;
+let activeGears = null;
+
+function buildSceneForStep(step) {
+    while(centerGroup.children.length > 0) centerGroup.remove(centerGroup.children[0]);
+    activeResistorBands = null; activeGears = null;
+
+    if (step === 1) {
+        const box = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 1), matSteel);
+        box.position.y = 0.25; box.castShadow = true; centerGroup.add(box);
+    } else if (step === 2) {
+        const rObj = createResistor();
+        rObj.mesh.position.y = 1; centerGroup.add(rObj.mesh);
+        activeResistorBands = rObj.bands;
+    } else if (step === 3) {
+        const g1 = createGear(); g1.position.set(0, 1.5, 0); centerGroup.add(g1);
+        const g2 = createGear(); g2.position.set(0, 1.5, 0.3); centerGroup.add(g2);
+        activeGears = [g1, g2];
+    } else if (step === 4) {
+        const cyl = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 2), matSteel);
+        cyl.position.y = 1; cyl.castShadow = true; centerGroup.add(cyl);
+        const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1.5), matBrass);
+        rod.position.y = 2.5; rod.castShadow = true; centerGroup.add(rod);
+        activeGears = [rod]; // Reusing var for animation
+    } else if (step === 5) {
+        const anvil = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 2), matSteel);
+        anvil.position.y = 0.25; anvil.castShadow = true; centerGroup.add(anvil);
+        const press = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2, 1.5), matSteel);
+        press.position.y = 3; press.castShadow = true; centerGroup.add(press);
+    }
+}
+
 const camViews = [
-    { pos: [0, 5, 8], look: [0, 0, 0], text: "CAM-00 [STANDBY]" },
-    { pos: [-4, 4, 4], look: [0, 0.5, 0], text: "CAM-01 [RECEIVE]" },
-    { pos: [0, 3, 3], look: [0, 0.5, 0], text: "CAM-02 [CALIBRATE]" },
-    { pos: [3, 4, 3], look: [0, 0.5, 0], text: "CAM-03 [CLUTCH]" },
-    { pos: [0, 6, 2], look: [0, 0.5, 0], text: "CAM-04 [PRESSURE]" },
-    { pos: [4, 5, 5], look: [0, 0, 0], text: "CAM-05 [PRESS/OUT]" }
+    { pos: [0, 4, 6], look: [0, 1, 0], text: "CAM-00 [STANDBY]" },
+    { pos: [-3, 3, 3], look: [0, 0, 0], text: "CAM-01 [RECEIVE]" },
+    { pos: [0, 2, 2.5], look: [0, 1, 0], text: "CAM-02 [CALIBRATE]" },
+    { pos: [2, 2, 3], look: [0, 1.5, 0], text: "CAM-03 [CLUTCH]" },
+    { pos: [0, 3, 4], look: [0, 1.5, 0], text: "CAM-04 [PRESSURE]" },
+    { pos: [3, 4, 4], look: [0, 1, 0], text: "CAM-05 [PRESS_OUT]" }
 ];
 
 function setCamera(step) {
@@ -281,31 +315,18 @@ function setCamera(step) {
     playSound('click');
 }
 
-function setPatlite(status) {
-    lRed.material.color.setHex(0x220000);
-    lYel.material.color.setHex(0x222200);
-    lGrn.material.color.setHex(0x002200);
-    if(status === 'error') lRed.material.color.setHex(0xff0000);
-    if(status === 'warn') lYel.material.color.setHex(0xffff00);
-    if(status === 'ok') lGrn.material.color.setHex(0x00ff00);
-}
-
-// Animation Loop
-let frame = 0;
+// Loop
 function animate() {
     requestAnimationFrame(animate);
-    frame++;
-    // Subtle machinery idle movement
-    if(frame % 30 === 0 && lYel.material.color.getHex() === 0xffff00) {
-        lYel.material.color.setHex(0x222200);
-    } else if (frame % 30 === 15 && lRed.material.color.getHex() !== 0xff0000 && lGrn.material.color.getHex() !== 0x00ff00) {
-        lYel.material.color.setHex(0xffff00); // Idle blink
+    if(activeGears && activeGears.length === 2 && !isLocked) {
+        activeGears[0].rotation.z += 0.05;
+        activeGears[1].rotation.z -= 0.03; // Sync visually later
     }
     renderer.render(scene, camera);
 }
 animate();
 
-// --- Logic & State ---
+// --- Application Logic ---
 const token = localStorage.getItem("access_token") || localStorage.getItem("token");
 if (!token) window.location.href = "/";
 
@@ -315,11 +336,12 @@ let tapCount = 0;
 let isLocked = false;
 
 const colorCodes = [
-    {n:"黒", v:0, c:"#000000", tc:"#fff"}, {n:"茶", v:1, c:"#8b4513", tc:"#fff"},
+    {n:"黒", v:0, c:"#000000", tc:"#fff"}, {n:"茶", v:1, c:"#654321", tc:"#fff"},
     {n:"赤", v:2, c:"#ff0000", tc:"#fff"}, {n:"橙", v:3, c:"#ff8c00", tc:"#000"},
     {n:"黄", v:4, c:"#ffd700", tc:"#000"}, {n:"緑", v:5, c:"#008000", tc:"#fff"},
     {n:"青", v:6, c:"#0000ff", tc:"#fff"}, {n:"紫", v:7, c:"#800080", tc:"#fff"},
-    {n:"灰", v:8, c:"#808080", tc:"#fff"}, {n:"白", v:9, c:"#ffffff", tc:"#000"}
+    {n:"灰", v:8, c:"#808080", tc:"#fff"}, {n:"白", v:9, c:"#ffffff", tc:"#000"},
+    {n:"金", v:10, c:"#d4af37", tc:"#000"}, {n:"銀", v:11, c:"#c0c0c0", tc:"#000"}
 ];
 
 async function initFactory() {
@@ -329,11 +351,8 @@ async function initFactory() {
 
 function logMessage(msg) {
     const log = document.getElementById('consoleLog');
-    log.innerHTML += `> ${msg}<br>`;
-    log.scrollTop = log.scrollHeight;
+    log.innerHTML += `> ${msg}<br>`; log.scrollTop = log.scrollHeight;
 }
-
-function escapeHtml(str) { return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
 
 async function loadWallets() {
     try {
@@ -341,8 +360,7 @@ async function loadWallets() {
         if (!res.ok) return;
         const wallets = await res.json();
         const sel = document.getElementById('walletSelect');
-        if (wallets.length === 0) { sel.innerHTML = '<option value="">口座なし</option>'; return; }
-        sel.innerHTML = wallets.map(w => `<option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} - ${Math.floor(w.balance)}G</option>`).join('');
+        sel.innerHTML = wallets.length === 0 ? '<option value="">口座なし</option>' : wallets.map(w => `<option value="${w.wallet_id}">${w.wallet_name} - ${Math.floor(w.balance)}G</option>`).join('');
     } catch(e) {}
 }
 
@@ -353,34 +371,28 @@ async function fetchStatus() {
         currentSession = data.session;
         updateWear(data.wear);
         renderStep();
-    } catch(e) { logMessage("<span style='color:#ef4444;'>ERROR: Connection failed.</span>"); }
+    } catch(e) { logMessage("<span style='color:#ff003c;'>ERROR: Connection failed.</span>"); }
 }
 
 function updateWear(wear) {
     document.getElementById('wearBar').style.width = `${wear}%`;
     document.getElementById('wearText').innerText = `${wear}%`;
-    document.getElementById('wearText').style.color = wear >= 100 ? '#ef4444' : 'var(--accent-orange)';
-    document.getElementById('wearBar').style.background = wear >= 100 ? '#ef4444' : 'var(--accent-orange)';
-    
     if (wear >= 100) {
         document.getElementById('btnMaint').style.display = 'block';
-        isLocked = true;
-        setPatlite('error');
+        isLocked = true; setPatlite('error');
     } else {
         document.getElementById('btnMaint').style.display = 'none';
-        isLocked = false;
-        setPatlite('warn');
+        isLocked = false; setPatlite('warn');
     }
 }
 
 async function performMaintenance() {
-    playSound('air');
+    playSound('heavy');
     try {
         const res = await fetch('/api/factory/maintain', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
         const data = await res.json();
         logMessage(`<span style="color:var(--success-color);">${data.message}</span>`);
-        updateWear(data.wear);
-        setPatlite('ok');
+        updateWear(data.wear); setPatlite('ok');
     } catch(e) {}
 }
 
@@ -398,54 +410,63 @@ function renderStep() {
     const step = currentSession.current_step;
     document.getElementById('stepTitle').innerText = currentSession.title;
     updateNodes(step);
+    buildSceneForStep(step);
     setCamera(step);
-    if(!isLocked) setPatlite('warn'); // Standby
+    if(!isLocked) setPatlite('warn');
 
     const area = document.getElementById('actionArea');
     area.innerHTML = '';
 
     if (step === 1) {
-        targetMesh.geometry = new THREE.BoxGeometry(1,1,1);
-        area.innerHTML = `<p style="font-size:0.85rem;">指定仕様: <b style="color:var(--accent-color);">${currentSession.target_part}</b></p>` +
-            currentSession.options.map(opt => `<button class="btn-machinery" onclick="submitStep(${step}, '${opt}')">${opt}</button>`).join('');
+        area.innerHTML = currentSession.options.map(opt => `<button class="btn-machinery" onclick="submitStep(${step}, '${opt}')">${opt}</button>`).join('');
     } else if (step === 2) {
-        targetMesh.geometry = new THREE.CylinderGeometry(0.3, 0.3, 1.5, 16);
-        targetMesh.rotation.z = Math.PI/2;
-        let opts = colorCodes.map(c => `<option value="${c.v}">${c.n}</option>`).join('');
-        let mOpts = colorCodes.slice(0,5).map(c => `<option value="${c.v}">x10^${c.v} (${c.n})</option>`).join('');
-        area.innerHTML = `<p style="font-size:0.85rem;">${currentSession.math_question}</p>
+        const opts = colorCodes.slice(0,10).map(c => `<option value="${c.v}" style="background:${c.c}; color:${c.tc}">${c.n}</option>`).join('');
+        const mOpts = colorCodes.slice(0,5).map(c => `<option value="${c.v}" style="background:${c.c}; color:${c.tc}">x10^${c.v} (${c.n})</option>`).join('');
+        const tolOpts = `<option value="10" style="background:#d4af37; color:#000">金(±5%)</option><option value="11" style="background:#c0c0c0; color:#000">銀(±10%)</option>`;
+        
+        area.innerHTML = `<p style="font-size:0.85rem; color:var(--accent-color);">${currentSession.math_question}</p>
             <div class="color-selectors">
-                <select id="col1" class="color-sel">${opts}</select>
-                <select id="col2" class="color-sel">${opts}</select>
-                <select id="colM" class="color-sel">${mOpts}</select>
+                <select id="col1" class="color-sel" onchange="updateBandColors()">${opts}</select>
+                <select id="col2" class="color-sel" onchange="updateBandColors()">${opts}</select>
+                <select id="colM" class="color-sel" onchange="updateBandColors()">${mOpts}</select>
+                <select id="colT" class="color-sel" onchange="updateBandColors()">${tolOpts}</select>
             </div>
-            <button class="btn-machinery btn-action" onclick="submitColorCode()">抵抗器セット</button>`;
+            <button class="btn-machinery btn-action" onclick="submitColorCode()">カラーバンド書込</button>`;
+        updateBandColors();
     } else if (step === 3) {
-        targetMesh.geometry = new THREE.TorusGeometry(0.5, 0.2, 8, 12);
-        targetMesh.rotation.z = 0;
         area.innerHTML = `<p style="font-size:0.8rem; color:var(--text-dim);">${currentSession.instruction}</p>
             <div class="gauge-container"><div class="gauge-target"></div><div id="pointer" class="gauge-pointer"></div></div>
             <button class="btn-machinery btn-action" onclick="stopGauge(${step})">クラッチ結合 [LOCK]</button>`;
         startGauge();
     } else if (step === 4) {
-        targetMesh.geometry = new THREE.CylinderGeometry(0.4, 0.4, 1.5);
-        targetMesh.rotation.z = 0;
         tapCount = 0;
         area.innerHTML = `<p style="font-size:0.8rem; color:var(--text-dim);">${currentSession.instruction}</p>
-            <p style="font-size:1.1rem; font-weight:bold;">圧力: <span id="taps" style="color:var(--accent-orange);">0</span> / 10 Bar</p>
+            <p style="font-size:1.2rem; font-weight:bold; color:var(--accent-orange)">圧力: <span id="taps">0</span> / 10 Bar</p>
             <button class="btn-machinery btn-action" onclick="countTap(${step})">加圧ストローク [PUMP]</button>`;
     } else if (step === 5) {
-        targetMesh.geometry = new THREE.BoxGeometry(1.2, 0.5, 0.8);
         area.innerHTML = `<p style="font-size:0.8rem; color:var(--text-dim);">${currentSession.instruction}</p>
-            <button class="btn-machinery" style="background:var(--success-color); border-color:#059669; color:#000;" onclick="submitStep(${step}, true)">出荷打刻・転送</button>`;
+            <button class="btn-machinery" style="background:var(--accent-color); border-color:#fff; color:#000;" onclick="submitStep(${step}, true)">出荷打刻・転送</button>`;
+    }
+}
+
+function updateBandColors() {
+    if(!activeResistorBands) return;
+    const v1 = parseInt(document.getElementById('col1').value);
+    const v2 = parseInt(document.getElementById('col2').value);
+    const vm = parseInt(document.getElementById('colM').value);
+    const vt = parseInt(document.getElementById('colT').value);
+    const vals = [v1, v2, vm, vt];
+    for(let i=0; i<4; i++) {
+        activeResistorBands[i].material.color.set(colorCodes.find(c=>c.v === vals[i]).c);
     }
 }
 
 function submitColorCode() {
-    const v1 = document.getElementById('col1').value;
-    const v2 = document.getElementById('col2').value;
-    const vm = document.getElementById('colM').value;
-    submitStep(2, [parseInt(v1), parseInt(v2), parseInt(vm)]);
+    const v1 = parseInt(document.getElementById('col1').value);
+    const v2 = parseInt(document.getElementById('col2').value);
+    const vm = parseInt(document.getElementById('colM').value);
+    const vt = parseInt(document.getElementById('colT').value);
+    submitStep(2, [v1, v2, vm, vt]);
 }
 
 function startGauge() {
@@ -466,19 +487,16 @@ function stopGauge(step) {
 
 function countTap(step) {
     if(isLocked) return;
-    tapCount++;
-    playSound('heavy');
-    targetMesh.position.y -= 0.05; // Visual press
-    setTimeout(()=>targetMesh.position.y += 0.05, 100);
+    tapCount++; playSound('heavy');
+    if(activeGears && activeGears[0]) activeGears[0].position.y -= 0.1; // visual pump
+    setTimeout(()=>{ if(activeGears && activeGears[0]) activeGears[0].position.y += 0.1; }, 100);
     document.getElementById('taps').innerText = tapCount;
     if (tapCount >= 10) submitStep(step, tapCount);
 }
 
 function triggerShake() {
     const container = document.getElementById("main-container");
-    container.classList.remove("shake");
-    void container.offsetWidth;
-    container.classList.add("shake");
+    container.classList.remove("shake"); void container.offsetWidth; container.classList.add("shake");
 }
 
 async function submitStep(step, answer) {
@@ -486,43 +504,33 @@ async function submitStep(step, answer) {
     const walletId = document.getElementById('walletSelect').value;
     
     if (step === 5 && !walletId) {
-        logMessage("<span style='color:#ef4444;'>ERROR: 出荷先口座を選択してください。</span>");
-        playSound('error');
-        setPatlite('error');
-        return;
+        logMessage("<span style='color:#ff003c;'>ERROR: 出荷先口座を選択してください。</span>");
+        playSound('error'); setPatlite('error'); return;
     }
 
     try {
         const res = await fetch('/api/factory/process', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ step: step, answer: answer, wallet_id: walletId })
         });
         
         const data = await res.json();
         
         if (!res.ok) {
-            logMessage(`<span style="color:#ef4444;">${data.detail}</span>`);
-            playSound('error');
-            setPatlite('error');
-            if(data.detail.includes("WEAR")) {
-                updateWear(100);
-            } else {
-                targetMesh.position.y = -2; // Drop item (Scrap)
-                setTimeout(()=> fetchStatus(), 1500); // Reload state
+            logMessage(`<span style="color:#ff003c;">${data.detail}</span>`);
+            playSound('error'); setPatlite('error');
+            if(data.detail.includes("WEAR")) updateWear(100);
+            else {
+                centerGroup.position.y -= 2; // scrap drop
+                setTimeout(()=> { centerGroup.position.y = 0; fetchStatus(); }, 1500);
             }
             return;
         }
 
         updateWear(data.wear);
-        playSound('success');
-        setPatlite('ok');
-        targetMesh.rotation.y += Math.PI;
+        playSound('click'); setPatlite('ok');
 
-        if (step === 5) {
-            playSound('heavy');
-            triggerShake();
-        }
+        if (step === 5) { playSound('heavy'); triggerShake(); }
 
         if (data.completed) {
             logMessage(`<span style="color:var(--success-color);">${data.message}</span>`);
@@ -532,10 +540,8 @@ async function submitStep(step, answer) {
         }
 
         currentSession = data.next_step;
-        setTimeout(() => renderStep(), 800); // Delay for animation
-    } catch(e) {
-        logMessage("<span style='color:#ef4444;'>ERROR: リクエスト送信失敗。</span>");
-    }
+        setTimeout(() => renderStep(), 800);
+    } catch(e) { logMessage("<span style='color:#ff003c;'>ERROR: リクエスト送信失敗。</span>"); }
 }
 
 window.onload = initFactory;
