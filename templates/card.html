@@ -188,22 +188,74 @@
 </head>
 <body>
 <div class="container" id="main-container">
-    <!-- ルールモーダル -->
-    <div id="rules-modal">
-        <div class="rule-content">
-            <h3>📖 超究極ルールガイド</h3>
-            <ul>
-                <li><span class="highlight">ドラフト</span>：3枚の候補から1枚ずつ選び、計6枚のデッキを作ります。</li>
-                <li><span class="highlight">ターン</span>：毎ターンMPが全回復＆最大値アップ！1枚ドローします。</li>
-                <li><span class="highlight">攻撃方法</span>：盤面の緑色に光る自分のユニットをクリック後、<strong>敵のユニット</strong>か<strong>敵のヒーロー(顔)</strong>をクリック！</li>
-                <li><span class="highlight">挑発 (Taunt)</span>：敵に「🛡️挑発」がいる場合は、そのユニット以外を攻撃できません。</li>
-                <li><span class="highlight">勝利条件</span>：ダイレクトアタック等で、相手のHP(20)を0にすれば勝利！</li>
-            </ul>
-            <div style="text-align: center;">
-                <button onclick="document.getElementById('rules-modal').style.display='none'">閉じる</button>
+
+<!-- ルールモーダル -->
+<div id="rules-modal">
+    <div class="rule-content">
+        <h3>📖 超究極ルールガイド</h3>
+
+        <!-- 勝利条件（目的） -->
+        <div style="background: rgba(212, 175, 55, 0.15); border: 1px solid #d4af37; padding: 12px; border-radius: 8px; margin-bottom: 12px; text-align: center;">
+            <div style="font-size: 0.95rem; font-weight: bold; color: #ffd700;">🎯 勝利条件</div>
+            <div style="font-size: 0.85rem; color: #fff; margin-top: 4px;">
+                相手の「ヒーロー(顔)」を攻撃して、<strong>HP(体力) 20 を 0 にした方の勝ち</strong>です！
             </div>
         </div>
+
+        <!-- プレイの基本手順 -->
+        <div style="background: rgba(0,0,0,0.35); padding: 12px 14px; border-radius: 8px; margin-bottom: 12px;">
+            <div style="font-weight: bold; color: #ffd700; margin-bottom: 8px; font-size: 0.9rem;">🕹️ 遊び方の流れ（かんたん4ステップ）</div>
+            <ol style="margin: 0; padding-left: 20px; font-size: 0.82rem; line-height: 1.8; color: #eee;">
+                <li>
+                    <strong>ドラフト（カード選び）</strong><br>
+                    最初に画面に出てくる3枚の中から好きなカードを1枚クリックします。これを6回繰り返して、自分のデッキ（計6枚）を作ります。
+                </li>
+                <li>
+                    <strong>ターン開始（MP回復・ドロー）</strong><br>
+                    自分の番になると、カードを出すための「MP」が全回復し、最大値も1増えます。さらにデッキからカードを1枚引きます（ドロー）。
+                </li>
+                <li>
+                    <strong>ユニットを場に出す</strong><br>
+                    手札のカードに書かれたMPコストを消費して、画面下の手札をクリックすると戦場にユニット（兵士）が出ます。
+                </li>
+                <li>
+                    <strong>攻撃する</strong><br>
+                    盤面で<strong>緑色に光っている自分のユニット</strong>をまずクリックします。そのあと、攻撃したい「敵のユニット」または「敵のヒーロー(顔)」をクリックします。
+                </li>
+            </ol>
+        </div>
+
+        <!-- 用語の解説 -->
+        <div style="background: rgba(0,0,0,0.35); padding: 12px 14px; border-radius: 8px; margin-bottom: 14px;">
+            <div style="font-weight: bold; color: #ffd700; margin-bottom: 8px; font-size: 0.9rem;">📚 画面に出てくる言葉の意味</div>
+            <ul style="margin: 0; padding-left: 18px; font-size: 0.82rem; line-height: 1.8; color: #eee;">
+                <li>
+                    <span class="highlight">デッキ</span>：自分が対戦で使うカード一式（合計6枚）のことです。
+                </li>
+                <li>
+                    <span class="highlight">ドラフト</span>：提示された候補の中から1枚ずつ選んでデッキを完成させる方式のことです。
+                </li>
+                <li>
+                    <span class="highlight">ターン</span>：交互に行動する「自分の番」「相手の番」のことです。
+                </li>
+                <li>
+                    <span class="highlight">ユニット</span>：戦場に出て実際に戦うモンスターや兵士のことです。
+                </li>
+                <li>
+                    <span class="highlight">ヒーロー (顔)</span>：画面中央奥にいるプレイヤー自身です。ここを直接叩くことを「ダイレクトアタック」と呼びます。
+                </li>
+                <li>
+                    <span class="highlight">挑発 (Taunt)</span>：盾マーク「🛡️」が付いた身代わり役です。<strong>相手の場に「挑発」ユニットがいるときは、そのユニットを倒すまで他のユニットや敵ヒーロー(顔)をクリックできません。</strong>
+                </li>
+            </ul>
+        </div>
+
+        <div style="text-align: center;">
+            <button onclick="document.getElementById('rules-modal').style.display='none'">閉じる</button>
+        </div>
     </div>
+</div>
+
 
     <!-- ロビー -->
     <div id="lobby-screen">
