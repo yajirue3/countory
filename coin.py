@@ -1,3 +1,4 @@
+# coin.py
 import os
 import httpx
 from fastapi import APIRouter, HTTPException, Header, Request
@@ -13,7 +14,6 @@ router = APIRouter()
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
-# --- リクエストモデル ---
 class CoinBuyRequest(BaseModel):
     wallet_id: str
     amount: int
@@ -21,7 +21,6 @@ class CoinBuyRequest(BaseModel):
 class CoinSellRequest(BaseModel):
     wallet_id: str
 
-# --- 外部API通信関数 ---
 BINANCE_API_URL = "https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT"
 
 async def fetch_current_sol_price() -> float:
@@ -34,29 +33,24 @@ async def fetch_current_sol_price() -> float:
     except Exception:
         raise HTTPException(status_code=503, detail="市場データの取得に失敗しました。一時的に取引を停止しています。")
 
-# --------------------------------------------------
-# 画面配信ルート
-# --------------------------------------------------
 @router.get("/coin", response_class=HTMLResponse)
 async def get_coin_page(request: Request):
     return templates.TemplateResponse(request=request, name="coin.html")
 
-# --------------------------------------------------
-# ポジション状態の取得（リロード復帰用）
-# --------------------------------------------------
 @router.get("/api/coin/position")
 async def get_coin_position(authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
     supabase = await get_supabase()
     
-    res = await supabase.table("coin_positions").select("*").eq("user_id", user.id).execute()
-    if res.data and len(res.data) > 0:
-        return res.data[0]
-    return None
+    try:
+        res = await supabase.table("coin_positions").select("*").eq("user_id", user.id).execute()
+        if res.data and len(res.data) > 0:
+            return res.data[0]
+        return None
+    except Exception:
+        # DB未セットアップ時などの500エラークラッシュを防ぐ
+        return None
 
-# --------------------------------------------------
-# SOLトレードAPI：購入 (Buy)
-# --------------------------------------------------
 @router.post("/api/coin/buy")
 async def buy_coin(data: CoinBuyRequest, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
@@ -69,7 +63,6 @@ async def buy_coin(data: CoinBuyRequest, authorization: str = Header(None)):
     sol_amount = float(data.amount) / current_price
 
     try:
-        # SQL(RPC)でアトミックに処理
         rpc_res = await supabase.rpc("buy_coin_position", {
             "p_user_id": str(user.id),
             "p_wallet_id": data.wallet_id,
@@ -87,9 +80,6 @@ async def buy_coin(data: CoinBuyRequest, authorization: str = Header(None)):
         err_msg = getattr(e, "message", str(e))
         raise HTTPException(status_code=400, detail=f"購入失敗: {err_msg}")
 
-# --------------------------------------------------
-# SOLトレードAPI：売却 (Sell)
-# --------------------------------------------------
 @router.post("/api/coin/sell")
 async def sell_coin(data: CoinSellRequest, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
@@ -97,7 +87,6 @@ async def sell_coin(data: CoinSellRequest, authorization: str = Header(None)):
     current_price = await fetch_current_sol_price()
 
     try:
-        # SQL(RPC)でアトミックに処理
         rpc_res = await supabase.rpc("sell_coin_position", {
             "p_user_id": str(user.id),
             "p_wallet_id": data.wallet_id,
