@@ -78,6 +78,9 @@
             <div class="label">国民ID (Email)</div>
             <div class="value" id="user-email">-</div>
 
+            <div class="label">登録ニックネーム</div>
+            <div class="value" id="display-nickname">-</div>
+
             <div class="label">現在の称号</div>
             <div class="value"><span class="badge" id="user-rank">読み込み中...</span></div>
         </div>
@@ -155,6 +158,11 @@
                 const data = await res.json();
                 document.getElementById("nickname").value = data.nickname || "";
                 document.getElementById("real-name").value = data.real_name || "";
+                
+                const displayNick = document.getElementById("display-nickname");
+                if (displayNick) {
+                    displayNick.innerText = data.nickname || "（未設定）";
+                }
 
                 // 国王権限チェック（is_king または role === 'king' 等の判定）
                 if (data.is_king || data.role === "king") {
