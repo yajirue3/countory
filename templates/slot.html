@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>村岡王国 - MURAOKA BUGGLER</title>
+    <title>村岡王国 - MURAOKA JUGGLER</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=M+PLUS+1p:wght@900&display=swap');
 
@@ -154,4 +154,270 @@
             height: 60px;
             display: flex;
             align-items: center;
-            justify
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: 900;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .sym-7 { color: #ff0000; text-shadow: 2px 2px 0 #000; }
+        .sym-bar { color: #000; background: #ccc; border: 2px solid #000; width: 90%; height: 50%; font-size: 1rem; display: flex; align-items: center; justify-content: center; }
+        .sym-grape { color: #8a2be2; }
+        .sym-cherry { color: #dc143c; }
+        .sym-replay { color: #00f3ff; text-shadow: 1px 1px 0 #000; font-size:1.2rem; }
+        .sym-blank { color: transparent; }
+
+        .blur { filter: blur(1.5px); }
+
+        /* コントロールパネル */
+        .control-panel {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .buttons-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 12px 0;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 10px;
+            font-family: inherit;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #111;
+            transition: all 0.1s;
+        }
+        .action-btn:active:not(:disabled) {
+            transform: translateY(5px);
+            box-shadow: 0 0 0 #111;
+        }
+        .action-btn:disabled {
+            filter: grayscale(1);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .btn-start { background: linear-gradient(180deg, var(--neon-pink) 0%, #a00050 100%); color: #fff; }
+        .btn-stop { background: linear-gradient(180deg, var(--neon-yellow) 0%, #b3a200 100%); color: #000; }
+        
+        .input-group select {
+            width: 100%;
+            padding: 8px;
+            background: #111;
+            color: var(--neon-cyan);
+            border: 1px solid var(--neon-cyan);
+            border-radius: 5px;
+            margin-bottom: 10px;
+            outline: none;
+        }
+        
+        .footer-link {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .footer-link a { color: #888; text-decoration: none; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+<div class="machine-container">
+    <div class="header-panel">MURAOKA JUGGLER</div>
+    
+    <div class="input-group">
+        <select id="wallet-select"></select>
+    </div>
+
+    <div class="digital-displays">
+        <div class="seg-box">
+            <div class="seg-label">CREDIT</div>
+            <div class="seg-val" id="credit-display">---</div>
+        </div>
+        <div class="seg-box">
+            <div class="seg-label">BET</div>
+            <div class="seg-val" id="bet-display">3</div>
+        </div>
+        <div class="seg-box">
+            <div class="seg-label">PAYOUT</div>
+            <div class="seg-val green" id="payout-display">0</div>
+        </div>
+    </div>
+
+    <div class="reel-area-wrapper">
+        <div class="gogo-lamp" id="gogo-lamp">MURAOKA<br>CHANCE</div>
+        <div class="reels-container">
+            <div class="reel-window"><div class="reel-strip" id="reel-0"></div></div>
+            <div class="reel-window"><div class="reel-strip" id="reel-1"></div></div>
+            <div class="reel-window"><div class="reel-strip" id="reel-2"></div></div>
+        </div>
+    </div>
+
+    <div class="control-panel">
+        <button id="btn-start" class="action-btn btn-start">LEVER ON (3G)</button>
+        <div class="buttons-row">
+            <button class="action-btn btn-stop" id="btn-stop-0" disabled>STOP 1</button>
+            <button class="action-btn btn-stop" id="btn-stop-1" disabled>STOP 2</button>
+            <button class="action-btn btn-stop" id="btn-stop-2" disabled>STOP 3</button>
+        </div>
+    </div>
+    
+    <div class="footer-link"><a href="/casino">◀ カジノに戻る</a></div>
+</div>
+
+<script>
+    const token = localStorage.getItem("access_token");
+    if (!token) window.location.href = "/";
+
+    const SYMBOL_TYPES = {
+        "7": '<div class="symbol sym-7">7</div>',
+        "BAR": '<div class="symbol"><div class="sym-bar">BAR</div></div>',
+        "GRAPE": '<div class="symbol sym-grape">🍇</div>',
+        "CHERRY": '<div class="symbol sym-cherry">🍒</div>',
+        "REPLAY": '<div class="symbol sym-replay">REP</div>',
+        "BLANK": '<div class="symbol sym-blank">-</div>'
+    };
+    
+    let reelElements = [document.getElementById('reel-0'), document.getElementById('reel-1'), document.getElementById('reel-2')];
+    let reelIntervals = [null, null, null];
+    let reelPositions = [0, 0, 0];
+    
+    let isSpinning = false;
+    let stoppedCount = 0;
+    let serverResult = null;
+
+    init();
+
+    async function init() {
+        await loadWallets();
+        setupReels(true);
+        
+        document.getElementById("btn-start").addEventListener("click", startSpin);
+        document.getElementById("btn-stop-0").addEventListener("click", () => stopReel(0));
+        document.getElementById("btn-stop-1").addEventListener("click", () => stopReel(1));
+        document.getElementById("btn-stop-2").addEventListener("click", () => stopReel(2));
+    }
+
+    async function loadWallets() {
+        try {
+            const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
+            const data = await res.json();
+            const select = document.getElementById("wallet-select");
+            select.innerHTML = data.map(w => `<option value="${w.wallet_id}">${w.wallet_name} (${w.balance}G)</option>`).join('');
+            if(data.length > 0) updateCredit(data[0].balance);
+        } catch (e) { console.error(e); }
+    }
+
+    function updateCredit(val) { document.getElementById("credit-display").innerText = val; }
+    function updatePayout(val) { document.getElementById("payout-display").innerText = val; }
+
+    function setupReels(isInitial = false, resultSymbols = ["7","7","7"]) {
+        for(let i=0; i<3; i++) {
+            let html = "";
+            for(let j=0; j<20; j++) {
+                const randomSym = Object.keys(SYMBOL_TYPES)[Math.floor(Math.random() * 5)];
+                html += SYMBOL_TYPES[randomSym];
+            }
+            if(!isInitial && serverResult) {
+                html += SYMBOL_TYPES[resultSymbols[i]];
+            } else {
+                html += SYMBOL_TYPES["7"];
+            }
+            reelElements[i].innerHTML = html;
+            reelElements[i].style.transform = `translateY(0px)`;
+        }
+    }
+
+    async function startSpin() {
+        if (isSpinning) return;
+        
+        const walletId = document.getElementById("wallet-select").value;
+        if(!walletId) return alert("口座がありません");
+
+        isSpinning = true;
+        stoppedCount = 0;
+        serverResult = null;
+        updatePayout(0);
+        document.getElementById("gogo-lamp").classList.remove("peka");
+        
+        document.getElementById("btn-start").disabled = true;
+        
+        try {
+            const res = await fetch("/api/slot/spin", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ wallet_id: walletId, bet_amount: 3 })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.detail || "エラー");
+                isSpinning = false;
+                document.getElementById("btn-start").disabled = false;
+                return;
+            }
+
+            serverResult = data;
+            updateCredit(data.new_balance - data.payout);
+
+            setupReels(false, data.result_symbols);
+
+            for (let i = 0; i < 3; i++) {
+                document.getElementById(`btn-stop-${i}`).disabled = false;
+                reelElements[i].classList.add("blur");
+                reelPositions[i] = 0;
+                reelIntervals[i] = setInterval(() => {
+                    reelPositions[i] -= 20;
+                    if (reelPositions[i] <= -1100) reelPositions[i] = 0;
+                    reelElements[i].style.transform = `translateY(${reelPositions[i]}px)`;
+                }, 16);
+            }
+
+            if (data.is_early_pekari) {
+                document.getElementById("gogo-lamp").classList.add("peka");
+            }
+
+        } catch (e) {
+            console.error(e);
+            alert("通信エラー");
+            isSpinning = false;
+            document.getElementById("btn-start").disabled = false;
+        }
+    }
+
+    function stopReel(idx) {
+        if (!isSpinning || document.getElementById(`btn-stop-${idx}`).disabled) return;
+        
+        document.getElementById(`btn-stop-${idx}`).disabled = true;
+        clearInterval(reelIntervals[idx]);
+        reelElements[idx].classList.remove("blur");
+        
+        reelElements[idx].style.transform = `translateY(-1200px)`;
+        
+        stoppedCount++;
+        if (stoppedCount === 3) {
+            finishGame();
+        }
+    }
+
+    function finishGame() {
+        isSpinning = false;
+        document.getElementById("btn-start").disabled = false;
+        
+        if (serverResult.is_pekari && !serverResult.is_early_pekari) {
+            document.getElementById("gogo-lamp").classList.add("peka");
+        }
+
+        if (serverResult.payout > 0) {
+            updatePayout(serverResult.payout);
+            updateCredit(serverResult.new_balance);
+        }
+        loadWallets();
+    }
+</script>
+</body>
+</html>
