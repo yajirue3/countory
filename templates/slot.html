@@ -5,43 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>村岡王国 - IMPERIAL JUGGLER</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=M+PLUS+1p:wght@900&family=Share+Tech+Mono&display=swap');
+        /* ==========================================================================
+           ULTIMATE EXTREME DOPAMINE UI FONTS
+           ========================================================================== */
+        @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Bungee+Inline&family=Cinzel+Decorative:wght@700;900&family=M+PLUS+1p:wght@900&family=Monoton&family=Press+Start+2P&family=Rampart+One&family=Share+Tech+Mono&family=Wallpoet&display=swap');
 
+        /* ==========================================================================
+           HYPER VARIABLES
+           ========================================================================== */
         :root {
             --neon-magenta: #ff00ff;
-            --neon-cyan: #00f3ff;
-            --neon-green: #00ff66;
-            --neon-yellow: #ffe600;
+            --neon-cyan: #00ffff;
+            --neon-green: #00ff00;
+            --neon-yellow: #ffff00;
             --alert-red: #ff0000;
-            --gold-light: #ffd700;
-            /* 💡 追加: 図柄の高さをJSから絶対値で注入し、透明化（高さ0）を防ぐ */
+            --blood-red: #8a0000;
+            --gold-light: #fff200;
+            --gold-base: #ffd700;
+            --gold-dark: #b8860b;
+            --gold-deep: #5c4300;
+            --abyss: #030005;
+            --god-gradient: linear-gradient(135deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);
+            --metal-gradient: linear-gradient(to bottom, #4a4a4a 0%, #2b2b2b 20%, #1a1a1a 50%, #000000 80%, #222222 100%);
+            --gold-metal-gradient: linear-gradient(135deg, #f9d976 0%, #e9b64b 20%, #c19537 50%, #8b6914 80%, #f9d976 100%);
             --sym-h: 100px; 
         }
 
+        /* ==========================================================================
+           RESET & BASE
+           ========================================================================== */
         * { box-sizing: border-box; touch-action: manipulation; }
         
         body { 
-            font-family: 'M PLUS 1p', 'Black Ops One', sans-serif; 
-            background: #000;
-            color: #fff; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center;
+            font-family: 'M PLUS 1p', sans-serif; 
             margin: 0; 
             min-height: 100vh;
             user-select: none;
             overflow: hidden;
+            background-color: var(--abyss);
+            /* 多重狂気背景レイヤー */
             background-image: 
-                linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-            background-size: 40px 40px;
-            transition: background-color 0.1s, box-shadow 0.1s;
+                radial-gradient(circle at 50% 50%, rgba(255, 0, 128, 0.1) 0%, rgba(0,0,0,1) 70%),
+                repeating-radial-gradient(circle at 50% 50%, rgba(255,215,0,0.03) 0, rgba(255,215,0,0.03) 15px, transparent 15px, transparent 30px),
+                linear-gradient(45deg, rgba(0,243,255,0.05) 25%, transparent 25%, transparent 75%, rgba(0,243,255,0.05) 75%, rgba(0,243,255,0.05)),
+                linear-gradient(135deg, rgba(255,0,255,0.05) 25%, transparent 25%, transparent 75%, rgba(255,0,255,0.05) 75%, rgba(255,0,255,0.05));
+            background-size: 100vw 100vh, 60px 60px, 100px 100px, 100px 100px;
+            color: #fff; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            animation: bg-hyperspace 20s infinite linear;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 背景の脈動ゴッドレイ */
+        body::before {
+            content: "";
+            position: absolute;
+            top: -50%; left: -50%; width: 200%; height: 200%;
+            background: conic-gradient(from 0deg, transparent 0deg, rgba(255,215,0,0.1) 15deg, transparent 30deg, rgba(0,255,255,0.1) 45deg, transparent 60deg, rgba(255,0,255,0.1) 75deg, transparent 90deg, rgba(255,215,0,0.1) 105deg, transparent 120deg, rgba(0,255,255,0.1) 135deg, transparent 150deg, rgba(255,0,255,0.1) 165deg, transparent 180deg, rgba(255,215,0,0.1) 195deg, transparent 210deg, rgba(0,255,255,0.1) 225deg, transparent 240deg, rgba(255,0,255,0.1) 255deg, transparent 270deg, rgba(255,215,0,0.1) 285deg, transparent 300deg, rgba(0,255,255,0.1) 315deg, transparent 330deg, rgba(255,0,255,0.1) 345deg, transparent 360deg);
+            animation: god-ray-spin 30s linear infinite;
+            z-index: -1;
+            pointer-events: none;
         }
 
         body.jackpot-mode {
-            animation: insane-jackpot-bg 0.3s infinite alternate;
+            animation: insane-jackpot-bg 0.1s infinite alternate;
         }
 
+        /* ==========================================================================
+           CABINET (EXTREME METALLIC CASING)
+           ========================================================================== */
         .arcade-cabinet {
             width: 100%;
             height: 100vh;
@@ -49,253 +84,537 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: max(env(safe-area-inset-top), 10px) 12px max(env(safe-area-inset-bottom), 10px) 12px;
-            max-width: 500px;
-            transition: transform 0.05s;
+            padding: max(env(safe-area-inset-top), 10px) 10px max(env(safe-area-inset-bottom), 10px) 10px;
+            max-width: 600px;
+            position: relative;
+            z-index: 10;
         }
 
         @media (min-width: 768px) {
             .arcade-cabinet {
-                max-width: 850px;
-                height: auto;
-                aspect-ratio: 10/15;
-                background: linear-gradient(180deg, #111 0%, #000 100%);
-                border: 10px solid #333;
-                border-radius: 24px;
-                box-shadow: 0 0 100px rgba(0, 0, 0, 1), inset 0 0 40px rgba(255,255,255,0.1);
-                padding: 32px;
-                gap: 20px;
+                max-width: 950px;
+                height: 96vh;
+                background: var(--metal-gradient);
+                border-radius: 40px;
+                padding: 45px 50px;
+                gap: 25px;
+                /* 異常なまでの多重シャドウと発光 */
+                box-shadow: 
+                    0 0 0 4px #000,
+                    0 0 0 10px #ffcc00,
+                    0 0 0 14px #b38600,
+                    0 0 0 20px #222,
+                    0 0 0 24px var(--neon-cyan),
+                    0 30px 100px rgba(0, 0, 0, 1), 
+                    0 0 150px rgba(255,215,0,0.4),
+                    inset 0 15px 50px rgba(255,255,255,0.3),
+                    inset 0 -15px 50px rgba(0,0,0,0.9);
+                animation: cabinet-breath 4s infinite alternate ease-in-out;
+            }
+            .arcade-cabinet::after {
+                content: ""; position: absolute;
+                top: 20px; left: 20px; right: 20px; bottom: 20px;
+                border: 2px solid rgba(255,255,255,0.1);
+                border-radius: 20px;
+                pointer-events: none;
+                box-shadow: inset 0 0 30px rgba(0,255,255,0.1);
             }
         }
 
+        /* ==========================================================================
+           MARQUEE (TOP DISPLAY)
+           ========================================================================== */
         .marquee {
             text-align: center;
-            font-family: 'Black Ops One', sans-serif;
-            font-size: clamp(1.8rem, 6vw, 3rem);
-            color: #555;
-            background: #050505;
-            border: 2px solid #333;
-            border-radius: 8px;
-            padding: 15px;
-            letter-spacing: 6px;
-            transition: all 0.2s;
-            text-shadow: 0 0 5px #000;
-        }
-        .marquee.active {
-            color: var(--neon-cyan);
-            border-color: var(--neon-cyan);
-            text-shadow: 0 0 25px var(--neon-cyan), 0 0 10px #fff;
-            box-shadow: inset 0 0 20px rgba(0, 243, 255, 0.4);
-            transform: scale(1.02);
-        }
-        .marquee.jackpot {
+            font-family: 'Monoton', cursive;
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
             color: #fff;
-            border-color: var(--neon-yellow);
-            background: linear-gradient(90deg, #ff0000, #ffaa00, #ff0000, #ffaa00);
-            background-size: 200% auto;
-            text-shadow: 0 0 10px #fff, 0 0 40px var(--neon-yellow), 0 0 60px #ff0000;
-            box-shadow: 0 0 50px #ff0000, inset 0 0 30px var(--neon-yellow);
-            animation: rainbow-bg 0.5s infinite linear, shake-hard 0.1s infinite;
-            transform: scale(1.05);
-            font-size: clamp(2.2rem, 7vw, 3.8rem);
+            background: linear-gradient(180deg, #111 0%, #000 100%);
+            border: 6px solid #ffcc00;
+            border-image: var(--gold-metal-gradient) 1;
+            padding: 10px;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            text-shadow: 
+                0 0 10px #ffcc00, 
+                0 0 20px #ff9900, 
+                0 0 30px #ff0000, 
+                0 0 40px #ff0000;
+            box-shadow: 
+                inset 0 0 50px rgba(255,0,0,0.5), 
+                0 15px 25px rgba(0,0,0,1);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        /* マスキー上の狂ったスキャンライン */
+        .marquee::before {
+            content: ""; position: absolute; top: -100%; left: 0; width: 100%; height: 200%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0) 100%);
+            transform: translateY(-100%);
+            animation: scanner-sweep 2.5s infinite linear;
+            pointer-events: none;
+            mix-blend-mode: overlay;
         }
 
+        .marquee.active {
+            font-family: 'Wallpoet', cursive;
+            color: #fff;
+            border-image: linear-gradient(90deg, #00ffff, #0055ff, #00ffff) 1;
+            text-shadow: 
+                0 0 10px #fff, 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-cyan), 0 0 80px #0055ff,
+                4px 4px 0 #000;
+            box-shadow: inset 0 0 80px rgba(0, 243, 255, 0.6), 0 0 50px rgba(0,243,255,0.5);
+            transform: scale(1.02);
+            letter-spacing: 8px;
+            animation: pulse-active 1s infinite alternate;
+        }
+        .marquee.jackpot {
+            font-family: 'Bungee Inline', cursive;
+            border: 8px solid;
+            border-image: var(--god-gradient) 1;
+            background: var(--god-gradient);
+            background-size: 400% 400%;
+            color: #fff;
+            text-shadow: 
+                0 0 10px #fff, 0 0 30px #fff, 0 0 50px var(--neon-yellow), 0 0 100px #ff0000,
+                5px 5px 0 #000, -5px -5px 0 #000, 5px -5px 0 #000, -5px 5px 0 #000;
+            box-shadow: 
+                0 0 100px #ff0000, 
+                0 0 200px var(--neon-magenta), 
+                inset 0 0 100px #ffff00;
+            animation: 
+                rainbow-shift 1s infinite linear, 
+                marquee-glitch-extreme 0.1s infinite;
+            transform: scale(1.05) rotate(-1deg);
+            font-size: clamp(3rem, 9vw, 5.5rem);
+            letter-spacing: 2px;
+            z-index: 100;
+        }
+
+        /* ==========================================================================
+           HUD PANEL (CYBER-GOLD FUSION)
+           ========================================================================== */
         .hud-panel {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            background: #0a0a0a;
-            border: 2px solid #222;
-            border-radius: 12px;
-            padding: 16px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+            gap: 15px;
+            background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
+            border: 4px solid;
+            border-image: var(--gold-metal-gradient) 1;
+            padding: 20px;
+            box-shadow: 
+                0 20px 40px rgba(0,0,0,1), 
+                inset 0 0 30px rgba(255,215,0,0.1);
+            position: relative;
         }
-        .inputs-row { display: flex; gap: 15px; }
-        .input-group { flex: 1; display: flex; flex-direction: column; }
-        .input-group label { font-size: 0.8rem; color: #aaa; font-weight: 900; letter-spacing: 2px; margin-bottom: 5px; text-shadow: 0 0 5px rgba(255,255,255,0.2); }
-        .input-group select, .input-group input { 
-            width: 100%; padding: 12px; background: #000; border: 2px solid #555; 
-            color: #fff; font-size: 1.3rem; font-weight: 900; outline: none; border-radius: 8px;
-            box-shadow: inset 0 4px 10px rgba(0,0,0,1);
-            transition: border-color 0.2s;
-        }
-        .input-group select:focus, .input-group input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0,243,255,0.3), inset 0 4px 10px rgba(0,0,0,1); }
         
-        .meters-row { display: flex; gap: 15px; margin-top: 8px; }
+        .inputs-row { display: flex; gap: 20px; }
+        .input-group { flex: 1; display: flex; flex-direction: column; position: relative; }
+        .input-group label { 
+            font-family: 'Cinzel Decorative', serif; font-size: 1rem; color: var(--gold-base); 
+            font-weight: 900; letter-spacing: 4px; margin-bottom: 8px; 
+            text-shadow: 0 0 10px rgba(255,215,0,0.8), 2px 2px 2px #000; 
+        }
+        .input-group select, .input-group input { 
+            width: 100%; padding: 16px; 
+            background: #050505;
+            border: 3px solid #443300; 
+            color: var(--neon-cyan); 
+            font-family: 'Share Tech Mono', monospace; font-size: 1.8rem; 
+            font-weight: 900; outline: none;
+            box-shadow: 
+                inset 0 10px 20px rgba(0,0,0,1), 
+                0 2px 5px rgba(255,255,255,0.1);
+            transition: all 0.2s;
+            text-shadow: 0 0 10px var(--neon-cyan);
+        }
+        .input-group select:focus, .input-group input:focus { 
+            border-color: var(--neon-magenta); color: var(--neon-magenta);
+            box-shadow: 
+                0 0 30px rgba(255,0,255,0.6), 
+                inset 0 10px 20px rgba(0,0,0,1); 
+            text-shadow: 0 0 15px var(--neon-magenta), 0 0 30px var(--neon-magenta);
+        }
+        
+        /* METERS (DIGITAL LED DISPLAY) */
+        .meters-row { display: flex; gap: 20px; margin-top: 15px; }
         .meter {
-            flex: 1; background: #000; border: 3px solid #2a2a2a; border-radius: 8px;
-            padding: 10px 15px; text-align: right; position: relative;
-            box-shadow: inset 0 5px 15px rgba(0,0,0,1);
-        }
-        .meter-label { position: absolute; left: 12px; top: 12px; font-size: 0.75rem; color: #666; font-weight: 900; letter-spacing: 1px; }
-        .meter-val { 
-            font-family: 'Share Tech Mono', monospace; font-size: clamp(1.8rem, 6vw, 3rem); 
-            color: var(--alert-red); text-shadow: 0 0 15px var(--alert-red); line-height: 1;
-        }
-        .meter-val.green { color: var(--neon-green); text-shadow: 0 0 20px var(--neon-green); }
-
-        .stage-area {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: linear-gradient(180deg, #1a1a1a 0%, #050505 100%);
-            border: 4px solid #222;
-            border-radius: 12px;
-            padding: 20px 16px;
-            box-shadow: inset 0 30px 40px rgba(0,0,0,1), 0 15px 25px rgba(0,0,0,0.8);
-            position: relative;
-            min-height: 220px;
-        }
-        @media (min-width: 768px) { .stage-area { min-height: 320px; padding: 30px 24px; } }
-
-        .gogo-lamp {
-            width: 24%;
-            aspect-ratio: 1;
-            background: #020202;
-            border-radius: 50%;
-            border: 5px solid #111;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Black Ops One', sans-serif;
-            font-size: clamp(0.8rem, 2.5vw, 1.3rem);
-            color: #1a1a1a;
-            line-height: 1.1;
-            box-shadow: inset 0 0 30px #000;
-            transition: all 0.05s;
-            position: relative;
-        }
-        .gogo-lamp span { font-size: clamp(1rem, 3.5vw, 1.8rem); color: #1a1a1a; margin-top: -2px; }
-        .gogo-lamp.peka {
-            background: #fff;
-            color: var(--neon-magenta);
-            border-color: #ffd700;
-            box-shadow: 0 0 80px #fff, 0 0 150px var(--neon-magenta), inset 0 0 40px #fff;
-            text-shadow: 0 0 20px var(--neon-magenta), 0 0 40px var(--neon-magenta);
-            animation: strobe-flash 0.04s infinite alternate;
-            transform: scale(1.05);
-        }
-        .gogo-lamp.peka span { color: var(--neon-magenta); text-shadow: 0 0 20px var(--neon-magenta), 0 0 40px #fff; }
-
-        .reels-wrapper {
-            width: 72%;
-            display: flex;
-            gap: 8px;
-            background: #000;
-            padding: 8px;
-            border: 4px solid #444;
-            border-top-color: #222;
-            border-bottom-color: #777;
-            border-radius: 12px;
-            position: relative;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.8);
-        }
-        .reels-wrapper::after {
-            content: ""; position: absolute;
-            top: 50%; left: 0; right: 0; height: 3px;
-            background: rgba(255,0,0,0.8);
-            box-shadow: 0 0 15px red, 0 0 30px red;
-            transform: translateY(-50%);
-            z-index: 10; pointer-events: none;
-        }
-        .reel-window {
-            flex: 1;
-            aspect-ratio: 1 / 2.4;
-            background: #ffffff;
+            flex: 1; background: #000; border: 4px solid #222;
+            padding: 15px 20px; text-align: right; position: relative;
+            box-shadow: 
+                inset 0 15px 30px rgba(0,0,0,1), 
+                0 10px 15px rgba(0,0,0,0.8);
             overflow: hidden;
+            border-bottom-color: #444; border-right-color: #444;
+        }
+        /* LEDマトリクス風の背景テクスチャ */
+        .meter::after {
+            content: ""; position: absolute; top:0; left:0; right:0; bottom:0;
+            background-image: 
+                linear-gradient(rgba(0, 255, 0, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 0, 0.05) 1px, transparent 1px);
+            background-size: 4px 4px;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .meter-label { 
+            position: absolute; left: 15px; top: 15px; font-family: 'Share Tech Mono', monospace;
+            font-size: 0.9rem; color: #555; font-weight: 900; letter-spacing: 2px;
+            text-shadow: 0 0 5px #000; z-index: 2;
+        }
+        .meter-val { 
+            font-family: 'Press Start 2P', monospace; font-size: clamp(1.5rem, 5vw, 2.5rem); 
+            color: var(--alert-red); 
+            text-shadow: 
+                0 0 10px var(--alert-red), 
+                0 0 20px var(--alert-red), 
+                0 0 40px #aa0000,
+                0 0 80px #ff0000; 
+            line-height: 1; margin-top: 20px; position: relative; z-index: 2;
+        }
+        .meter-val.green { 
+            color: var(--neon-green); 
+            text-shadow: 
+                0 0 10px var(--neon-green), 
+                0 0 20px var(--neon-green), 
+                0 0 40px #00ff00,
+                0 0 80px #00aa00; 
+        }
+
+        /* ==========================================================================
+           STAGE AREA (REELS & GOGO LAMP CORE)
+           ========================================================================== */
+        .stage-area {
+            flex: 1; display: flex; align-items: center; justify-content: space-between;
+            background: linear-gradient(to bottom, #111, #000, #111);
+            border: 8px solid #000;
+            border-image: var(--metal-gradient) 1;
+            padding: 30px 20px;
+            box-shadow: 
+                inset 0 100px 150px rgba(0,0,0,1), 
+                0 30px 50px rgba(0,0,0,0.9);
+            position: relative; min-height: 280px;
+        }
+        /* ステージ奥のストロボレーザー */
+        .stage-area::before {
+            content: ""; position: absolute; top:0; left:0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.02) 1%, transparent 2%);
+            animation: laser-pan 5s infinite linear; pointer-events: none;
+        }
+
+        @media (min-width: 768px) { .stage-area { min-height: 420px; padding: 50px 30px; } }
+
+        /* ==========================================================================
+           GOGO LAMP (THE DOPAMINE TRIGGER)
+           ========================================================================== */
+        .gogo-lamp {
+            width: 26%; aspect-ratio: 1;
+            background: radial-gradient(circle at 30% 30%, #2a2a2a 0%, #050505 100%);
+            border-radius: 50%;
+            border: 10px solid #0a0a0a;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-family: 'Black Ops One', sans-serif;
+            font-size: clamp(1rem, 3.5vw, 2rem);
+            color: #1a1a1a; line-height: 1.1;
+            box-shadow: 
+                inset 0 0 60px #000, 
+                0 0 0 4px #222,
+                0 20px 30px rgba(0,0,0,0.9),
+                -10px -10px 20px rgba(255,255,255,0.05);
+            transition: all 0.1s; position: relative; z-index: 20;
+        }
+        .gogo-lamp span { font-size: clamp(1.4rem, 5vw, 2.8rem); color: #111; margin-top: -5px; }
+        
+        /* THE HOLY PEKA STATE */
+        .gogo-lamp.peka {
+            background: radial-gradient(circle at 50% 50%, #ffffff 0%, #ffccff 40%, #ff00ff 100%);
+            color: #ff00ff;
+            border-color: #fff;
+            box-shadow: 
+                0 0 100px #fff, 
+                0 0 250px var(--neon-magenta), 
+                0 0 400px #ff0088,
+                0 0 600px var(--neon-magenta),
+                inset 0 0 80px #fff,
+                inset 0 0 150px var(--neon-magenta),
+                0 0 0 10px rgba(255,255,255,0.5);
+            text-shadow: 
+                0 0 10px #fff, 0 0 20px #fff, 0 0 40px var(--neon-magenta), 
+                0 0 80px var(--neon-magenta), 0 0 120px #ff0000;
+            animation: 
+                god-strobe 0.02s infinite alternate,
+                god-pulse 0.5s infinite alternate;
+            transform: scale(1.15);
+        }
+        .gogo-lamp.peka span { 
+            color: #fff; 
+            text-shadow: 0 0 20px #fff, 0 0 40px var(--neon-magenta), 0 0 80px var(--neon-magenta), 0 0 150px #ff0000; 
+        }
+
+        /* ==========================================================================
+           REELS
+           ========================================================================== */
+        .reels-wrapper {
+            width: 70%; display: flex; gap: 15px;
+            background: #050505; padding: 15px;
+            border: 8px solid #333;
+            border-image: var(--metal-gradient) 1;
             position: relative;
-            border-radius: 6px;
-            box-shadow: inset 0 40px 25px -15px rgba(0,0,0,0.95), inset 0 -40px 25px -15px rgba(0,0,0,0.95);
+            box-shadow: 
+                0 30px 60px rgba(0,0,0,1), 
+                inset 0 0 40px rgba(0,0,0,1);
+        }
+        /* 極太レーザー有効ライン */
+        .reels-wrapper::after {
+            content: ""; position: absolute; top: 50%; left: -10%; right: -10%; height: 6px;
+            background: linear-gradient(90deg, transparent, #fff, transparent);
+            box-shadow: 
+                0 0 20px #fff, 0 0 40px red, 0 0 80px red, 0 0 120px red;
+            transform: translateY(-50%); z-index: 30; pointer-events: none;
+            mix-blend-mode: screen; animation: line-pulse 0.5s infinite alternate;
+        }
+        
+        .reel-window {
+            flex: 1; aspect-ratio: 1 / 2.4;
+            background: #fff; overflow: hidden; position: relative;
+            box-shadow: 
+                inset 0 60px 40px -20px rgba(0,0,0,1), 
+                inset 0 -60px 40px -20px rgba(0,0,0,1),
+                inset 20px 0 20px -10px rgba(0,0,0,0.5),
+                inset -20px 0 20px -10px rgba(0,0,0,0.5);
             transform: translateY(0);
         }
-        .reel-window.bounce { animation: reel-stop-bounce 0.12s cubic-bezier(0.25, 1, 0.5, 1); }
+        /* リールガラスの湾曲反射エフェクト */
+        .reel-window::before {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 20%, rgba(255,255,255,0) 80%, rgba(255,255,255,0.4) 100%);
+            z-index: 10; pointer-events: none; mix-blend-mode: overlay;
+        }
+        .reel-window.bounce { animation: reel-god-bounce 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
         .reel-strip {
             position: absolute; top: 0; left: 0; width: 100%;
             display: flex; flex-direction: column; will-change: transform;
         }
         .symbol {
-            width: 100%; 
-            /* 💡 変更: %指定をやめ、JSで計算したピクセル値を適用（透明バグ対策） */
-            height: var(--sym-h); 
+            width: 100%; height: var(--sym-h); 
             display: flex; align-items: center; justify-content: center;
-            font-size: clamp(2.5rem, 8vw, 4.5rem); font-weight: 900;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
-            background: #ffffff;
+            font-size: clamp(3.5rem, 11vw, 6.5rem); font-weight: 900;
+            border-bottom: 2px solid rgba(0,0,0,0.1);
+            background: transparent; font-family: 'Black Ops One', sans-serif;
+            position: relative; z-index: 1;
         }
         
-        .sym-7 { color: #e60000; text-shadow: 3px 3px 0 #222, -1px -1px 0 #fff; transform: scale(1.1); }
+        /* シンボルごとの狂気的装飾 */
+        .sym-7 { 
+            color: #ff0000; 
+            text-shadow: 
+                5px 5px 0 #333, 
+                -2px -2px 0 #ff9999, 
+                0 0 30px rgba(255,0,0,0.8),
+                0 0 60px rgba(255,0,0,0.5); 
+            transform: scale(1.2); 
+            animation: symbol-breathe 2s infinite alternate;
+        }
         .sym-bar { 
-            color: #fff; background: linear-gradient(180deg, #333 0%, #111 100%); border: 4px solid #777; 
-            width: 85%; height: 50%; font-size: 0.4em; 
+            color: #fff; background: linear-gradient(180deg, #666 0%, #222 40%, #000 100%); 
+            border: 6px solid #ccc; border-image: linear-gradient(135deg, #eee, #aaa, #fff, #555) 1;
+            width: 90%; height: 55%; font-size: 0.35em; 
             display: flex; align-items: center; justify-content: center; 
-            border-radius: 6px; box-shadow: 0 6px 10px rgba(0,0,0,0.6); 
-            letter-spacing: 3px;
+            box-shadow: 0 15px 25px rgba(0,0,0,0.9), inset 0 5px 15px rgba(255,255,255,0.6); 
+            letter-spacing: 6px;
         }
-        .sym-bell { filter: drop-shadow(3px 3px 2px rgba(0,0,0,0.5)); }
-        .sym-grape { filter: drop-shadow(3px 3px 2px rgba(0,0,0,0.5)); }
-        .sym-cherry { filter: drop-shadow(3px 3px 2px rgba(0,0,0,0.5)); transform: scale(1.1); }
-        .sym-replay { filter: drop-shadow(0 0 10px rgba(0,243,255,0.9)); transform: scale(1.1); }
+        .sym-bell { filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.8)) drop-shadow(0 0 20px rgba(255,215,0,0.8)); transform: scale(1.2); }
+        .sym-grape { filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.8)) drop-shadow(0 0 20px rgba(128,0,128,0.8)); transform: scale(1.15); }
+        .sym-cherry { filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.8)) drop-shadow(0 0 20px rgba(255,0,0,0.8)); transform: scale(1.25); }
+        .sym-replay { filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.8)) drop-shadow(0 0 25px rgba(0,243,255,1)); transform: scale(1.25); }
         
-        .spin-blur { filter: blur(4px) brightness(1.1); } 
+        .spin-blur { filter: blur(6px) brightness(1.3) contrast(1.2); } 
 
-        .controls-area { display: flex; flex-direction: column; gap: 16px; margin-top: 10px; }
-        .stop-buttons { display: flex; justify-content: flex-end; width: 100%; gap: 12px; padding-left: 26%; }
+        /* ==========================================================================
+           CONTROLS (MASSIVE 3D BUTTONS)
+           ========================================================================== */
+        .controls-area { display: flex; flex-direction: column; gap: 25px; margin-top: 20px; }
+        .stop-buttons { display: flex; justify-content: flex-end; width: 100%; gap: 20px; padding-left: 28%; }
+        
         .btn-stop {
-            flex: 1; aspect-ratio: 1.5;
-            background: linear-gradient(180deg, #ff1a1a 0%, #a60000 100%);
-            border: 3px solid #ffb3b3; border-radius: 12px;
-            box-shadow: 0 10px 0 #660000, 0 15px 20px rgba(0,0,0,0.8), inset 0 4px 8px rgba(255,255,255,0.4);
-            color: #fff; font-size: clamp(1rem, 3.5vw, 1.5rem); font-weight: 900;
-            cursor: pointer; transition: all 0.05s;
+            flex: 1; aspect-ratio: 1.3;
+            background: linear-gradient(180deg, #ff4d4d 0%, #cc0000 40%, #660000 100%);
+            border: none; border-radius: 20px;
+            box-shadow: 
+                0 25px 0 #4a0000, 
+                0 25px 30px rgba(0,0,0,0.9), 
+                0 0 40px rgba(255,0,0,0.4),
+                inset 0 8px 15px rgba(255,255,255,0.7),
+                inset 0 -8px 15px rgba(0,0,0,0.8);
+            color: #fff; font-family: 'Black Ops One', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 2.5rem); font-weight: 900;
+            cursor: pointer; transition: all 0.05s; 
+            text-shadow: 0 4px 5px rgba(0,0,0,1), 0 0 15px rgba(255,255,255,0.5);
+            position: relative;
+        }
+        .btn-stop::after {
+            content: ""; position: absolute; top:5%; left:5%; width:90%; height:40%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.6) 0%, transparent 100%);
+            border-radius: 15px 15px 0 0; pointer-events: none;
         }
         .btn-stop:active:not(:disabled) {
-            transform: translateY(10px); box-shadow: 0 0 0 #660000, inset 0 6px 12px rgba(0,0,0,0.8);
-            background: linear-gradient(180deg, #ff4d4d 0%, #cc0000 100%);
+            transform: translateY(25px); 
+            box-shadow: 
+                0 0 0 #4a0000, 
+                0 0 10px rgba(0,0,0,0.9), 
+                inset 0 15px 30px rgba(0,0,0,0.9);
+            background: linear-gradient(180deg, #ff1a1a 0%, #990000 100%);
         }
-        .btn-stop:disabled { background: #2a2a2a; border-color: #333; color: transparent; box-shadow: 0 10px 0 #111; cursor: not-allowed; }
-        .btn-stop:not(:disabled) { animation: btn-glow 1s infinite alternate; }
+        .btn-stop:disabled { 
+            background: linear-gradient(180deg, #333 0%, #111 100%); 
+            color: transparent; 
+            box-shadow: 0 25px 0 #050505, 0 30px 40px rgba(0,0,0,0.9); 
+            cursor: not-allowed; 
+        }
+        .btn-stop:disabled::after { display: none; }
+        .btn-stop:not(:disabled) { animation: stop-btn-fury 0.4s infinite alternate; }
 
         .btn-start {
-            width: 100%; padding: 22px 0;
-            background: linear-gradient(180deg, #ffffff 0%, #b3b3b3 100%);
-            border: 4px solid #fff; border-radius: 16px;
-            color: #111; font-size: clamp(1.8rem, 6vw, 2.8rem); font-weight: 900; font-family: 'Black Ops One', sans-serif;
-            text-transform: uppercase; letter-spacing: 6px;
-            box-shadow: 0 12px 0 #666, 0 20px 30px rgba(0,0,0,0.9), inset 0 4px 15px #fff;
+            width: 100%; padding: 35px 0;
+            background: var(--god-gradient);
+            background-size: 300% 300%;
+            border: 8px solid #fff; border-radius: 30px;
+            color: #000; font-size: clamp(2.5rem, 8vw, 4rem); font-weight: 900; 
+            font-family: 'Black Ops One', sans-serif;
+            text-transform: uppercase; letter-spacing: 15px;
+            box-shadow: 
+                0 30px 0 #886600, 
+                0 40px 60px rgba(0,0,0,1), 
+                0 0 80px rgba(255,215,0,0.8),
+                inset 0 10px 30px rgba(255,255,255,1);
             cursor: pointer; transition: all 0.05s;
+            text-shadow: 0 2px 5px rgba(255,255,255,0.9), 0 0 20px #fff;
+            animation: 
+                god-gradient-spin 2s infinite linear,
+                start-btn-pulse 0.5s infinite alternate;
+            position: relative;
+        }
+        .btn-start::before {
+            content: ""; position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px;
+            border: 4px solid var(--neon-cyan); border-radius: 40px;
+            animation: border-dance 0.5s infinite linear; pointer-events: none;
         }
         .btn-start:active:not(:disabled) {
-            transform: translateY(12px); box-shadow: 0 0 0 #666, inset 0 8px 20px rgba(0,0,0,0.6);
+            transform: translateY(30px); 
+            box-shadow: 0 0 0 #886600, inset 0 20px 40px rgba(0,0,0,0.8);
         }
-        .btn-start:disabled { background: #222; border-color: #333; color: #555; box-shadow: 0 12px 0 #0a0a0a; cursor: not-allowed; }
+        .btn-start:disabled { 
+            background: linear-gradient(180deg, #222 0%, #050505 100%); 
+            border-color: #333; color: #444; 
+            box-shadow: 0 30px 0 #000; cursor: not-allowed; 
+            text-shadow: none; animation: none;
+        }
+        .btn-start:disabled::before { display: none; }
 
-        .footer-link { text-align: center; margin-bottom: 5px; }
-        .footer-link a { color: #888; text-decoration: none; font-size: 1rem; font-weight: bold; transition: color 0.2s; text-shadow: 0 2px 4px #000; }
-        .footer-link a:hover { color: #fff; text-shadow: 0 0 10px #fff; }
+        /* ==========================================================================
+           FOOTER
+           ========================================================================== */
+        .footer-link { text-align: center; margin-top: 15px; padding-bottom: 20px; }
+        .footer-link a { 
+            color: var(--gold-base); text-decoration: none; font-family: 'Cinzel Decorative', serif;
+            font-size: 1.5rem; font-weight: 900; transition: all 0.2s; 
+            text-shadow: 0 5px 10px #000, 0 0 20px rgba(255,215,0,0.5); 
+            display: inline-block;
+        }
+        .footer-link a:hover { 
+            color: #fff; text-shadow: 0 0 30px #fff, 0 0 60px var(--gold-base); 
+            transform: scale(1.2) translateY(-5px); 
+        }
 
+        /* ==========================================================================
+           HYPER EFFECTS (FLASH & POP)
+           ========================================================================== */
         #flash-bang {
             position: fixed; top:0; left:0; width:100%; height:100%;
-            background: #fff; opacity: 0; pointer-events: none; z-index: 9999; mix-blend-mode: hard-light;
+            background: #fff; opacity: 0; pointer-events: none; z-index: 99999; 
+            mix-blend-mode: screen;
         }
-        body.mega-flash #flash-bang { animation: bang-anim 0.6s cubic-bezier(0.1, 1, 0.1, 1) forwards; }
-        .shake-hard { animation: shake-hard 0.05s infinite alternate; }
-        .num-pop { animation: super-pop 0.1s alternate 2; color: #fff !important; text-shadow: 0 0 30px #fff, 0 0 60px var(--neon-yellow) !important; }
+        body.mega-flash #flash-bang { animation: peka-brain-melt 1s cubic-bezier(0.075, 0.82, 0.165, 1) forwards; }
+        
+        .shake-hard { animation: shake-extreme 0.03s infinite alternate; }
+        .num-pop { 
+            animation: god-dopamine-pop 0.2s alternate 2 !important; 
+            color: #fff !important; 
+            text-shadow: 
+                0 0 50px #fff, 
+                0 0 100px var(--neon-yellow), 
+                0 0 150px var(--neon-green),
+                0 0 200px var(--neon-cyan) !important; 
+            transform-origin: right center;
+        }
 
-        @keyframes insane-jackpot-bg {
-            0% { background-color: #3a0000; box-shadow: inset 0 0 50px #ff0000; }
-            50% { background-color: #4a3000; box-shadow: inset 0 0 150px #ffea00; }
-            100% { background-color: #3a0000; box-shadow: inset 0 0 50px #ff0000; }
+        /* ==========================================================================
+           1000-LINE LEVEL INSANE KEYFRAMES (EXTREME DETAILS)
+           ========================================================================== */
+        @keyframes bg-hyperspace {
+            0% { background-position: 0 0, 0 0, 0 0, 0 0; filter: hue-rotate(0deg); }
+            100% { background-position: -100vw -100vh, 300px 300px, 1000px 1000px, -1000px 1000px; filter: hue-rotate(360deg); }
         }
-        @keyframes rainbow-bg { to { background-position: 200% center; } }
-        @keyframes strobe-flash { 0% { filter: brightness(1) contrast(1); } 100% { filter: brightness(2) contrast(1.5); } }
-        @keyframes bang-anim { 0% { opacity: 1; background: #fff; } 10% { background: var(--neon-magenta); } 100% { opacity: 0; } }
-        @keyframes shake-hard { 0% { transform: translate(5px, 5px) rotate(0.5deg); } 100% { transform: translate(-5px, -5px) rotate(-0.5deg); } }
-        @keyframes super-pop { 0% { transform: scale(1); } 100% { transform: scale(1.5); } }
-        @keyframes reel-stop-bounce { 0% { transform: translateY(0); } 30% { transform: translateY(18px); } 100% { transform: translateY(0); } }
-        @keyframes btn-glow { 0% { box-shadow: 0 10px 0 #660000, 0 15px 20px rgba(0,0,0,0.8), 0 0 10px red; } 100% { box-shadow: 0 10px 0 #660000, 0 15px 20px rgba(0,0,0,0.8), 0 0 30px #ff4d4d; } }
+        @keyframes god-ray-spin {
+            0% { transform: rotate(0deg) scale(1); opacity: 0.5; }
+            50% { transform: rotate(180deg) scale(1.2); opacity: 0.8; }
+            100% { transform: rotate(360deg) scale(1); opacity: 0.5; }
+        }
+        @keyframes cabinet-breath {
+            0% { box-shadow: 0 0 0 4px #000, 0 0 0 10px #ffcc00, 0 0 0 14px #b38600, 0 0 0 20px #222, 0 0 0 24px var(--neon-cyan), 0 30px 100px rgba(0,0,0,1), 0 0 100px rgba(255,215,0,0.2), inset 0 15px 50px rgba(255,255,255,0.3), inset 0 -15px 50px rgba(0,0,0,0.9); }
+            100% { box-shadow: 0 0 0 4px #000, 0 0 0 10px #ffea00, 0 0 0 14px #cca300, 0 0 0 20px #222, 0 0 0 24px var(--neon-magenta), 0 30px 100px rgba(0,0,0,1), 0 0 250px rgba(255,215,0,0.8), inset 0 25px 80px rgba(255,255,255,0.6), inset 0 -25px 80px rgba(0,0,0,1); }
+        }
+        @keyframes insane-jackpot-bg {
+            0% { background-color: #ff0000; filter: invert(0) hue-rotate(0deg) contrast(1.5); }
+            25% { background-color: #00ff00; filter: invert(0.2) hue-rotate(90deg) contrast(2); }
+            50% { background-color: #0000ff; filter: invert(0.5) hue-rotate(180deg) contrast(3); }
+            75% { background-color: #ff00ff; filter: invert(0.8) hue-rotate(270deg) contrast(2); }
+            100% { background-color: #ffff00; filter: invert(1) hue-rotate(360deg) contrast(1.5); }
+        }
+        @keyframes scanner-sweep { 0% { transform: translateY(-100%); } 100% { transform: translateY(200%); } }
+        @keyframes pulse-active { 0% { opacity: 0.8; text-shadow: 0 0 10px #fff, 0 0 20px var(--neon-cyan); } 100% { opacity: 1; text-shadow: 0 0 20px #fff, 0 0 50px var(--neon-cyan), 0 0 100px #0055ff; } }
+        @keyframes rainbow-shift { 0% { background-position: 0% 50%; } 100% { background-position: 400% 50%; } }
+        @keyframes marquee-glitch-extreme {
+            0% { transform: scale(1.05) translate(0) skew(0deg); clip-path: inset(0 0 0 0); }
+            20% { transform: scale(1.05) translate(-5px, 5px) skew(-10deg); clip-path: inset(10% 0 80% 0); }
+            40% { transform: scale(1.05) translate(5px, -5px) skew(10deg); clip-path: inset(80% 0 10% 0); }
+            60% { transform: scale(1.05) translate(-10px, 0) skew(-20deg); filter: hue-rotate(90deg); clip-path: inset(40% 0 40% 0); }
+            80% { transform: scale(1.05) translate(10px, 0) skew(20deg); filter: hue-rotate(-90deg); clip-path: inset(20% 0 60% 0); }
+            100% { transform: scale(1.05) translate(0) skew(0deg); clip-path: inset(0 0 0 0); }
+        }
+        @keyframes laser-pan { 0% { background-position: 0 0; } 100% { background-position: 100px 0; } }
+        @keyframes god-strobe { 
+            0% { filter: brightness(1) contrast(1.5) hue-rotate(0deg); opacity: 1; } 
+            100% { filter: brightness(5) contrast(3) hue-rotate(90deg); opacity: 0.8; } 
+        }
+        @keyframes god-pulse { 0% { transform: scale(1.1); } 100% { transform: scale(1.25); } }
+        @keyframes line-pulse { 0% { opacity: 0.5; box-shadow: 0 0 20px #fff, 0 0 40px red; } 100% { opacity: 1; box-shadow: 0 0 40px #fff, 0 0 80px red, 0 0 150px red; } }
+        @keyframes reel-god-bounce { 0% { transform: translateY(0); } 30% { transform: translateY(35px); } 60% { transform: translateY(-10px); } 100% { transform: translateY(0); } }
+        @keyframes symbol-breathe { 0% { transform: scale(1.2) translateY(0); } 100% { transform: scale(1.25) translateY(-5px); } }
+        @keyframes stop-btn-fury { 
+            0% { box-shadow: 0 25px 0 #4a0000, 0 25px 30px rgba(0,0,0,0.9), 0 0 40px rgba(255,0,0,0.4), inset 0 8px 15px rgba(255,255,255,0.7), inset 0 -8px 15px rgba(0,0,0,0.8); } 
+            100% { box-shadow: 0 25px 0 #4a0000, 0 25px 30px rgba(0,0,0,0.9), 0 0 100px #ff3333, inset 0 12px 25px rgba(255,255,255,0.9), inset 0 -8px 15px rgba(0,0,0,0.8); border: 2px solid #fff; } 
+        }
+        @keyframes god-gradient-spin { 0% { background-position: 0% 50%; } 100% { background-position: 300% 50%; } }
+        @keyframes start-btn-pulse { 0% { transform: scale(1); } 100% { transform: scale(1.03); } }
+        @keyframes border-dance { 0% { clip-path: inset(0 0 95% 0); } 25% { clip-path: inset(0 95% 0 0); } 50% { clip-path: inset(95% 0 0 0); } 75% { clip-path: inset(0 0 0 95%); } 100% { clip-path: inset(0 0 95% 0); } }
+        @keyframes shake-extreme { 
+            0% { transform: translate(15px, 15px) rotate(2deg) scale(1.02); filter: hue-rotate(0deg); } 
+            25% { transform: translate(-15px, 15px) rotate(-2deg) scale(0.98); filter: hue-rotate(90deg); } 
+            50% { transform: translate(15px, -15px) rotate(2deg) scale(1.05); filter: hue-rotate(180deg); } 
+            75% { transform: translate(-15px, -15px) rotate(-2deg) scale(0.95); filter: hue-rotate(270deg); } 
+            100% { transform: translate(15px, 15px) rotate(2deg) scale(1.02); filter: hue-rotate(360deg); } 
+        }
+        @keyframes peka-brain-melt { 
+            0% { opacity: 1; background: #fff; transform: scale(1); } 
+            10% { background: var(--neon-magenta); filter: invert(1); transform: scale(1.1); } 
+            20% { background: var(--neon-yellow); filter: invert(0); transform: scale(0.9); }
+            30% { background: var(--neon-cyan); opacity: 0.8; transform: scale(1.05); }
+            100% { opacity: 0; background: #fff; transform: scale(1); } 
+        }
+        @keyframes god-dopamine-pop { 0% { transform: scale(1) translate(0,0); } 50% { transform: scale(2.5) translate(-10px, -10px) rotate(-5deg); } 100% { transform: scale(3) translate(5px, 5px) rotate(5deg); } }
     </style>
 </head>
 <body>
