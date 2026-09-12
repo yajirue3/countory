@@ -14,6 +14,8 @@
             --neon-yellow: #ffe600;
             --alert-red: #ff0000;
             --gold-light: #ffd700;
+            /* 💡 追加: 図柄の高さをJSから絶対値で注入し、透明化（高さ0）を防ぐ */
+            --sym-h: 100px; 
         }
 
         * { box-sizing: border-box; touch-action: manipulation; }
@@ -36,12 +38,10 @@
             transition: background-color 0.1s, box-shadow 0.1s;
         }
 
-        /* 🧠 脳汁ドバドバジャックポット背景 */
         body.jackpot-mode {
             animation: insane-jackpot-bg 0.3s infinite alternate;
         }
 
-        /* 📱 スマホ・ベースレイアウト */
         .arcade-cabinet {
             width: 100%;
             height: 100vh;
@@ -54,10 +54,9 @@
             transition: transform 0.05s;
         }
 
-        /* 💻 パソコン向け（筐体を巨大化・超重厚感） */
         @media (min-width: 768px) {
             .arcade-cabinet {
-                max-width: 850px; /* ここを大幅拡大 */
+                max-width: 850px;
                 height: auto;
                 aspect-ratio: 10/15;
                 background: linear-gradient(180deg, #111 0%, #000 100%);
@@ -69,7 +68,6 @@
             }
         }
 
-        /* 👑 メインパネル */
         .marquee {
             text-align: center;
             font-family: 'Black Ops One', sans-serif;
@@ -90,7 +88,6 @@
             box-shadow: inset 0 0 20px rgba(0, 243, 255, 0.4);
             transform: scale(1.02);
         }
-        /* 狂気のジャックポットテキスト */
         .marquee.jackpot {
             color: #fff;
             border-color: var(--neon-yellow);
@@ -103,7 +100,6 @@
             font-size: clamp(2.2rem, 7vw, 3.8rem);
         }
 
-        /* 🎛️ HUD */
         .hud-panel {
             display: flex;
             flex-direction: column;
@@ -138,7 +134,6 @@
         }
         .meter-val.green { color: var(--neon-green); text-shadow: 0 0 20px var(--neon-green); }
 
-        /* 🎰 メインステージ */
         .stage-area {
             flex: 1;
             display: flex;
@@ -154,7 +149,6 @@
         }
         @media (min-width: 768px) { .stage-area { min-height: 320px; padding: 30px 24px; } }
 
-        /* 🚨 脳焼きGOGOランプ（光量MAX） */
         .gogo-lamp {
             width: 24%;
             aspect-ratio: 1;
@@ -185,7 +179,6 @@
         }
         .gogo-lamp.peka span { color: var(--neon-magenta); text-shadow: 0 0 20px var(--neon-magenta), 0 0 40px #fff; }
 
-        /* リールコンテナ */
         .reels-wrapper {
             width: 72%;
             display: flex;
@@ -224,7 +217,9 @@
             display: flex; flex-direction: column; will-change: transform;
         }
         .symbol {
-            width: 100%; height: 33.333%;
+            width: 100%; 
+            /* 💡 変更: %指定をやめ、JSで計算したピクセル値を適用（透明バグ対策） */
+            height: var(--sym-h); 
             display: flex; align-items: center; justify-content: center;
             font-size: clamp(2.5rem, 8vw, 4.5rem); font-weight: 900;
             border-bottom: 1px solid rgba(0,0,0,0.1);
@@ -244,9 +239,8 @@
         .sym-cherry { filter: drop-shadow(3px 3px 2px rgba(0,0,0,0.5)); transform: scale(1.1); }
         .sym-replay { filter: drop-shadow(0 0 10px rgba(0,243,255,0.9)); transform: scale(1.1); }
         
-        .spin-blur { filter: blur(4px) brightness(1.1); } /* 回転中少し光らせる */
+        .spin-blur { filter: blur(4px) brightness(1.1); } 
 
-        /* 🔘 操作パネル */
         .controls-area { display: flex; flex-direction: column; gap: 16px; margin-top: 10px; }
         .stop-buttons { display: flex; justify-content: flex-end; width: 100%; gap: 12px; padding-left: 26%; }
         .btn-stop {
@@ -282,14 +276,12 @@
         .footer-link a { color: #888; text-decoration: none; font-size: 1rem; font-weight: bold; transition: color 0.2s; text-shadow: 0 2px 4px #000; }
         .footer-link a:hover { color: #fff; text-shadow: 0 0 10px #fff; }
 
-        /* 💥 ドーパミン・エフェクト類 */
         #flash-bang {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: #fff; opacity: 0; pointer-events: none; z-index: 9999; mix-blend-mode: hard-light;
         }
         body.mega-flash #flash-bang { animation: bang-anim 0.6s cubic-bezier(0.1, 1, 0.1, 1) forwards; }
         .shake-hard { animation: shake-hard 0.05s infinite alternate; }
-        /* 払い出し時の脳汁ポップ */
         .num-pop { animation: super-pop 0.1s alternate 2; color: #fff !important; text-shadow: 0 0 30px #fff, 0 0 60px var(--neon-yellow) !important; }
 
         @keyframes insane-jackpot-bg {
@@ -360,7 +352,6 @@
     const token = localStorage.getItem("access_token");
     if (!token) window.location.href = "/";
 
-    // 💡修正ポイント: 1. 全てを確実な <div class="symbol"> 構造に変更。絵文字には個別の span クラス付与
     const SYMBOLS = {
         "7": '<div class="symbol"><div class="sym-7">7</div></div>',
         "BAR": '<div class="symbol"><div class="sym-bar">BAR</div></div>',
@@ -370,8 +361,16 @@
         "REPLAY": '<div class="symbol"><span class="sym-replay">💎</span></div>'
     };
 
-    // 💡修正ポイント: 2. undefined防止のための安全な取得関数
     const getSymbolHtml = (key) => SYMBOLS[key] || SYMBOLS["7"];
+
+    // 💡 追加: 実際のパチスロ機を模した「あらかじめ決まった配列」
+    const FIXED_STRIP_PATTERN = [
+        "7", "CHERRY", "GRAPE", "BELL", "BAR", "REPLAY", 
+        "GRAPE", "BAR", "CHERRY", "BELL", "7", "REPLAY",
+        "GRAPE", "BELL", "7", "REPLAY", "BAR", "GRAPE"
+    ];
+    // 回転用につなぎ合わせる長さ（CSS崩れ防止用）
+    const TOTAL_SPIN_SYMS = 32; 
     
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx = new AudioContext();
@@ -391,7 +390,6 @@
             gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
             osc.start(now); osc.stop(now + 0.3);
         } else if (type === 'STOP') {
-            // ストップ音をより打撃感のある音に
             osc.type = 'square';
             osc.frequency.setValueAtTime(150, now);
             osc.frequency.exponentialRampToValueAtTime(30, now + 0.1);
@@ -399,13 +397,12 @@
             gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
             osc.start(now); osc.stop(now + 0.1);
         } else if (type === 'PEKA') { 
-            // 脳を焼くペカ音（高周波の共鳴）
             osc.type = 'square';
             osc.frequency.setValueAtTime(1500, now);
             osc.frequency.linearRampToValueAtTime(4500, now + 0.1);
             
             const lfo = audioCtx.createOscillator();
-            lfo.type = 'sine'; lfo.frequency.value = 35; // LFO高速化
+            lfo.type = 'sine'; lfo.frequency.value = 35;
             const lfoGain = audioCtx.createGain();
             lfoGain.gain.value = 1200;
             lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
@@ -416,7 +413,6 @@
             gain.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
             osc.start(now); osc.stop(now + 1.5);
         } else if (type === 'COIN') {
-            // コイン音を高音でチャリンと鳴らす
             osc.type = 'sine';
             osc.frequency.setValueAtTime(2500 + Math.random()*500, now);
             gain.gain.setValueAtTime(0.3, now);
@@ -480,7 +476,6 @@
         const mq = document.getElementById("marquee");
         if(type === "PEKA") {
             playSound("PEKA");
-            // リセットしてから再付与でアニメーション発動
             document.body.classList.remove("mega-flash");
             void document.body.offsetWidth;
             document.body.classList.add("mega-flash");
@@ -511,18 +506,22 @@
         const windowHeight = winEls[0].offsetHeight;
         symbolHeight = windowHeight / 3;
         
+        // 💡 修正: CSS側に計算済みの絶対値(px)を渡す（これにより高さ0潰れバグを根絶）
+        document.documentElement.style.setProperty('--sym-h', `${symbolHeight}px`);
+        
         for(let i=0; i<3; i++) {
             let html = "";
-            const totalSyms = 32;
-            for(let j=0; j<totalSyms; j++) {
-                const pool = ["7", "BAR", "BELL", "GRAPE", "CHERRY", "REPLAY"];
-                // 保護関数を使う
-                html += getSymbolHtml(pool[Math.floor(Math.random() * pool.length)]);
+            
+            // 💡 修正: 完全に決まった配列を順番にループ構築する（DOM負荷低減）
+            for(let j=0; j<TOTAL_SPIN_SYMS; j++) {
+                html += getSymbolHtml(FIXED_STRIP_PATTERN[j % FIXED_STRIP_PATTERN.length]);
             }
-            // サーバー結果も保護関数経由にする
+            
+            // 最後にサーバーから来た結果（または初期の7）を配置
             if(!isInit && serverRes) html += getSymbolHtml(resSyms[i]);
             else html += getSymbolHtml("7");
             
+            // 枠下にはみ出る見栄え用の調整図柄
             html += getSymbolHtml("GRAPE");
             html += getSymbolHtml("REPLAY");
             
@@ -533,9 +532,8 @@
     }
 
     function animate() {
-        // 回転速度も微妙に上げて躍動感を演出
         const speed = symbolHeight * 0.9; 
-        const maxScroll = -(32 * symbolHeight);
+        const maxScroll = -(TOTAL_SPIN_SYMS * symbolHeight);
         
         for(let i=0; i<3; i++) {
             if(rState[i] === 1) {
@@ -543,7 +541,7 @@
                 if(rPos[i] <= maxScroll) rPos[i] += Math.abs(maxScroll);
                 reelEls[i].style.transform = `translateY(${rPos[i]}px)`;
             } else if (rState[i] === 2) {
-                rPos[i] = -(32 * symbolHeight) + symbolHeight;
+                rPos[i] = -(TOTAL_SPIN_SYMS * symbolHeight) + symbolHeight;
                 reelEls[i].style.transform = `translateY(${rPos[i]}px)`;
                 reelEls[i].classList.remove("spin-blur");
                 
@@ -633,7 +631,6 @@
         if (serverRes.payout > 0) {
             let cur = 0;
             const tgt = serverRes.payout;
-            // カウントアップを高速化して爽快感を増す
             const step = Math.ceil(tgt / 40); 
             
             const countTimer = setInterval(() => {
@@ -647,10 +644,10 @@
                 updateWin(cur);
                 const pEl = document.getElementById("payout-display");
                 pEl.classList.remove("num-pop");
-                void pEl.offsetWidth; // リフロー強制でアニメーション再トリガー
+                void pEl.offsetWidth; 
                 pEl.classList.add("num-pop");
                 playSound("COIN");
-            }, 16); // 60FPSでの高速カウント
+            }, 16); 
         }
         loadWallets();
     }
