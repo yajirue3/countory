@@ -208,10 +208,15 @@
                 body: JSON.stringify({ nickname, real_name })
             });
             const data = await res.json();
-            alert(data.message);
-            loadProfile();
+            if (res.ok) {
+                alert(data.message || "国民情報を更新しました");
+                loadProfile();
+            } else {
+                alert("エラー: " + (data.detail || "プロフィールの保存に失敗しました"));
+            }
         } catch (e) {
             console.error(e);
+            alert("通信エラーが発生しました: " + e.message);
         }
     }
 
