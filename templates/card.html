@@ -30,7 +30,6 @@
             overflow: hidden;
         }
 
-        /* 画面揺れアニメーション (ダメージ時) */
         @keyframes shake {
             0% { transform: translate(1px, 1px) rotate(0deg); }
             10% { transform: translate(-1px, -2px) rotate(-1deg); }
@@ -46,7 +45,6 @@
         }
         .shake { animation: shake 0.4s; }
 
-        /* ダメージポップアップ */
         .damage-popup {
             position: absolute;
             color: #ff3333;
@@ -74,13 +72,11 @@
             position: relative;
         }
 
-        /* 各種ボタン・フォーム */
         input, select, button { padding: 10px; border-radius: 6px; font-weight: bold; font-family: inherit; transition: all 0.2s; }
         button { background: var(--primary); color: #000; border: none; cursor: pointer; box-shadow: var(--neon-shadow); }
         button:hover { transform: translateY(-2px); filter: brightness(1.2); }
         button:active { transform: translateY(1px); }
 
-        /* ルールモーダル */
         #rules-modal {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
@@ -96,15 +92,12 @@
         .rule-content li { margin-bottom: 10px; }
         .rule-content .highlight { color: #ff007f; font-weight: bold; }
 
-        /* ロビー画面 */
         #lobby-screen { display: flex; flex-direction: column; height: 100%; padding: 10px; gap: 10px; }
         .room-list { flex: 1; overflow-y: auto; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 10px; }
         .room-item { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #333; align-items: center; background: rgba(0,0,0,0.3); margin-bottom: 8px; border-radius: 8px;}
         
-        /* バトル画面 */
         #battle-screen { display: none; flex-direction: column; height: 100%; gap: 5px; position: relative; }
         
-        /* 動的指示バナー */
         #action-banner {
             background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.3), transparent);
             text-align: center; font-weight: bold; padding: 5px; font-size: 0.85rem; color: #fff;
@@ -127,7 +120,6 @@
 
         .board { flex: 1; display: flex; gap: 8px; padding: 10px; background: rgba(255,255,255,0.02); overflow-x: auto; align-items: center; border-radius: 8px; min-height: 110px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
         
-        /* 盤面カード */
         .board-card {
             min-width: 75px; height: 100px; background: var(--card-bg); border: 2px solid #555; border-radius: 8px;
             display: flex; flex-direction: column; justify-content: space-between; padding: 6px; font-size: 0.75rem; text-align: center; cursor: pointer;
@@ -140,7 +132,6 @@
         
         @keyframes pulseGreen { 0% { box-shadow: 0 0 5px #00ff00; } 50% { box-shadow: 0 0 15px #00ff00; } 100% { box-shadow: 0 0 5px #00ff00; } }
 
-        /* 手札 */
         .hand-area { height: 135px; display: flex; gap: 8px; padding: 10px; overflow-x: auto; background: #050505; border-top: 2px solid var(--primary); box-shadow: 0 -5px 15px rgba(0,0,0,0.8); }
         .hand-card {
             min-width: 85px; height: 115px; background: linear-gradient(180deg, #2a2540 0%, #151222 100%);
@@ -155,7 +146,6 @@
         .card-title { font-weight: 900; text-align: center; margin-top: 12px; margin-bottom: auto; font-size: 0.85rem;}
         .card-desc { font-size: 0.65rem; color: #ccc; text-align: center; line-height: 1.2; background: rgba(0,0,0,0.5); padding: 2px; border-radius: 4px;}
 
-        /* ドラフト画面 */
         #draft-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95);
             display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; gap: 20px;
@@ -164,12 +154,10 @@
         .draft-card { width: 120px; height: 160px; background: var(--card-bg); border: 3px solid var(--primary); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; cursor: pointer; font-size: 0.85rem; transition: transform 0.2s; box-shadow: var(--neon-shadow); }
         .draft-card:hover { transform: scale(1.1); }
         
-        /* ピック履歴 */
         .draft-history-container { width: 100%; padding: 0 20px; margin-top: 30px; text-align: center; }
         .draft-history { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
         .history-card { width: 45px; height: 60px; background: #222; border: 1px solid #555; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; text-align: center; font-weight: bold;}
 
-        /* ターゲットモード専用のスタイル（脳汁ドバドバ） */
         .target-mode { cursor: crosshair !important; }
         .target-mode .board { box-shadow: inset 0 0 30px rgba(255, 0, 127, 0.4); }
         .target-mode .opponent-area { 
@@ -194,7 +182,6 @@
     <div class="rule-content" style="max-height: 85vh; overflow-y: auto; width: 90%; max-width: 480px; box-sizing: border-box; padding: 16px;">
         <h3>📖 超究極完全体ルールガイド</h3>
 
-        <!-- 勝利条件・賭け金 -->
         <div style="background: rgba(212, 175, 55, 0.15); border: 1px solid #d4af37; padding: 12px; border-radius: 8px; margin-bottom: 12px; text-align: center;">
             <div style="font-size: 0.95rem; font-weight: bold; color: #ffd700;">🎯 勝利条件と報酬</div>
             <div style="font-size: 0.82rem; color: #fff; margin-top: 4px; line-height: 1.6;">
@@ -203,7 +190,6 @@
             </div>
         </div>
 
-        <!-- 1. ゲーム進行の掟 -->
         <div style="background: rgba(0,0,0,0.35); padding: 12px 14px; border-radius: 8px; margin-bottom: 12px;">
             <div style="font-weight: bold; color: #ffd700; margin-bottom: 8px; font-size: 0.9rem;">🕹️ 戦いの流れ（4ステップ）</div>
             <ol style="margin: 0; padding-left: 20px; font-size: 0.82rem; line-height: 1.8; color: #eee;">
@@ -226,7 +212,6 @@
             </ol>
         </div>
 
-        <!-- 2. 特殊ルール -->
         <div style="background: rgba(0,0,0,0.35); padding: 12px 14px; border-radius: 8px; margin-bottom: 12px;">
             <div style="font-weight: bold; color: #ffd700; margin-bottom: 8px; font-size: 0.9rem;">⚡ 盤面の掟・特殊能力</div>
             <ul style="margin: 0; padding-left: 18px; font-size: 0.82rem; line-height: 1.8; color: #eee;">
@@ -238,7 +223,6 @@
             </ul>
         </div>
 
-        <!-- 3. 全カード一覧 -->
         <div style="background: rgba(0,0,0,0.35); padding: 12px 14px; border-radius: 8px; margin-bottom: 14px;">
             <div style="font-weight: bold; color: #ffd700; margin-bottom: 8px; font-size: 0.9rem;">📜 全カード目録（9種類）</div>
             
@@ -266,8 +250,6 @@
     </div>
 </div>
 
-
-
     <!-- ロビー -->
     <div id="lobby-screen">
         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -291,7 +273,6 @@
             <span id="sys-timer" style="color:var(--primary);">⏳ 0</span>
         </div>
         
-        <!-- ガイダンスバナー -->
         <div id="action-banner">バトル開始を待っています...</div>
         
         <div class="player-area opponent-area" id="opp-hero" onclick="handleTargetClick('hero', opponentId)">
@@ -342,6 +323,9 @@
     if (!token) window.location.href = "/";
 
     let ws = null;
+    let pingInterval = null;
+    let currentRoomId = null;
+    let isConnecting = false;
     let gameState = null;
     let myUserId = null;
     let opponentId = null;
@@ -402,18 +386,47 @@
     function joinRoom(roomId) { connectWS(roomId); }
 
     function connectWS(roomId) {
+        if (isConnecting) return;
+        isConnecting = true;
+        currentRoomId = roomId;
+
         document.getElementById("lobby-screen").style.display = "none";
         document.getElementById("battle-screen").style.display = "flex";
         
         const protocol = location.protocol === "https:" ? "wss:" : "ws:";
         ws = new WebSocket(`${protocol}//${location.host}/ws/card/${roomId}?token=${token}`);
         
+        ws.onopen = () => {
+            isConnecting = false;
+            // 10秒ごとのPing送信（Wi-Fiルーターのタイムアウト防止）
+            if (pingInterval) clearInterval(pingInterval);
+            pingInterval = setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ action: "PING" }));
+                }
+            }, 10000);
+        };
+
         ws.onmessage = (e) => {
             const data = JSON.parse(e.data);
+            if(data.type === "PONG") return;
             if(data.type === "ERROR") { alert(data.message); location.reload(); }
             if(data.type === "SYNC_STATE") renderState(data.payload);
         };
-        ws.onclose = () => { setTimeout(() => location.reload(), 2000); };
+
+        ws.onclose = () => {
+            isConnecting = false;
+            if (pingInterval) clearInterval(pingInterval);
+            // ゲーム中であれば自動で再接続を試みる
+            if (gameState && gameState.status !== "ENDED") {
+                updateActionBanner("通信が途切れました。再接続中...", true);
+                setTimeout(() => {
+                    if (currentRoomId) connectWS(currentRoomId);
+                }, 1000);
+            } else {
+                setTimeout(() => location.reload(), 2000);
+            }
+        };
     }
 
     // --- アニメーション＆エフェクト管理 ---
@@ -433,7 +446,7 @@
     function triggerShake() {
         const container = document.getElementById("main-container");
         container.classList.remove("shake");
-        void container.offsetWidth; // reflow
+        void container.offsetWidth;
         container.classList.add("shake");
     }
 
@@ -460,7 +473,6 @@
         if (state.status === "DRAFT") {
             document.getElementById("draft-overlay").style.display = "flex";
             
-            // ピック履歴の表示 (バックエンドから my_deck が送られてきている前提)
             const myDeck = state.my_deck || [];
             document.getElementById("draft-count").innerText = myDeck.length;
             document.getElementById("draft-history").innerHTML = myDeck.map(c => `
@@ -499,7 +511,6 @@
         const isMyTurn = state.turn_user_id === myUserId;
         document.getElementById("end-turn-btn").style.display = isMyTurn ? "block" : "none";
 
-        // HP変化の検知とダメージエフェクト
         if (opponentId && state.hp[opponentId] < prevHpState.opp) {
             spawnDamageText("opp-hero", prevHpState.opp - state.hp[opponentId]);
             triggerShake();
@@ -511,7 +522,6 @@
         if(opponentId) prevHpState.opp = state.hp[opponentId];
         prevHpState.my = state.hp[myUserId];
 
-        // Heroes
         if (opponentId) {
             document.getElementById("opp-name").innerText = state.host.id === opponentId ? state.host.name : state.guest.name;
             document.getElementById("opp-hp").innerText = state.hp[opponentId];
@@ -525,7 +535,6 @@
         document.getElementById("my-max-mp").innerText = state.max_mp[myUserId];
         document.getElementById("my-deck-count").innerText = state.deck_counts[myUserId];
 
-        // Boards
         const renderUnit = (u, isMine) => `
             <div id="unit-${u.instance_id}" class="board-card ${u.taunt ? 'taunt' : ''} ${isMine && u.can_attack && isMyTurn ? 'can-attack' : ''}" 
                  onclick="handleBoardClick('${u.instance_id}', ${isMine})">
@@ -537,7 +546,6 @@
         document.getElementById("opp-board").innerHTML = (state.boards[opponentId] || []).map(u => renderUnit(u, false)).join('');
         document.getElementById("my-board").innerHTML = (state.boards[myUserId] || []).map(u => renderUnit(u, true)).join('');
 
-        // Hand
         const myMp = state.mp[myUserId];
         document.getElementById("my-hand").innerHTML = (state.hands[myUserId] || []).map(c => `
             <div class="hand-card ${c.cost <= myMp && isMyTurn ? 'playable' : ''}" id="hand-${c.instance_id}" onclick="handleHandClick('${c.instance_id}', ${c.cost <= myMp && isMyTurn})">
@@ -548,7 +556,6 @@
             </div>
         `).join('');
 
-        // 状態リセット（自分のターンでなくなった時など）
         if (!isMyTurn) {
             resetSelection();
             updateActionBanner("相手のターンです...", false);
@@ -557,14 +564,12 @@
         }
     }
 
-    // --- Actions ---
     function pickCard(cardId) { ws.send(JSON.stringify({ action: "PICK_CARD", card_id: cardId })); }
     function endTurn() { 
         resetSelection();
         ws.send(JSON.stringify({ action: "END_TURN" })); 
     }
 
-    // --- Interaction Logic ---
     function resetSelection() {
         selectedHandCard = null; selectedBoardUnit = null; isTargetingMode = false;
         document.getElementById("battle-screen").classList.remove("target-mode");
@@ -592,7 +597,6 @@
 
     function handleBoardClick(instanceId, isMine) {
         if (isMine) {
-            // アタッカー選択
             if (gameState.turn_user_id !== myUserId) return;
             const unit = gameState.boards[myUserId].find(u => u.instance_id === instanceId);
             if (unit && unit.can_attack) {
@@ -603,7 +607,6 @@
                 updateActionBanner(`⚔️ 「${unit.name}」で攻撃！ターゲット（敵ユニットか顔）をクリック！`, true);
             }
         } else {
-            // 敵へのターゲット
             if (isTargetingMode) {
                 handleTargetClick('unit', instanceId);
             }
