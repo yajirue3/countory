@@ -206,12 +206,14 @@ async def get_profile(authorization: str = Header(None)):
 async def update_profile(data: ProfileUpdate, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
     client = await get_supabase()
-    await client.table("profiles").upsert({
-        "id": user.id,
-        "nickname": data.nickname,
-        "real_name": data.real_name
-    }).execute()
-    return {"message": "国民情報を更新しました"}
+    try:
+        await client.table("profiles").update({
+            "nickname": data.nickname,
+            "real_name": data.real_name
+        }).eq("id", user.id).execute()
+        return {"message": "国民情報を更新しました"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"更新失敗: {str(e)}")
 
 @app.post("/api/pay-tax")
 async def pay_tax(data: PayTaxRequest, authorization: str = Header(None)):
