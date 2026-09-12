@@ -8,7 +8,7 @@ from pathlib import Path
 
 # 既存のdb.pyからのインポート想定
 from db import get_supabase
-from casino import get_user_from_token  # 共通関数を流用
+from casino import get_user_from_token
 
 router = APIRouter()
 BASE_DIR = Path(__file__).resolve().parent
@@ -17,13 +17,14 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 # --- リクエストモデル ---
 class CoinBuyRequest(BaseModel):
     wallet_id: str
-    amount: int  # 投資するGold額
+    amount: int
 
 class CoinSellRequest(BaseModel):
     wallet_id: str
 
 # --- オンメモリ・ポジション管理 ---
-# 構造: { user_id: { "wallet_id": str, "entry_price": float, "sol_amount": float, "bet_gold": int } }
+# 【重要】本番環境でマルチプロセス(Uvicorn workers > 1)を使用する場合は、
+# この辞書をSupabaseの `coin_positions` テーブル等に移行する必要があります。
 COIN_POSITIONS = {}
 
 # --- 外部API通信関数 ---
@@ -37,8 +38,7 @@ async def fetch_current_sol_price() -> float:
             response.raise_for_status()
             data = response.json()
             return float(data["price"])
-    except Exception as e:
-        # API障害時は取引を一時停止させるための例外を投げる
+    except Exception:
         raise HTTPException(status_code=503, detail="市場データの取得に失敗しました。一時的に取引を停止しています。")
 
 # --------------------------------------------------
@@ -55,31 +55,33 @@ async def get_coin_page(request: Request):
 async def buy_coin(data: CoinBuyRequest, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
     user_id_str = str(user.id)
-    supabase = await get_supabase()
-
-    # 1. バリデーション
+    
     if data.amount <= 0:
         raise HTTPException(status_code=400, detail="投資額は1Gold以上を指定してください。")
     if user_id_str in COIN_POSITIONS:
         raise HTTPException(status_code=400, detail="既にポジションを保有しています。先に決済してください。")
 
-    # 2. 口座と残高の検証
+    supabase = await get_supabase()
+
+    # 所有権と残高の厳格な検証 (user_id一致を強制)
     wallet_res = await supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
     if not wallet_res.data:
-        raise HTTPException(status_code=400, detail="指定された口座が存在しないか、所有権がありません。")
+        raise HTTPException(status_code=403, detail="指定された口座が存在しないか、アクセス権がありません。")
 
     wallet = wallet_res.data[0]
     if wallet["balance"] < data.amount:
         raise HTTPException(status_code=400, detail="口座の残高が不足しています。")
 
-    # 3. サーバー側で現在のSOL価格を確定
     current_price = await fetch_current_sol_price()
 
-    # 4. 賭け金の引き落とし
+    # 残高の引き落とし (本来はRPCによるアトミック更新を推奨)
     new_balance = wallet["balance"] - data.amount
-    await supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+    update_res = await supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+    
+    if not update_res.data:
+        raise HTTPException(status_code=500, detail="残高の引き落とし処理に失敗しました。")
 
-    # 5. 保有ポジションの記録 (Gold額 ÷ SOL価格 = 保有SOL数)
+    # ポジションの記録
     sol_amount = data.amount / current_price
     COIN_POSITIONS[user_id_str] = {
         "wallet_id": data.wallet_id,
@@ -102,9 +104,7 @@ async def buy_coin(data: CoinBuyRequest, authorization: str = Header(None)):
 async def sell_coin(data: CoinSellRequest, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
     user_id_str = str(user.id)
-    supabase = await get_supabase()
-
-    # 1. ポジションの確認
+    
     if user_id_str not in COIN_POSITIONS:
         raise HTTPException(status_code=400, detail="保有しているポジションがありません。")
     
@@ -112,20 +112,26 @@ async def sell_coin(data: CoinSellRequest, authorization: str = Header(None)):
     if position["wallet_id"] != data.wallet_id:
         raise HTTPException(status_code=400, detail="購入時と異なる口座での売却はできません。")
 
-    # 2. サーバー側で現在のSOL価格を確定
+    supabase = await get_supabase()
+
+    # 【ゼロトラスト修正】売却時も必ず user_id を検証し、他人口座への不正送金を防止
+    wallet_res = await supabase.table("wallets").select("*").eq("wallet_id", position["wallet_id"]).eq("user_id", user.id).execute()
+    if not wallet_res.data:
+        raise HTTPException(status_code=403, detail="決済先口座の認証に失敗しました。")
+
+    wallet = wallet_res.data[0]
     current_price = await fetch_current_sol_price()
 
-    # 3. 最終金額の計算 (保有SOL数 × 現在のSOL価格)
+    # 最終金額の計算と口座への反映
     final_gold = int(position["sol_amount"] * current_price)
-
-    # 4. 口座への反映
-    wallet_res = await supabase.table("wallets").select("*").eq("wallet_id", position["wallet_id"]).execute()
-    wallet = wallet_res.data[0]
     new_balance = wallet["balance"] + final_gold
 
-    await supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+    update_res = await supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+    
+    if not update_res.data:
+        raise HTTPException(status_code=500, detail="決済金の振り込みに失敗しました。")
 
-    # 5. ポジションの破棄
+    # 決済完了後にポジション破棄
     del COIN_POSITIONS[user_id_str]
 
     return {
