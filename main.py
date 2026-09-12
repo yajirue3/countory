@@ -206,10 +206,11 @@ async def get_profile(authorization: str = Header(None)):
 async def update_profile(data: ProfileUpdate, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
     client = await get_supabase()
-    await client.table("profiles").update({
+    await client.table("profiles").upsert({
+        "id": user.id,
         "nickname": data.nickname,
         "real_name": data.real_name
-    }).eq("id", user.id).execute()
+    }).execute()
     return {"message": "国民情報を更新しました"}
 
 @app.post("/api/pay-tax")
