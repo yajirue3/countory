@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>村岡王国 - カオスコイン (Chaos Coin)</title>
+    <!-- 軽量チャートライブラリ -->
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=M+PLUS+1p:wght@900&display=swap');
+
+        :root {
+            --neon-pink: #ff007f;
+            --neon-cyan: #00f3ff;
+            --neon-yellow: #ffe600;
+            --neon-green: #00ff66;
+            --neon-red: #ff003c;
+        }
+
+        * { box-sizing: border-box; }
+
+        body { 
+            font-family: 'M PLUS 1p', 'Black Ops One', sans-serif; 
+            background: #000;
+            background-image: 
+                radial-gradient(circle at 50% 50%, #1a1a2e 0%, #000000 90%),
+                linear-gradient(0deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 0, 127, 0.1) 1px, transparent 1px);
+            background-size: 100% 100%, 20px 20px, 20px 20px;
+            color: #fff; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            margin: 0; 
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container { 
+            width: 100%; 
+            max-width: 500px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px;
+        }
+
+        .card { 
+            background: rgba(10, 2, 18, 0.95); 
+            border: 2px solid var(--neon-cyan); 
+            border-radius: 14px; 
+            padding: 10px; 
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.4); 
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .header { 
+            font-size: 1.2rem; 
+            font-weight: 900; 
+            color: var(--neon-yellow); 
+            text-align: center; 
+            border-bottom: 2px solid var(--neon-pink); 
+            padding-bottom: 5px; 
+            text-shadow: 0 0 10px var(--neon-yellow);
+        }
+
+        /* チャートエリア */
+        #chart-container {
+            width: 100%;
+            height: 250px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            overflow: hidden;
+            background: #050510;
+        }
+
+        .status-display {
+            display: flex;
+            justify-content: space-between;
+            background: #000;
+            border: 1px solid var(--neon-cyan);
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .stat-box { text-align: center; width: 48%; }
+        .stat-label { font-size: 0.7rem; color: #aaa; }
+        .stat-val { font-size: 1.1rem; font-weight: 900; font-family: 'Black Ops One', monospace; }
+        .val-up { color: var(--neon-green); text-shadow: 0 0 10px var(--neon-green); }
+        .val-down { color: var(--neon-red); text-shadow: 0 0 10px var(--neon-red); }
+        .val-neutral { color: #fff; }
+
+        /* 入力エリア */
+        .inputs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .input-group { display: flex; flex-direction: column; }
+        .label { font-size: 0.7rem; color: var(--neon-cyan); margin-bottom: 2px; }
+        input, select { 
+            width: 100%; padding: 6px; border-radius: 6px; 
+            border: 1.5px solid var(--neon-cyan); background: rgba(10, 10, 20, 0.9); 
+            color: #fff; font-weight: bold; outline: none;
+        }
+
+        /* ボタン */
+        .btn-group { display: flex; gap: 8px; margin-top: 5px; }
+        button { 
+            flex: 1; padding: 10px; border: none; border-radius: 8px; 
+            font-weight: 900; cursor: pointer; transition: transform 0.1s; 
+        }
+        button:active:not(:disabled) { transform: scale(0.95); }
+        button:disabled { filter: grayscale(1); cursor: not-allowed; opacity: 0.5; }
+
+        .btn-buy { 
+            background: linear-gradient(135deg, #00f3ff 0%, #0066ff 100%); 
+            color: #fff; box-shadow: 0 0 15px var(--neon-cyan); 
+        }
+        .btn-sell { 
+            background: linear-gradient(135deg, #ff007f 0%, #990000 100%); 
+            color: #fff; box-shadow: 0 0 15px var(--neon-pink); 
+        }
+        
+        .footer { text-align: center; margin-top: 10px; }
+        .btn-back { background: transparent; color: #888; border: 1px solid #555; padding: 5px 10px; font-size: 0.8rem;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <div class="header">📈 カオスコイン (Chaos SOL)</div>
+        
+        <!-- チャートエリア -->
+        <div id="chart-container"></div>
+
+        <!-- リアルタイムステータス -->
+        <div class="status-display">
+            <div class="stat-box">
+                <div class="stat-label">現在価格</div>
+                <div id="current-price" class="stat-val val-neutral">--- USDT</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">あなたの評価額</div>
+                <div id="my-value" class="stat-val val-neutral">未保有</div>
+            </div>
+        </div>
+
+        <div class="inputs-grid">
+            <div class="input-group">
+                <div class="label">💳 支払/受取口座</div>
+                <select id="wallet-select"></select>
+            </div>
+            <div class="input-group">
+                <div class="label">💎 投資額 (Gold)</div>
+                <input type="number" id="bet-amount" min="10" value="1000">
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button id="btn-buy" class="btn-buy">🌊 カオスに飛び込む (Buy)</button>
+            <button id="btn-sell" class="btn-sell" disabled>🔥 利益を確定する (Sell)</button>
+        </div>
+        
+        <div class="footer">
+            <button class="btn-back" onclick="location.href='/casino'">◀ カジノ一覧に戻る</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem("access_token");
+    if (!token) window.location.href = "/";
+
+    let currentPrice = 0;
+    let isHolding = false;
+    let entryAmountSol = 0;
+    let entryGold = 0;
+
+    // 軽量チャートの初期化
+    const chartProperties = {
+        width: document.getElementById('chart-container').clientWidth,
+        height: 250,
+        layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#d1d4dc' },
+        grid: { vertLines: { color: 'rgba(42, 46, 57, 0.2)' }, horzLines: { color: 'rgba(42, 46, 57, 0.2)' } },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        timeScale: { timeVisible: true, secondsVisible: true },
+    };
+    
+    const chart = LightweightCharts.createChart(document.getElementById('chart-container'), chartProperties);
+    const lineSeries = chart.addLineSeries({ color: '#00f3ff', lineWidth: 2 });
+
+    // Binance WebSocket通信 (SOL/USDT 1秒足)
+    const ws = new WebSocket('wss://stream.binance.com:9443/ws/solusdt@kline_1s');
+    
+    ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        const kline = message.k;
+        
+        currentPrice = parseFloat(kline.c); // 終値(現在価格)
+        
+        // チャートの更新
+        lineSeries.update({ time: kline.t / 1000, value: currentPrice });
+        
+        // 価格表示の更新
+        const priceEl = document.getElementById('current-price');
+        priceEl.innerText = currentPrice.toFixed(2) + " USDT";
+        
+        // 保有中の場合、評価額を計算
+        if (isHolding) {
+            const currentGold = Math.floor(entryAmountSol * currentPrice);
+            const valEl = document.getElementById('my-value');
+            valEl.innerText = currentGold + " Gold";
+            
+            if (currentGold > entryGold) {
+                valEl.className = "stat-val val-up";
+            } else if (currentGold < entryGold) {
+                valEl.className = "stat-val val-down";
+            } else {
+                valEl.className = "stat-val val-neutral";
+            }
+        }
+    };
+
+    // 初期化処理
+    async function init() {
+        try {
+            const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
+            if (!res.ok) return;
+            const wallets = await res.json();
+            
+            document.getElementById("wallet-select").innerHTML = wallets.map(w => 
+                `<option value="${w.wallet_id}">${w.wallet_name} - ${w.balance}G</option>`
+            ).join('');
+        } catch (e) { console.error(e); }
+    }
+
+    // 購入処理
+    document.getElementById('btn-buy').addEventListener('click', async () => {
+        const wallet_id = document.getElementById("wallet-select").value;
+        const amount = parseInt(document.getElementById("bet-amount").value);
+
+        if(!wallet_id || amount <= 0) return alert("入力が正しくありません");
+        
+        document.getElementById('btn-buy').disabled = true;
+
+        try {
+            const res = await fetch("/api/coin/buy", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ wallet_id, amount })
+            });
+            const data = await res.json();
+            
+            if (!res.ok) {
+                document.getElementById('btn-buy').disabled = false;
+                return alert(data.detail);
+            }
+
+            isHolding = true;
+            entryAmountSol = data.sol_amount;
+            entryGold = amount;
+            
+            document.getElementById('btn-sell').disabled = false;
+            document.getElementById('wallet-select').disabled = true;
+            document.getElementById('bet-amount').disabled = true;
+            
+            alert(`購入完了！購入価格: ${data.entry_price} USDT`);
+        } catch (e) {
+            alert("通信エラー");
+            document.getElementById('btn-buy').disabled = false;
+        }
+    });
+
+    // 売却処理
+    document.getElementById('btn-sell').addEventListener('click', async () => {
+        const wallet_id = document.getElementById("wallet-select").value;
+        document.getElementById('btn-sell').disabled = true;
+
+        try {
+            const res = await fetch("/api/coin/sell", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ wallet_id })
+            });
+            const data = await res.json();
+            
+            if (!res.ok) {
+                document.getElementById('btn-sell').disabled = false;
+                return alert(data.detail);
+            }
+
+            isHolding = false;
+            entryAmountSol = 0;
+            entryGold = 0;
+            
+            document.getElementById('my-value').innerText = "未保有";
+            document.getElementById('my-value').className = "stat-val val-neutral";
+            
+            document.getElementById('btn-buy').disabled = false;
+            document.getElementById('wallet-select').disabled = false;
+            document.getElementById('bet-amount').disabled = false;
+
+            const sign = data.pnl_gold >= 0 ? "+" : "";
+            alert(`決済完了！\n決済価格: ${data.exit_price} USDT\n損益: ${sign}${data.pnl_gold} Gold`);
+            init(); // 残高更新のため再読み込み
+            
+        } catch (e) {
+            alert("通信エラー");
+            document.getElementById('btn-sell').disabled = false;
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        chart.applyOptions({ width: document.getElementById('chart-container').clientWidth });
+    });
+
+    init();
+</script>
+</body>
+</html>
