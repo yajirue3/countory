@@ -2,178 +2,137 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>村岡王国 - 国立機械工場</title>
-    <!-- Three.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
-            --bg-body: #0d0f12;
-            --panel-bg: #1a1d24;
-            --panel-border: #3b4252;
-            --accent-blue: #4a90e2;
-            --accent-orange: #d97706;
-            --accent-red: #ef4444;
-            --text-main: #d8dee9;
-            --text-dim: #81a1c1;
+            --bg-body: #050608; --panel-bg: #15181d; --panel-border: #2a323d;
+            --accent-blue: #3b82f6; --accent-orange: #f59e0b; --accent-red: #ef4444;
+            --text-main: #e2e8f0; --text-dim: #94a3b8;
         }
 
         body { 
             background: var(--bg-body); color: var(--text-main); 
-            font-family: 'Consolas', 'Courier New', monospace; 
-            margin: 0; padding: 20px; 
-            display: flex; justify-content: center; align-items: center;
-            min-height: 100vh; overflow-x: hidden;
+            font-family: 'Consolas', monospace; margin: 0; padding: 10px; 
+            display: flex; justify-content: center; min-height: 100vh; overflow-x: hidden;
         }
 
-        /* 広々とした2カラムレイアウト */
-        .app-grid {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            gap: 20px;
-            width: 100%;
-            max-width: 1100px;
-        }
+        .app-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 15px; width: 100%; max-width: 1200px; }
 
-        @media (max-width: 800px) {
+        @media (max-width: 850px) {
             .app-grid { grid-template-columns: 1fr; }
+            .viewport-section { height: 40vh; min-height: 250px; }
+            .control-section { border-top: none; }
+            .btn-machinery { min-height: 48px; } /* スマホ用タッチ領域 */
         }
 
-        /* 3Dモニター枠 */
         .viewport-section {
-            background: #000;
-            border: 2px solid var(--panel-border);
-            border-radius: 6px;
-            position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8), inset 0 0 15px rgba(0,0,0,0.9);
-            overflow: hidden;
-            min-height: 400px;
-            display: flex;
+            background: #000; border: 2px solid var(--panel-border); border-radius: 8px;
+            position: relative; box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+            overflow: hidden; display: flex; flex-direction: column;
         }
-
-        #viewport-3d { width: 100%; height: 100%; }
+        #viewport-3d { width: 100%; height: 100%; flex: 1; }
 
         .cctv-osd {
-            position: absolute; top: 15px; left: 15px; right: 15px; pointer-events: none;
-            color: #fff; font-size: 0.9rem; text-shadow: 1px 1px 2px #000;
-            display: flex; justify-content: space-between; font-weight: bold;
-            opacity: 0.85; z-index: 10;
+            position: absolute; top: 12px; left: 12px; right: 12px; pointer-events: none;
+            color: #fff; font-size: 0.85rem; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000;
+            display: flex; justify-content: space-between; z-index: 10;
         }
-        .cctv-osd .red-dot {
-            display: inline-block; width: 12px; height: 12px; background: #ff003c; border-radius: 50%;
-            animation: blink 1s infinite; margin-right: 8px; box-shadow: 0 0 10px #ff003c;
+        .red-dot {
+            display: inline-block; width: 10px; height: 10px; background: #ff003c; border-radius: 50%;
+            animation: blink 1s infinite; margin-right: 6px;
         }
-        @keyframes blink { 50% { opacity: 0.2; } }
+        @keyframes blink { 50% { opacity: 0.3; } }
 
-        /* 操作パネル枠 */
         .control-section {
-            background: var(--panel-bg);
-            border: 2px solid var(--panel-border);
-            border-radius: 6px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            background: var(--panel-bg); border: 2px solid var(--panel-border);
+            border-radius: 8px; padding: 15px; display: flex; flex-direction: column;
         }
-
         .header-panel {
-            border-bottom: 1px dashed var(--panel-border); padding-bottom: 15px; margin-bottom: 15px;
-            display: flex; justify-content: space-between; align-items: flex-start;
+            border-bottom: 1px dashed var(--panel-border); padding-bottom: 12px; margin-bottom: 12px;
+            display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px;
         }
-        .header-panel h2 { margin: 0 0 8px 0; font-size: 1.25rem; color: var(--accent-blue); letter-spacing: 1px; }
+        .header-panel h2 { margin: 0; font-size: 1.1rem; color: var(--accent-blue); width: 100%; }
 
         select { 
-            background: #111; color: var(--accent-blue); border: 1px solid var(--panel-border); 
-            padding: 6px 10px; font-family: inherit; border-radius: 4px; width: 100%; box-sizing: border-box;
+            background: #0b0d10; color: var(--accent-blue); border: 1px solid var(--panel-border); 
+            padding: 8px; font-family: inherit; border-radius: 4px; width: 100%;
         }
 
-        .wear-container { font-size: 0.85rem; color: var(--accent-orange); display: flex; align-items: center; gap: 10px; }
-        .wear-bar-bg { flex: 1; height: 12px; background: #111; border: 1px solid #333; border-radius: 2px; overflow: hidden;}
-        .wear-bar-fill { height: 100%; background: var(--accent-orange); width: 0%; transition: width 0.3s; }
+        .wear-container { font-size: 0.8rem; color: var(--accent-orange); display: flex; align-items: center; gap: 8px; width: 100%; }
+        .wear-bar-bg { flex: 1; height: 8px; background: #0b0d10; border: 1px solid #333; }
+        .wear-bar-fill { height: 100%; background: var(--accent-orange); width: 0%; transition: width 0.4s ease; }
 
         .track-container { 
-            background: #111; height: 20px; border: 1px solid var(--panel-border); border-radius: 3px;
-            margin: 10px 0 20px 0; display: flex; align-items: center; padding: 0 4px; gap: 4px;
+            background: #0b0d10; height: 12px; border: 1px solid var(--panel-border);
+            margin: 10px 0 15px 0; display: flex; padding: 2px; gap: 2px;
         }
-        .track-node { flex: 1; height: 8px; background: #222; border-radius: 1px; transition: all 0.3s; }
-        .track-node.active { background: var(--accent-blue); box-shadow: 0 0 12px var(--accent-blue); }
-        .track-node.completed { background: #3b4252; }
+        .track-node { flex: 1; background: #222; transition: all 0.3s; }
+        .track-node.active { background: var(--accent-blue); box-shadow: 0 0 8px var(--accent-blue); }
+        .track-node.completed { background: #334155; }
 
         .action-area { 
-            flex: 1; background: #15181c; padding: 15px; border: 1px solid #2e3440; border-radius: 4px;
-            display: flex; flex-direction: column; gap: 12px;
+            flex: 1; background: #0f1115; padding: 15px; border: 1px solid #1e293b; 
+            border-radius: 6px; display: flex; flex-direction: column; gap: 10px;
         }
-        .panel-title { font-size: 1rem; color: var(--accent-blue); border-left: 4px solid var(--accent-blue); padding-left: 10px; margin: 0;}
-        .instruction-box { background: #222; padding: 10px; border-left: 3px solid var(--accent-orange); font-size: 0.9rem; line-height: 1.4; }
+        .panel-title { font-size: 0.95rem; color: var(--accent-blue); border-left: 3px solid var(--accent-blue); padding-left: 8px; margin: 0;}
+        .instruction-box { background: #1e293b; padding: 10px; font-size: 0.85rem; line-height: 1.5; border-radius: 4px; border-left: 3px solid var(--accent-orange);}
         
         .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .btn-machinery { 
-            background: #2e3440; color: #eceff4; border: 1px solid #4c566a; border-bottom: 4px solid #1f2229;
-            padding: 12px 16px; font-weight: bold; font-family: inherit; cursor: pointer; 
-            border-radius: 4px; transition: all 0.1s; font-size: 0.9rem; text-align: center;
+            background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-bottom: 3px solid #0f172a;
+            padding: 12px; font-weight: bold; font-family: inherit; cursor: pointer; 
+            border-radius: 4px; transition: transform 0.1s; font-size: 0.85rem;
         }
-        .btn-machinery:active { transform: translateY(3px); border-bottom-width: 1px; }
-        .btn-machinery:hover { background: #3b4252; color: #fff; }
+        .btn-machinery:active { transform: translateY(2px); border-bottom-width: 1px; }
+        .btn-machinery:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; border-bottom-width: 3px !important; }
         
-        .btn-action { background: #1e3a5f; border-color: #4a90e2; color: #fff; grid-column: span 2; }
-        .btn-action:hover { background: #284b7a; }
-        .btn-maint { background: #7a1f1f; border-color: #ff4d4d; width: 100%; margin-bottom: 15px; display: none; grid-column: span 2; }
+        .btn-action { background: #1d4ed8; border-color: #3b82f6; grid-column: span 2; }
+        .btn-maint { background: #991b1b; border-color: #f87171; grid-column: span 2; display: none; margin-bottom: 10px;}
 
-        .color-selectors { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-        .color-sel { text-align: center; font-size: 0.85rem; font-weight: bold; height: 32px; }
+        .color-selectors { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+        .color-sel { text-align: center; font-size: 0.8rem; height: 36px; }
 
-        .gauge-container { width: 100%; background: #111; height: 28px; border: 1px solid var(--panel-border); position: relative; border-radius: 3px; overflow: hidden; }
-        .gauge-target { position: absolute; left: 45%; width: 10%; height: 100%; background: rgba(74, 144, 226, 0.2); border-left: 2px solid var(--accent-blue); border-right: 2px solid var(--accent-blue); }
-        .gauge-pointer { position: absolute; width: 4px; height: 100%; background: var(--accent-red); left: 0%; box-shadow: 0 0 8px var(--accent-red); }
+        .gauge-container { width: 100%; background: #000; height: 24px; border: 1px solid var(--panel-border); position: relative; overflow: hidden; }
+        .gauge-target { position: absolute; left: 45%; width: 10%; height: 100%; background: rgba(59, 130, 246, 0.2); border-left: 2px solid var(--accent-blue); border-right: 2px solid var(--accent-blue); }
+        .gauge-pointer { position: absolute; width: 4px; height: 100%; background: var(--accent-red); left: 0%; box-shadow: 0 0 6px var(--accent-red); }
 
         .console-log { 
-            background: #0f1115; border: 1px solid #2e3440; padding: 12px; height: 100px; 
-            overflow-y: auto; font-size: 0.85rem; color: #a3be8c; margin-top: 15px; border-radius: 4px;
+            background: #050608; border: 1px solid #1e293b; padding: 10px; height: 80px; 
+            overflow-y: auto; font-size: 0.8rem; color: #10b981; margin-top: 15px; border-radius: 4px;
         }
+        .btn-back { background: #1e293b; color: #cbd5e1; border: none; padding: 12px; margin-top: 10px; cursor: pointer; border-radius: 4px; width: 100%;}
         
-        .btn-back { background: #222; color: #888; border: 1px solid #444; padding: 12px; margin-top: 15px; cursor: pointer; font-family: inherit; border-radius: 4px; width: 100%;}
-        .btn-back:hover { color: #fff; background: #333; }
-
-        .shake { animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-2px, 2px, 0) rotate(-0.5deg); }
-            20%, 80% { transform: translate3d(3px, -2px, 0) rotate(0.5deg); }
-            30%, 50%, 70% { transform: translate3d(-4px, 3px, 0) rotate(-1deg); }
-            40%, 60% { transform: translate3d(4px, -3px, 0) rotate(1deg); }
+        .loading-overlay {
+            position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7);
+            display: flex; justify-content: center; align-items: center; color: var(--accent-blue);
+            z-index: 50; display: none; font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-<div class="app-grid" id="main-container">
-    
-    <!-- 左側：3D監視カメラモニター -->
+<div class="app-grid">
     <div class="viewport-section">
         <div class="cctv-osd">
             <div><span class="red-dot"></span>SYS_REC</div>
             <div id="cctv-cam">CAM-01 [RECEIVE]</div>
         </div>
         <div id="viewport-3d"></div>
+        <div id="loadingOverlay" class="loading-overlay">TRANSMITTING...</div>
     </div>
 
-    <!-- 右側：操作盤 -->
     <div class="control-section">
         <div class="header-panel">
-            <div style="flex:1; margin-right: 15px;">
-                <h2>FACTORY_MURAOKA_01</h2>
-                <div class="wear-container">
-                    <span>TOOL WEAR:</span>
-                    <div class="wear-bar-bg"><div class="wear-bar-fill" id="wearBar"></div></div>
-                    <span id="wearText" style="width: 35px; text-align: right;">0%</span>
-                </div>
+            <h2>FACTORY_MURAOKA_01</h2>
+            <div class="wear-container">
+                <span>WEAR:</span><div class="wear-bar-bg"><div class="wear-bar-fill" id="wearBar"></div></div><span id="wearText">0%</span>
             </div>
-            <div style="width: 180px;">
-                <label style="font-size: 0.75rem; color: var(--text-dim); display:block; margin-bottom:4px;">DEST_ACCOUNT:</label>
-                <select id="walletSelect"></select>
-            </div>
+            <select id="walletSelect"></select>
         </div>
 
-        <button id="btnMaint" class="btn-machinery btn-maint" onclick="performMaintenance()">⚠️ 設備摩耗限界 - 手動パージ実行</button>
+        <button id="btnMaint" class="btn-machinery btn-maint" onclick="performMaintenance()">⚠️ 設備摩耗限界 - 手動パージ</button>
 
         <div class="track-container">
             <div id="node1" class="track-node"></div><div id="node2" class="track-node"></div>
@@ -181,330 +140,168 @@
             <div id="node5" class="track-node"></div>
         </div>
 
-        <div class="action-area" id="actionArea">
-            <div class="panel-title" id="stepTitle">INITIALIZING...</div>
-            <!-- 動的UI挿入領域 -->
-        </div>
+        <div class="action-area" id="actionArea"></div>
 
-        <div class="console-log" id="consoleLog">> SYSTEM BOOT.<br>> WAITING FOR OPERATOR...<br></div>
-        <button class="btn-back" onclick="location.href='/dashboard'">◀ ラインから退出する</button>
+        <div class="console-log" id="consoleLog">> SYSTEM BOOT.<br></div>
+        <button class="btn-back" onclick="location.href='/dashboard'">◀ ライン退出</button>
     </div>
-
 </div>
 
 <script>
-// --- プロシージャルテクスチャ生成 (鉄のデコボコ、ハザードストライプ、メーター文字盤) ---
-function createNoiseTexture() {
-    const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512;
-    const ctx = canvas.getContext('2d');
-    const id = ctx.createImageData(512, 512);
-    for(let i=0; i<id.data.length; i+=4) {
-        const v = Math.random() * 255;
-        id.data[i] = v; id.data[i+1] = v; id.data[i+2] = v; id.data[i+3] = 255;
-    }
-    ctx.putImageData(id, 0, 0);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
-    return tex;
-}
-
-function createHazardTexture() {
-    const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#d97706'; ctx.fillRect(0,0,256,256);
-    ctx.fillStyle = '#111';
-    for(let i=-256; i<512; i+=40) {
-        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i+40, 0);
-        ctx.lineTo(i+256+40, 256); ctx.lineTo(i+256, 256); ctx.fill();
-    }
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
-    return tex;
-}
-
-function createGaugeFace() {
-    const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#e5e7eb'; ctx.beginPath(); ctx.arc(128,128,128,0,Math.PI*2); ctx.fill();
-    ctx.translate(128,128);
-    for(let i=0; i<=10; i++) {
-        ctx.save(); ctx.rotate((i/10)*Math.PI - Math.PI/2);
-        ctx.fillStyle = '#000'; ctx.fillRect(-2, -120, 4, 15);
-        ctx.restore();
-    }
-    const tex = new THREE.CanvasTexture(canvas);
-    return tex;
-}
-
-// --- Web Audio API ---
+// --- 音響 ---
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playSound(type) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
     osc.connect(gain); gain.connect(audioCtx.destination);
     const now = audioCtx.currentTime;
-
     if (type === 'click') {
-        osc.type = 'square'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
-        gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
-        osc.start(now); osc.stop(now + 0.05);
-    } else if (type === 'error') {
-        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now);
-        gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.4);
-        osc.start(now); osc.stop(now + 0.4);
+        osc.type = 'square'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(300, now+0.05);
+        gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.01, now+0.05);
+        osc.start(now); osc.stop(now+0.05);
     } else if (type === 'heavy') { 
-        osc.type = 'square'; osc.frequency.setValueAtTime(120, now); osc.frequency.exponentialRampToValueAtTime(20, now + 0.3);
-        gain.gain.setValueAtTime(0.4, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-        osc.start(now); osc.stop(now + 0.3);
+        osc.type = 'square'; osc.frequency.setValueAtTime(100, now); osc.frequency.exponentialRampToValueAtTime(20, now+0.2);
+        gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now+0.2);
+        osc.start(now); osc.stop(now+0.2);
     }
 }
 
-// --- Three.js 超精密セットアップ ---
+// --- Three.js (軽量＆キャッシュ＆Lerp対応) ---
 const vp = document.getElementById('viewport-3d');
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x0a0c10, 0.05);
-
-// カメラ設定
-const camera = new THREE.PerspectiveCamera(45, vp.clientWidth / vp.clientHeight, 0.1, 100);
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+scene.fog = new THREE.FogExp2(0x050608, 0.04);
+const camera = new THREE.PerspectiveCamera(35, vp.clientWidth / vp.clientHeight, 0.1, 100);
+const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: "high-performance" });
 renderer.setSize(vp.clientWidth, vp.clientHeight);
-renderer.setClearColor(0x0a0c10);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // スマホでの激重対策
 vp.appendChild(renderer.domElement);
 
-// リサイズ対応
 window.addEventListener('resize', () => {
-    camera.aspect = vp.clientWidth / vp.clientHeight;
-    camera.updateProjectionMatrix();
+    camera.aspect = vp.clientWidth / vp.clientHeight; camera.updateProjectionMatrix();
     renderer.setSize(vp.clientWidth, vp.clientHeight);
 });
 
-// ライティング (明るく、かつ金属の反射を出す)
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-scene.add(ambientLight);
+// 照明 (軽量化のためShadowは最低限)
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xfff0dd, 1.2); dirLight.position.set(5, 10, 5); scene.add(dirLight);
 
-const dirLight = new THREE.DirectionalLight(0xffeedd, 1.5);
-dirLight.position.set(5, 10, 7);
-dirLight.castShadow = true;
-dirLight.shadow.mapSize.width = 1024; dirLight.shadow.mapSize.height = 1024;
-scene.add(dirLight);
+// マテリアル (テクスチャ生成廃止、基本Materialで表現)
+const matIron = new THREE.MeshStandardMaterial({ color: 0x222428, roughness: 0.9, metalness: 0.4 });
+const matSteel = new THREE.MeshStandardMaterial({ color: 0x777c85, roughness: 0.5, metalness: 0.8 });
+const matBrass = new THREE.MeshStandardMaterial({ color: 0xa6903f, roughness: 0.4, metalness: 0.9 });
+const matHighlight = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.8 });
 
-const bluePoint = new THREE.PointLight(0x4a90e2, 1.2, 15);
-bluePoint.position.set(-4, 3, 2);
-scene.add(bluePoint);
+// 背景作り込み (H鋼や配管をInstance化せずとも数個置くだけで雰囲気が出る)
+const bgGroup = new THREE.Group();
+const colGeo = new THREE.BoxGeometry(0.5, 15, 0.5);
+for(let i=0; i<4; i++){
+    const col = new THREE.Mesh(colGeo, matIron);
+    col.position.set(-8 + (i*5), 0, -5); bgGroup.add(col);
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(20, 0.5, 0.5), matIron);
+    beam.position.set(0, 6, -5 + i*2); bgGroup.add(beam);
+}
+scene.add(bgGroup);
 
-// マテリアル (プロシージャルノイズで鉄のデコボコを表現)
-const noiseTex = createNoiseTexture();
-const hazardTex = createHazardTexture();
-const gaugeFaceTex = createGaugeFace();
+// --- 全工程のモデルを事前生成してキャッシュ (描画コスト削減) ---
+const steps3D = {};
 
-const matCastIron = new THREE.MeshStandardMaterial({ 
-    color: 0x333538, roughness: 0.8, metalness: 0.6, bumpMap: noiseTex, bumpScale: 0.03 
-});
-const matSteel = new THREE.MeshStandardMaterial({ 
-    color: 0x888c91, roughness: 0.4, metalness: 0.9, bumpMap: noiseTex, bumpScale: 0.01 
-});
-const matBrass = new THREE.MeshStandardMaterial({ 
-    color: 0xb5a642, roughness: 0.3, metalness: 0.8 
-});
-const matHazard = new THREE.MeshStandardMaterial({ 
-    map: hazardTex, roughness: 0.7, metalness: 0.2 
-});
-const matPatliteOff = new THREE.MeshBasicMaterial({ color: 0x111111 });
+// 1. ベアリング
+steps3D[1] = new THREE.Group();
+const bOuter = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.2, 12, 24), matSteel);
+bOuter.rotation.x = Math.PI/2; steps3D[1].add(bOuter);
 
-// 背景ステージ
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), matCastIron);
-floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true;
-scene.add(floor);
-const backWall = new THREE.Mesh(new THREE.BoxGeometry(30, 10, 1), matCastIron);
-backWall.position.set(0, 5, -4); backWall.receiveShadow = true;
-scene.add(backWall);
-
-// 中央配置グループ
-let centerGroup = new THREE.Group();
-scene.add(centerGroup);
-
-// シグナルタワー (パトランプ)
-const patlite = new THREE.Group();
-patlite.position.set(-3, 3, -2);
-const lRed = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.4, 16), matPatliteOff); lRed.position.y = 1.2;
-const lYel = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.4, 16), matPatliteOff); lYel.position.y = 0.8;
-const lGrn = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.4, 16), matPatliteOff); lGrn.position.y = 0.4;
-patlite.add(lRed, lYel, lGrn, new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.4, 16), matSteel));
-scene.add(patlite);
-
-function setPatlite(status) {
-    lRed.material = matPatliteOff; lYel.material = matPatliteOff; lGrn.material = matPatliteOff;
-    if(status === 'error') lRed.material = new THREE.MeshBasicMaterial({ color: 0xff003c });
-    if(status === 'warn') lYel.material = new THREE.MeshBasicMaterial({ color: 0xffa500 });
-    if(status === 'ok') lGrn.material = new THREE.MeshBasicMaterial({ color: 0x00ff7f });
+// 2. 抵抗器
+steps3D[2] = new THREE.Group();
+const rBody = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1.6, 24), new THREE.MeshStandardMaterial({color:0xcca876}));
+rBody.rotation.z = Math.PI/2; steps3D[2].add(rBody);
+const bands = [];
+for(let i=0; i<4; i++){
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.15, 24), new THREE.MeshBasicMaterial({color:0x0}));
+    b.rotation.z = Math.PI/2; b.position.x = -0.5 + (i*0.33); steps3D[2].add(b); bands.push(b);
 }
 
-// --- ディテールアップされたパーツ生成関数 ---
-function createBearing() {
-    const group = new THREE.Group();
-    const outer = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.15, 16, 32), matSteel);
-    const inner = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.1, 16, 32), matSteel);
-    group.add(outer, inner);
-    for(let i=0; i<8; i++) {
-        const ball = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), matSteel);
-        ball.position.set(Math.cos(i/8*Math.PI*2)*0.45, Math.sin(i/8*Math.PI*2)*0.45, 0);
-        group.add(ball);
-    }
-    outer.castShadow = true; inner.castShadow = true;
-    return group;
+// 3. クラッチ (Extrude重いのでCylinderの組み合わせで表現)
+steps3D[3] = new THREE.Group();
+const gear1 = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.3, 16), matBrass); gear1.position.z = -0.2; gear1.rotation.x = Math.PI/2;
+const gear2 = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.3, 16), matBrass); gear2.position.z = 0.3; gear2.rotation.x = Math.PI/2;
+steps3D[3].add(gear1, gear2);
+
+// 4. 油圧
+steps3D[4] = new THREE.Group();
+const cyl = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 2, 24), matIron); cyl.position.y = -0.5;
+const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 2, 16), matSteel); rod.position.y = 1;
+steps3D[4].add(cyl, rod);
+
+// 5. プレス
+steps3D[5] = new THREE.Group();
+const press = new THREE.Mesh(new THREE.BoxGeometry(2, 1.5, 1.5), matHighlight); press.position.y = 2;
+steps3D[5].add(new THREE.Mesh(new THREE.BoxGeometry(3, 0.5, 2), matIron), press);
+
+// シーンに全て追加し、非表示にする
+for(let i=1; i<=5; i++) {
+    steps3D[i].visible = false;
+    scene.add(steps3D[i]);
 }
 
-function createResistor() {
-    const group = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 1.4, 32), new THREE.MeshStandardMaterial({color: 0xd9c5a0, roughness: 0.9}));
-    body.rotation.z = Math.PI / 2; body.castShadow = true; group.add(body);
-    
-    // リード線
-    const wire = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2, 16), matSteel);
-    wire.rotation.z = Math.PI / 2; wire.position.x = 1.3; group.add(wire);
-    const wire2 = wire.clone(); wire2.position.x = -1.3; group.add(wire2);
-    
-    // 4本のカラー帯 (シリンダーを少し太くして被せる)
-    const bands = [];
-    const bandGeo = new THREE.CylinderGeometry(0.36, 0.36, 0.12, 32);
-    for(let i=0; i<4; i++) {
-        const b = new THREE.Mesh(bandGeo, new THREE.MeshBasicMaterial({color:0x000000}));
-        b.rotation.z = Math.PI / 2; b.position.x = -0.45 + (i * 0.3);
-        group.add(b); bands.push(b);
-    }
-    return { mesh: group, bands: bands };
-}
+// カメラLerp制御変数
+const camTargetPos = new THREE.Vector3(0, 5, 8);
+const camTargetLook = new THREE.Vector3(0, 0, 0);
+const currentLook = new THREE.Vector3(0, 0, 0);
 
-function createDetailedGear() {
-    const shape = new THREE.Shape();
-    const teeth = 16; const rOut = 1.0; const rIn = 0.8;
-    for(let i=0; i<teeth*2; i++) {
-        const a = (i / (teeth*2)) * Math.PI * 2;
-        const r = i % 2 === 0 ? rOut : rIn;
-        if(i===0) shape.moveTo(Math.cos(a)*r, Math.sin(a)*r);
-        else shape.lineTo(Math.cos(a)*r, Math.sin(a)*r);
-    }
-    const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.3, bevelEnabled: true, bevelThickness:0.05, bevelSize:0.05, bevelSegments:2 });
-    const mesh = new THREE.Mesh(geo, matBrass);
-    mesh.castShadow = true;
-    
-    // 中央の穴とシャフト
-    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.6, 32), matSteel);
-    shaft.rotation.x = Math.PI/2; shaft.position.z = 0.15;
-    mesh.add(shaft);
-    return mesh;
-}
+const camViews = {
+    1: { pos: [-3, 4, 4], look: [0, 0, 0], text: "CAM-01 [RECEIVE]" },
+    2: { pos: [0, 3, 3.5], look: [0, 0, 0], text: "CAM-02 [CALIBRATE]" },
+    3: { pos: [2, 3, 4], look: [0, 0, 0], text: "CAM-03 [CLUTCH]" },
+    4: { pos: [1.5, 3, 4], look: [0, 0.5, 0], text: "CAM-04 [PRESSURE]" },
+    5: { pos: [3, 4, 5], look: [0, 0.5, 0], text: "CAM-05 [PRESS_OUT]" }
+};
 
-// 状態管理変数
-let activeResistorBands = null;
-let activeGears = null;
-let activeGaugeNeedle = null;
-let activePumpRod = null;
-
-// 工程ごとのシーン構築
-function buildSceneForStep(step) {
-    while(centerGroup.children.length > 0) centerGroup.remove(centerGroup.children[0]);
-    activeResistorBands = null; activeGears = null; activeGaugeNeedle = null; activePumpRod = null;
-
-    if (step === 1) {
-        const part = createBearing();
-        part.position.set(0, 0.6, 0); part.rotation.x = Math.PI/2;
-        centerGroup.add(part);
-    } else if (step === 2) {
-        const rObj = createResistor();
-        rObj.mesh.position.set(0, 1.2, 0); centerGroup.add(rObj.mesh);
-        activeResistorBands = rObj.bands;
-    } else if (step === 3) {
-        const g1 = createDetailedGear(); g1.position.set(0, 1.5, -0.2); centerGroup.add(g1);
-        const g2 = createDetailedGear(); g2.position.set(0, 1.5, 0.3); centerGroup.add(g2);
-        activeGears = [g1, g2];
-    } else if (step === 4) {
-        // 油圧シリンダー本体
-        const cyl = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 2, 32), matCastIron);
-        cyl.position.set(0, 1, 0); cyl.castShadow = true; centerGroup.add(cyl);
-        // ピストンロッド
-        activePumpRod = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 2, 32), matSteel);
-        activePumpRod.position.set(0, 2.5, 0); activePumpRod.castShadow = true; centerGroup.add(activePumpRod);
-        // メーター(3D空間内)
-        const gaugeBody = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32), matCastIron);
-        gaugeBody.rotation.x = Math.PI/2; gaugeBody.position.set(0, 1.5, 0.8);
-        const face = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.21, 32), new THREE.MeshBasicMaterial({map: gaugeFaceTex}));
-        face.rotation.x = Math.PI/2; face.position.set(0, 1.5, 0.8);
-        activeGaugeNeedle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.35, 0.02), new THREE.MeshBasicMaterial({color: 0xff003c}));
-        activeGaugeNeedle.position.set(0, 1.5, 0.92);
-        activeGaugeNeedle.rotation.z = Math.PI/2; // 初期位置(0)
-        centerGroup.add(gaugeBody, face, activeGaugeNeedle);
-    } else if (step === 5) {
-        // 巨大プレス機
-        const base = new THREE.Mesh(new THREE.BoxGeometry(3, 0.5, 2), matCastIron);
-        base.position.y = 0.25; base.castShadow = true; centerGroup.add(base);
-        const press = new THREE.Mesh(new THREE.BoxGeometry(2, 1.5, 1.5), matHazard);
-        press.position.y = 3.5; press.castShadow = true; centerGroup.add(press);
-        activePumpRod = press; // 流用して落下アニメーションさせる
-    }
-}
-
-// カメラアングル
-const camViews = [
-    { pos: [0, 4, 7], look: [0, 1, 0], text: "CAM-00 [STANDBY]" },
-    { pos: [-3, 3, 3], look: [0, 0.5, 0], text: "CAM-01 [RECEIVE]" },
-    { pos: [0, 2.5, 3.5], look: [0, 1.2, 0], text: "CAM-02 [CALIBRATE]" },
-    { pos: [2, 2.5, 4], look: [0, 1.5, 0], text: "CAM-03 [CLUTCH]" },
-    { pos: [1.5, 2.5, 3], look: [0, 1.5, 0], text: "CAM-04 [PRESSURE]" },
-    { pos: [4, 4, 5], look: [0, 1.5, 0], text: "CAM-05 [PRESS_OUT]" }
-];
-
-function setCamera(step) {
-    const v = camViews[step] || camViews[0];
-    camera.position.set(...v.pos);
-    camera.lookAt(...v.look);
+function switchStep3D(step) {
+    for(let i=1; i<=5; i++) steps3D[i].visible = (i === step);
+    const v = camViews[step] || camViews[1];
+    camTargetPos.set(...v.pos);
+    camTargetLook.set(...v.look);
     document.getElementById('cctv-cam').innerText = v.text;
-    playSound('click');
 }
 
-// アニメーションループ
 function animate() {
     requestAnimationFrame(animate);
     
-    // クラッチ回転
-    if(activeGears && activeGears.length === 2 && !isLocked) {
-        activeGears[0].rotation.z += 0.05;
-        activeGears[1].rotation.z -= 0.03;
-    }
-    // メーター連動 (空間内の針を動かす)
-    if(activeGaugeNeedle) {
-        // gaugeVal(0-100) を角度(Math.PI/2 から -Math.PI/2) にマッピング
-        const targetRot = Math.PI/2 - (gaugeVal / 100) * Math.PI;
-        activeGaugeNeedle.rotation.z += (targetRot - activeGaugeNeedle.rotation.z) * 0.2; // 滑らかに追従
-    }
+    // カメラの滑らかな移動
+    camera.position.lerp(camTargetPos, 0.08);
+    currentLook.lerp(camTargetLook, 0.08);
+    camera.lookAt(currentLook);
+
+    // 機械のアニメーション (表示されている時だけ動かす)
+    if(steps3D[3].visible && !isLocked) { gear1.rotation.y += 0.04; gear2.rotation.y -= 0.02; }
+    // ピストンの慣性戻り
+    if(steps3D[4].visible && rod.position.y < 1.0) { rod.position.y += (1.0 - rod.position.y) * 0.1; }
 
     renderer.render(scene, camera);
 }
 animate();
 
-// --- アプリケーションロジック ---
+
+// --- ロジック & 通信 (二重送信防止Mutex導入) ---
 const token = localStorage.getItem("access_token") || localStorage.getItem("token");
 if (!token) window.location.href = "/";
 
-let currentSession = null;
-let gaugeVal = 0, gaugeDir = 2, gaugeInterval = null;
-let tapCount = 0;
+let currentSession = null, gaugeVal = 0, gaugeDir = 2, gaugeInterval = null, tapCount = 0;
 let isLocked = false;
+let isFetching = false; // ★API通信中の重複実行を防止
 
-// 4本帯カラーコード (第4帯用の金銀含む)
 const colorCodes = [
-    {n:"黒(0)", v:0, c:"#111", tc:"#fff"}, {n:"茶(1)", v:1, c:"#654321", tc:"#fff"},
-    {n:"赤(2)", v:2, c:"#cc0000", tc:"#fff"}, {n:"橙(3)", v:3, c:"#ff8c00", tc:"#000"},
-    {n:"黄(4)", v:4, c:"#ffd700", tc:"#000"}, {n:"緑(5)", v:5, c:"#008000", tc:"#fff"},
-    {n:"青(6)", v:6, c:"#0000cd", tc:"#fff"}, {n:"紫(7)", v:7, c:"#800080", tc:"#fff"},
-    {n:"灰(8)", v:8, c:"#808080", tc:"#fff"}, {n:"白(9)", v:9, c:"#ffffff", tc:"#000"}
+    {n:"黒(0)", v:0, c:"#111"}, {n:"茶(1)", v:1, c:"#654321"}, {n:"赤(2)", v:2, c:"#cc0000"},
+    {n:"橙(3)", v:3, c:"#ff8c00"}, {n:"黄(4)", v:4, c:"#ffd700"}, {n:"緑(5)", v:5, c:"#008000"},
+    {n:"青(6)", v:6, c:"#0000cd"}, {n:"紫(7)", v:7, c:"#800080"}, {n:"灰(8)", v:8, c:"#808080"},
+    {n:"白(9)", v:9, c:"#ffffff"}, {n:"金", v:10, c:"#d4af37"}, {n:"銀", v:11, c:"#c0c0c0"}
 ];
 
 async function initFactory() {
-    await loadWallets();
+    await fetch('/api/wallets', { headers: { 'Authorization': `Bearer ${token}` } })
+        .then(r=>r.json()).then(w => {
+            document.getElementById('walletSelect').innerHTML = w.length===0 ? '<option value="">口座なし</option>' : w.map(x=>`<option value="${x.wallet_id}">${x.wallet_name} - ${Math.floor(x.balance)}G</option>`).join('');
+        }).catch(e=>{});
     await fetchStatus();
 }
 
@@ -513,217 +310,146 @@ function logMessage(msg) {
     log.innerHTML += `> ${msg}<br>`; log.scrollTop = log.scrollHeight;
 }
 
-function escapeHtml(str) { return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
-
-async function loadWallets() {
-    try {
-        const res = await fetch('/api/wallets', { headers: { 'Authorization': `Bearer ${token}` } });
-        if (!res.ok) return;
-        const wallets = await res.json();
-        const sel = document.getElementById('walletSelect');
-        sel.innerHTML = wallets.length === 0 ? '<option value="">口座なし</option>' : wallets.map(w => `<option value="${w.wallet_id}">${w.wallet_name} - ${Math.floor(w.balance)}G</option>`).join('');
-    } catch(e) {}
-}
-
 async function fetchStatus() {
     try {
         const res = await fetch('/api/factory/status', { headers: { 'Authorization': `Bearer ${token}` } });
         const data = await res.json();
         currentSession = data.session;
-        updateWear(data.wear);
-        renderStep();
-    } catch(e) { logMessage("<span style='color:var(--accent-red);'>ERROR: Connection failed.</span>"); }
+        updateWear(data.wear); renderStep();
+    } catch(e) { logMessage("<span style='color:var(--accent-red);'>ERROR: 通信エラー</span>"); }
 }
 
 function updateWear(wear) {
     document.getElementById('wearBar').style.width = `${wear}%`;
     document.getElementById('wearText').innerText = `${wear}%`;
-    if (wear >= 100) {
-        document.getElementById('btnMaint').style.display = 'block';
-        isLocked = true; setPatlite('error');
-    } else {
-        document.getElementById('btnMaint').style.display = 'none';
-        isLocked = false; setPatlite('warn');
-    }
+    isLocked = (wear >= 100);
+    document.getElementById('btnMaint').style.display = isLocked ? 'block' : 'none';
 }
 
 async function performMaintenance() {
-    playSound('heavy');
+    if(isFetching) return; isFetching = true;
     try {
         const res = await fetch('/api/factory/maintain', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
         const data = await res.json();
-        logMessage(`<span style="color:var(--success-color);">${data.message}</span>`);
-        updateWear(data.wear); setPatlite('ok');
-    } catch(e) {}
-}
-
-function updateNodes(currentStep) {
-    for (let i = 1; i <= 5; i++) {
-        const node = document.getElementById(`node${i}`);
-        node.className = 'track-node';
-        if (i < currentStep) node.classList.add('completed');
-        if (i === currentStep) node.classList.add('active');
-    }
+        logMessage(`<span style="color:var(--accent-blue);">${data.message}</span>`);
+        updateWear(data.wear);
+    } catch(e) {} finally { isFetching = false; }
 }
 
 function renderStep() {
     if(!currentSession) return;
     const step = currentSession.current_step;
     document.getElementById('stepTitle').innerText = currentSession.title;
+    switchStep3D(step);
     
-    updateNodes(step);
-    buildSceneForStep(step);
-    setCamera(step);
-    if(!isLocked) setPatlite('warn');
+    for (let i = 1; i <= 5; i++) {
+        const n = document.getElementById(`node${i}`);
+        n.className = 'track-node' + (i < step ? ' completed' : (i === step ? ' active' : ''));
+    }
 
     const area = document.getElementById('actionArea');
-    area.innerHTML = '';
-
+    
     if (step === 1) {
-        // バックエンド改修により target_part が届くようになった
-        area.innerHTML = `
-            <div class="instruction-box">要求仕様: <b style="color:var(--accent-orange);">${escapeHtml(currentSession.target_part)}</b> をラインに投入せよ</div>
-            <div class="btn-grid">
-                ${currentSession.options.map(opt => `<button class="btn-machinery" onclick="submitStep(${step}, '${opt}')">${opt}</button>`).join('')}
-            </div>`;
+        area.innerHTML = `<div class="instruction-box">要求仕様: <b style="color:var(--accent-orange);">${currentSession.target_part}</b></div>
+            <div class="btn-grid">${currentSession.options.map(opt => `<button class="btn-machinery" onclick="submitStep(${step}, '${opt}')">${opt}</button>`).join('')}</div>`;
     } else if (step === 2) {
-        const opts = colorCodes.slice(0,10).map(c => `<option value="${c.v}" style="background:${c.c}; color:${c.tc}">${c.n}</option>`).join('');
-        const mOpts = colorCodes.slice(0,5).map(c => `<option value="${c.v}" style="background:${c.c}; color:${c.tc}">x10^${c.v}</option>`).join('');
-        const tolOpts = `<option value="10" style="background:#b8860b; color:#fff">金(±5%)</option><option value="11" style="background:#888; color:#fff">銀(±10%)</option>`;
-        
-        area.innerHTML = `
-            <div class="instruction-box" style="margin-bottom:10px;">${escapeHtml(currentSession.math_question)}</div>
+        const o1 = colorCodes.slice(0,10).map(c => `<option value="${c.v}" style="background:${c.c}; color:#fff">${c.n}</option>`).join('');
+        const om = colorCodes.slice(0,5).map(c => `<option value="${c.v}" style="background:${c.c}; color:#fff">x10^${c.v}</option>`).join('');
+        const ot = `<option value="10" style="background:#b8860b; color:#fff">金(±5%)</option><option value="11" style="background:#888; color:#fff">銀(±10%)</option>`;
+        area.innerHTML = `<div class="instruction-box">${currentSession.math_question}</div>
             <div class="color-selectors">
-                <select id="col1" class="color-sel" onchange="updateBandColors()">${opts}</select>
-                <select id="col2" class="color-sel" onchange="updateBandColors()">${opts}</select>
-                <select id="colM" class="color-sel" onchange="updateBandColors()">${mOpts}</select>
-                <select id="colT" class="color-sel" onchange="updateBandColors()">${tolOpts}</select>
-            </div>
-            <div class="btn-grid"><button class="btn-machinery btn-action" onclick="submitColorCode()">カラーバンド書込</button></div>`;
-        updateBandColors();
+                <select id="col1" class="color-sel" onchange="updColor()">${o1}</select>
+                <select id="col2" class="color-sel" onchange="updColor()">${o1}</select>
+                <select id="colM" class="color-sel" onchange="updColor()">${om}</select>
+                <select id="colT" class="color-sel" onchange="updColor()">${ot}</select>
+            </div><button class="btn-machinery btn-action" onclick="subCol()">カラーバンド書込</button>`;
+        updColor();
     } else if (step === 3) {
-        area.innerHTML = `
-            <div class="instruction-box">${escapeHtml(currentSession.instruction)}</div>
+        area.innerHTML = `<div class="instruction-box">${currentSession.instruction}</div>
             <div class="gauge-container"><div class="gauge-target"></div><div id="pointer" class="gauge-pointer"></div></div>
-            <div class="btn-grid"><button class="btn-machinery btn-action" onclick="stopGauge(${step})">クラッチ結合 [LOCK]</button></div>`;
+            <button class="btn-machinery btn-action" onclick="stopGauge(${step})">クラッチ結合 [LOCK]</button>`;
         startGauge();
     } else if (step === 4) {
         tapCount = 0;
-        area.innerHTML = `
-            <div class="instruction-box">${escapeHtml(currentSession.instruction)}</div>
-            <div style="font-size:1.2rem; font-weight:bold; color:var(--accent-blue); text-align:center; padding:5px;">圧力: <span id="taps">0</span> / 10 Bar</div>
-            <div class="btn-grid"><button class="btn-machinery btn-action" onclick="countTap(${step})">加圧ストローク [PUMP]</button></div>`;
+        area.innerHTML = `<div class="instruction-box">${currentSession.instruction}</div>
+            <div style="font-size:1.2rem; font-weight:bold; color:var(--accent-blue); text-align:center;">圧力: <span id="taps">0</span> / 10 Bar</div>
+            <button class="btn-machinery btn-action" onclick="countTap(${step})">加圧ストローク [PUMP]</button>`;
     } else if (step === 5) {
-        area.innerHTML = `
-            <div class="instruction-box">${escapeHtml(currentSession.instruction)}</div>
-            <div class="btn-grid"><button class="btn-machinery btn-action" style="background:var(--accent-orange); border-color:#fff;" onclick="submitStep(${step}, true)">出荷打刻・口座転送</button></div>`;
+        area.innerHTML = `<div class="instruction-box">${currentSession.instruction}</div>
+            <button class="btn-machinery btn-action" style="background:var(--accent-orange);" onclick="submitStep(${step}, true)">出荷打刻・口座転送</button>`;
     }
 }
 
-function updateBandColors() {
-    if(!activeResistorBands) return;
-    const vals = [
-        parseInt(document.getElementById('col1').value),
-        parseInt(document.getElementById('col2').value),
-        parseInt(document.getElementById('colM').value),
-        parseInt(document.getElementById('colT').value)
-    ];
-    for(let i=0; i<4; i++) {
-        let hex = "#000";
-        if(i < 3) hex = colorCodes.find(c=>c.v === vals[i]).c;
-        else hex = vals[3] === 10 ? "#d4af37" : "#c0c0c0"; // 金銀
-        activeResistorBands[i].material.color.set(hex);
-    }
-}
-
-function submitColorCode() {
-    const v1 = parseInt(document.getElementById('col1').value);
-    const v2 = parseInt(document.getElementById('col2').value);
-    const vm = parseInt(document.getElementById('colM').value);
-    const vt = parseInt(document.getElementById('colT').value);
-    submitStep(2, [v1, v2, vm, vt]);
-}
+window.updColor = function() {
+    const v = [parseInt(document.getElementById('col1').value), parseInt(document.getElementById('col2').value),
+               parseInt(document.getElementById('colM').value), parseInt(document.getElementById('colT').value)];
+    for(let i=0; i<4; i++) bands[i].material.color.set(i<3 ? colorCodes.find(c=>c.v===v[i]).c : (v[3]===10?"#d4af37":"#c0c0c0"));
+};
+window.subCol = function() {
+    submitStep(2, [parseInt(document.getElementById('col1').value), parseInt(document.getElementById('col2').value),
+                   parseInt(document.getElementById('colM').value), parseInt(document.getElementById('colT').value)]);
+};
 
 function startGauge() {
     gaugeVal = 0; gaugeDir = 2; clearInterval(gaugeInterval);
     gaugeInterval = setInterval(() => {
         gaugeVal += gaugeDir;
         if (gaugeVal >= 100 || gaugeVal <= 0) gaugeDir *= -1;
-        const ptr = document.getElementById('pointer');
-        if (ptr) ptr.style.left = `${gaugeVal}%`;
+        if(document.getElementById('pointer')) document.getElementById('pointer').style.left = `${gaugeVal}%`;
     }, 20);
 }
-
-function stopGauge(step) {
-    clearInterval(gaugeInterval);
-    submitStep(step, Math.floor(gaugeVal));
-}
+function stopGauge(step) { clearInterval(gaugeInterval); submitStep(step, Math.floor(gaugeVal)); }
 
 function countTap(step) {
-    if(isLocked) return;
+    if(isLocked || isFetching) return;
     tapCount++; playSound('heavy');
-    // ピストン押し込みアニメーション
-    if(activePumpRod) {
-        activePumpRod.position.y -= 0.15;
-        setTimeout(()=>{ activePumpRod.position.y += 0.15; }, 100);
-    }
-    // メーター上昇
-    gaugeVal = Math.min(100, tapCount * 10);
+    rod.position.y = 0.5; // 沈み込みアニメ (Lerpで自動的に戻る)
     document.getElementById('taps').innerText = tapCount;
-    if (tapCount >= 10) setTimeout(() => submitStep(step, tapCount), 300);
+    if (tapCount >= 10) submitStep(step, tapCount);
 }
 
-function triggerShake() {
-    const container = document.getElementById("main-container");
-    container.classList.remove("shake"); void container.offsetWidth; container.classList.add("shake");
-}
-
+// 通信処理 (重複防止ロック付き)
 async function submitStep(step, answer) {
-    if (isLocked) return;
+    if (isLocked || isFetching) return;
     const walletId = document.getElementById('walletSelect').value;
-    
-    if (step === 5 && !walletId) {
-        logMessage("<span style='color:var(--accent-red);'>ERROR: 出荷先口座を選択してください。</span>");
-        playSound('error'); setPatlite('error'); return;
-    }
+    if (step === 5 && !walletId) { logMessage("<span style='color:var(--accent-red);'>ERROR: 出荷先口座を選択してください。</span>"); return; }
+
+    isFetching = true;
+    document.getElementById('loadingOverlay').style.display = 'flex'; // ローディングUI表示
 
     try {
         const res = await fetch('/api/factory/process', {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ step: step, answer: answer, wallet_id: walletId })
         });
-        
         const data = await res.json();
         
         if (!res.ok) {
-            logMessage(`<span style="color:var(--accent-red);">${data.detail}</span>`);
-            playSound('error'); setPatlite('error');
+            logMessage(`<span style="color:var(--accent-red);">${data.detail}</span>`); playSound('error');
             if(data.detail.includes("WEAR")) updateWear(100);
-            else {
-                centerGroup.position.y -= 3; // 不合格品廃棄モーション
-                setTimeout(()=> { centerGroup.position.y = 0; fetchStatus(); }, 1500);
-            }
+            else setTimeout(()=> fetchStatus(), 1000);
             return;
         }
 
-        updateWear(data.wear);
-        playSound('click'); setPatlite('ok');
-
+        updateWear(data.wear); playSound('click');
         if (step === 5) { 
-            playSound('heavy'); triggerShake(); 
-            if(activePumpRod) activePumpRod.position.y = 1.0; // プレス落下
+            playSound('heavy'); 
+            press.position.y = 0.8; setTimeout(()=>{press.position.y = 2;}, 300); // プレスアニメ
         }
 
         if (data.completed) {
-            logMessage(`<span style="color:var(--success-color);">${data.message}</span>`);
-            await loadWallets();
-        } else {
-            logMessage(`工程 [STEP 0${step}] 正常完了。次工程へ移行。`);
+            logMessage(`<span style="color:var(--accent-blue);">${data.message}</span>`);
+            fetch('/api/wallets', { headers: { 'Authorization': `Bearer ${token}` } }).then(r=>r.json()).then(w => {
+                document.getElementById('walletSelect').innerHTML = w.map(x=>`<option value="${x.wallet_id}">${x.wallet_name} - ${Math.floor(x.balance)}G</option>`).join('');
+            });
         }
-
         currentSession = data.next_step;
-        setTimeout(() => renderStep(), 800);
-    } catch(e) { logMessage("<span style='color:var(--accent-red);'>ERROR: リクエスト送信失敗。</span>"); }
+        renderStep();
+    } catch(e) { logMessage("<span style='color:var(--accent-red);'>ERROR: 通信エラー</span>"); }
+    finally {
+        isFetching = false;
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
 }
 
 window.onload = initFactory;
