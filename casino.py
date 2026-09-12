@@ -315,10 +315,10 @@ async def spin_slot(data: SlotSpinRequest, authorization: str = Header(None)):
     # 1. 賭け金を即時引き落とし
     new_balance = current_balance - data.bet_amount
     
-    # 2. 内部抽選 (RTP 95%想定: BIG=45%, REG=15%, ブドウ=20%, チェリー=5%, リプレイ=10%)
+    # 2. 内部抽選 (RTP 95%想定: 空白図柄を排除し完全な実機確率へ)
     rand_val = random.randint(0, 999)
     
-    # 役と配当、リールに表示する最終図柄の決定
+    # 図柄: "7", "BAR", "BELL", "GRAPE", "CHERRY", "REPLAY"
     if rand_val < 15: # 1.5% BIG BONUS (30倍)
         prize = "BIG"
         payout = data.bet_amount * 30
@@ -327,34 +327,39 @@ async def spin_slot(data: SlotSpinRequest, authorization: str = Header(None)):
         prize = "REG"
         payout = data.bet_amount * 15
         result_symbols = ["BAR", "BAR", "BAR"]
-    elif rand_val < 125: # 10.0% ブドウ (2倍)
+    elif rand_val < 75: # 5.0% ベル (5倍)
+        prize = "BELL"
+        payout = data.bet_amount * 5
+        result_symbols = ["BELL", "BELL", "BELL"]
+    elif rand_val < 175: # 10.0% ブドウ (2倍)
         prize = "GRAPE"
         payout = data.bet_amount * 2
         result_symbols = ["GRAPE", "GRAPE", "GRAPE"]
-    elif rand_val < 175: # 5.0% チェリー (1倍)
+    elif rand_val < 225: # 5.0% チェリー (1倍)
         prize = "CHERRY"
         payout = data.bet_amount * 1
-        result_symbols = ["CHERRY", random.choice(["BLANK", "GRAPE"]), random.choice(["BLANK", "BAR"])]
-    elif rand_val < 275: # 10.0% リプレイ (1倍)
+        result_symbols = ["CHERRY", random.choice(["BELL", "GRAPE", "REPLAY"]), random.choice(["BAR", "BELL", "GRAPE"])]
+    elif rand_val < 325: # 10.0% リプレイ (1倍)
         prize = "REPLAY"
         payout = data.bet_amount * 1
         result_symbols = ["REPLAY", "REPLAY", "REPLAY"]
-    else: # ハズレ
+    else: # 67.5% ハズレ (0倍)
         prize = "MISS"
         payout = 0
-        pool = ["7", "BAR", "GRAPE", "CHERRY", "REPLAY", "BLANK"]
+        pool = ["7", "BAR", "BELL", "GRAPE", "REPLAY"]
         result_symbols = [random.choice(pool) for _ in range(3)]
+        
+        # 万が一ランダムで揃ってしまったら、中リールをズラしてハズレを確定させる
         if result_symbols[0] == result_symbols[1] == result_symbols[2]:
-            result_symbols[1] = "BLANK"
-        if result_symbols[0] == "CHERRY":
-            result_symbols[0] = "BLANK"
+            others = [s for s in pool if s != result_symbols[1]]
+            result_symbols[1] = random.choice(others)
 
     # ペカり（告知）フラグの決定
     is_pekari = False
     is_early_pekari = False
     if prize in ["BIG", "REG"]:
         is_pekari = True
-        if random.random() < 0.25:
+        if random.random() < 0.25: # 25%の確率で先ペカ
             is_early_pekari = True
 
     # 3. 配当があれば即時加算
