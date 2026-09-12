@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>村岡王国 - カオスコイン (Chaos Coin)</title>
+    <title>Solana (SOL) トレード</title>
     <!-- 軽量チャートライブラリ -->
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
@@ -62,7 +62,16 @@
             text-align: center; 
             border-bottom: 2px solid var(--neon-pink); 
             padding-bottom: 5px; 
+            margin-bottom: 5px;
             text-shadow: 0 0 10px var(--neon-yellow);
+        }
+
+        .description {
+            font-size: 0.75rem;
+            color: #ccc;
+            text-align: center;
+            margin-bottom: 5px;
+            line-height: 1.4;
         }
 
         /* チャートエリア */
@@ -127,7 +136,10 @@
 
 <div class="container">
     <div class="card">
-        <div class="header">📈 カオスコイン (Chaos SOL)</div>
+        <div class="header">📈 Solana (SOL) トレード</div>
+        <div class="description">
+            この機能は、暗号資産「Solana (SOL)」の実際の市場価格（Binance API）にリアルタイムで連動しています。現在のSOL価格に基づいてGoldで疑似投資を行い、価格変動による損益を体験できます。
+        </div>
         
         <!-- チャートエリア -->
         <div id="chart-container"></div>
@@ -156,8 +168,8 @@
         </div>
 
         <div class="btn-group">
-            <button id="btn-buy" class="btn-buy">🌊 カオスに飛び込む (Buy)</button>
-            <button id="btn-sell" class="btn-sell" disabled>🔥 利益を確定する (Sell)</button>
+            <button id="btn-buy" class="btn-buy">📈 買い (Buy)</button>
+            <button id="btn-sell" class="btn-sell" disabled>📉 決済 (Sell)</button>
         </div>
         
         <div class="footer">
