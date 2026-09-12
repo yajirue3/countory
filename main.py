@@ -15,7 +15,7 @@ from policy import router as policy_router
 from fastapi.staticfiles import StaticFiles
 from factory import router as factory_router
 from card import router as card_router
-
+from coin import router as coin_router
 from db import get_supabase
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
@@ -152,6 +152,10 @@ def get_tower(request: Request):
 @app.get("/factory", response_class=HTMLResponse)
 def get_factory(request: Request):
     return templates.TemplateResponse(request=request, name="factory.html")
+
+@app.get("/coin", response_class=HTMLResponse)
+def get_coin(request: Request):
+    return templates.TemplateResponse(request=request, name="coin.html")
 
 app.mount("/templates", StaticFiles(directory="templates"), name="templates")
 
@@ -590,3 +594,4 @@ app.include_router(inventory_router)
 app.include_router(policy_router)
 app.include_router(factory_router)
 app.include_router(card_router)
+app.include_router(coin_router)
