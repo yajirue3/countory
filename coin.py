@@ -49,7 +49,7 @@ async def get_coin_page(request: Request):
     return templates.TemplateResponse(request=request, name="coin.html")
 
 # --------------------------------------------------
-# カオスコインAPI：購入 (Buy)
+# SOLトレードAPI：購入 (Buy)
 # --------------------------------------------------
 @router.post("/api/coin/buy")
 async def buy_coin(data: CoinBuyRequest, authorization: str = Header(None)):
@@ -61,7 +61,7 @@ async def buy_coin(data: CoinBuyRequest, authorization: str = Header(None)):
     if data.amount <= 0:
         raise HTTPException(status_code=400, detail="投資額は1Gold以上を指定してください。")
     if user_id_str in COIN_POSITIONS:
-        raise HTTPException(status_code=400, detail="既にカオスコインを保有しています。先に売却してください。")
+        raise HTTPException(status_code=400, detail="既にポジションを保有しています。先に決済してください。")
 
     # 2. 口座と残高の検証
     wallet_res = await supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
@@ -96,7 +96,7 @@ async def buy_coin(data: CoinBuyRequest, authorization: str = Header(None)):
     }
 
 # --------------------------------------------------
-# カオスコインAPI：売却 (Sell)
+# SOLトレードAPI：売却 (Sell)
 # --------------------------------------------------
 @router.post("/api/coin/sell")
 async def sell_coin(data: CoinSellRequest, authorization: str = Header(None)):
@@ -106,7 +106,7 @@ async def sell_coin(data: CoinSellRequest, authorization: str = Header(None)):
 
     # 1. ポジションの確認
     if user_id_str not in COIN_POSITIONS:
-        raise HTTPException(status_code=400, detail="保有しているカオスコインがありません。")
+        raise HTTPException(status_code=400, detail="保有しているポジションがありません。")
     
     position = COIN_POSITIONS[user_id_str]
     if position["wallet_id"] != data.wallet_id:
