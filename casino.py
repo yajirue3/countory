@@ -293,7 +293,7 @@ async def get_slot(request: Request):
     return templates.TemplateResponse(request=request, name="slot.html")
 
 # --------------------------------------------------
-# カジノAPI：スロットゲーム（高配当＆高還元率 RTP 98.0%）
+# カジノAPI：スロットゲーム（高確率＆低ボラティリティ RTP 98.0%）
 # --------------------------------------------------
 @router.post("/api/slot/spin")
 async def spin_slot(data: SlotSpinRequest, authorization: str = Header(None)):
@@ -316,28 +316,28 @@ async def spin_slot(data: SlotSpinRequest, authorization: str = Header(None)):
     # 1. 賭け金を即時引き落とし
     new_balance = current_balance - data.bet_amount
     
-    # 2. 内部抽選 (ダイスを超える高還元率 RTP 98.0%)
+    # 2. 内部抽選 (超高確率仕様 RTP 98.0%)
     rand_val = random.randint(0, 999)
     
-    if rand_val < 5:  # 確率 0.5%
+    if rand_val < 10:    # 確率 1.0%
         prize = "BIG"
-        payout = data.bet_amount * 100  # ダイス最大配当(96.5倍)を超える100倍
+        payout = data.bet_amount * 50   # 倍率は50倍に抑えつつ確率を2倍(1.0%)に上昇
         result_symbols = ["7", "7", "7"]
-    elif rand_val < 15:  # 確率 1.0%
+    elif rand_val < 40:  # 確率 3.0%
         prize = "REG"
-        payout = data.bet_amount * 20   # 旧REG(8倍)から20倍に大幅強化
+        payout = data.bet_amount * 10   # 10倍 (確率3.0%)
         result_symbols = ["BAR", "BAR", "BAR"]
-    elif rand_val < 45:  # 確率 3.0%
+    elif rand_val < 120: # 確率 8.0%
         prize = "BELL"
-        payout = data.bet_amount * 5    # 旧BELL(3倍)から5倍に強化
+        payout = data.bet_amount * 3    # 3倍 (確率8.0%)
         result_symbols = ["BELL", "BELL", "BELL"]
-    elif rand_val < 95:  # 確率 5.0%
+    elif rand_val < 270: # 確率 15.0%
         prize = "GRAPE"
-        payout = data.bet_amount * 2
+        payout = data.bet_amount * 1.5  # 1.5倍 (確率15.0%)
         result_symbols = ["GRAPE", "GRAPE", "GRAPE"]
-    elif rand_val < 125: # 確率 3.0%
+    elif rand_val < 430: # 確率 16.0%
         prize = "REPLAY"
-        payout = data.bet_amount * 1
+        payout = data.bet_amount * 1    # 1倍 (確率16.0%)
         if random.random() < 0.5:
             result_symbols = ["REPLAY", "REPLAY", "REPLAY"]
         else:
@@ -362,14 +362,15 @@ async def spin_slot(data: SlotSpinRequest, authorization: str = Header(None)):
             is_early_pekari = True
 
     # 3. 配当の加算処理
-    if payout > 0:
-        new_balance += payout
+    payout_int = int(payout)
+    if payout_int > 0:
+        new_balance += payout_int
         
     await supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
 
     return {
         "prize": prize,
-        "payout": payout,
+        "payout": payout_int,
         "result_symbols": result_symbols,
         "is_pekari": is_pekari,
         "is_early_pekari": is_early_pekari,
