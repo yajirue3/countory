@@ -279,3 +279,103 @@ async def cashout_tower(data: TowerCashoutRequest, authorization: str = Header(N
         "payout": payout,
         "new_balance": new_balance
     }
+
+# --- Slot用リクエストモデル ---
+class SlotSpinRequest(BaseModel):
+    wallet_id: str
+    bet_amount: int
+
+# --------------------------------------------------
+# カジノ画面配信ルート：スロット追加
+# --------------------------------------------------
+@router.get("/slot", response_class=HTMLResponse)
+async def get_slot(request: Request):
+    return templates.TemplateResponse(request=request, name="slot.html")
+
+# --------------------------------------------------
+# カジノAPI：スロットゲーム（完全ノントラスト抽選）
+# --------------------------------------------------
+@router.post("/api/slot/spin")
+async def spin_slot(data: SlotSpinRequest, authorization: str = Header(None)):
+    user = await get_user_from_token(authorization)
+    supabase = await get_supabase()
+
+    if data.bet_amount != 3:
+        raise HTTPException(status_code=400, detail="MURAOKA JUGGLERは3Gold固定ベットです。")
+
+    wallet_res = await supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
+    if not wallet_res.data:
+        raise HTTPException(status_code=400, detail="指定された口座が存在しないか、所有権がありません。")
+
+    wallet = wallet_res.data[0]
+    current_balance = wallet["balance"]
+
+    if current_balance < data.bet_amount:
+        raise HTTPException(status_code=400, detail="口座の残高が不足しています。")
+
+    # 1. 賭け金を即時引き落とし
+    new_balance = current_balance - data.bet_amount
+    
+    # 2. 内部抽選 (RTP 95%想定程度の簡易確率設定)
+    # 0~999の乱数
+    rand_val = random.randint(0, 999)
+    
+    # 役と配当、リールに表示する最終図柄の決定
+    # 図柄: "7", "BAR", "GRAPE", "CHERRY", "REPLAY", "BLANK"
+    if rand_val < 15: # 1.5% BIG BONUS
+        prize = "BIG"
+        payout = 100
+        result_symbols = ["7", "7", "7"]
+    elif rand_val < 25: # 1.0% REGULAR BONUS
+        prize = "REG"
+        payout = 50
+        result_symbols = ["BAR", "BAR", "BAR"]
+    elif rand_val < 185: # 16.0% ブドウ
+        prize = "GRAPE"
+        payout = 7
+        result_symbols = ["GRAPE", "GRAPE", "GRAPE"]
+    elif rand_val < 235: # 5.0% チェリー
+        prize = "CHERRY"
+        payout = 2
+        # チェリーは左リールのみで成立とする
+        result_symbols = ["CHERRY", random.choice(["BLANK", "GRAPE"]), random.choice(["BLANK", "BAR"])]
+    elif rand_val < 370: # 13.5% リプレイ
+        prize = "REPLAY"
+        payout = 3
+        result_symbols = ["REPLAY", "REPLAY", "REPLAY"]
+    else: # ハズレ
+        prize = "MISS"
+        payout = 0
+        # 絶対に揃わないようにバラバラの図柄を配置
+        pool = ["7", "BAR", "GRAPE", "CHERRY", "REPLAY", "BLANK"]
+        result_symbols = [random.choice(pool) for _ in range(3)]
+        # もし偶然揃ってしまったら真ん中をBLANKにズラす
+        if result_symbols[0] == result_symbols[1] == result_symbols[2]:
+            result_symbols[1] = "BLANK"
+        if result_symbols[0] == "CHERRY":
+            result_symbols[0] = "BLANK"
+
+    # ペカり（告知）フラグの決定
+    # ボーナス当選時、先告知(1/4)か後告知(3/4)か
+    is_pekari = False
+    is_early_pekari = False
+    if prize in ["BIG", "REG"]:
+        is_pekari = True
+        if random.random() < 0.25:
+            is_early_pekari = True
+
+    # 3. 配当があれば即時加算（口座情報の確定）
+    if payout > 0:
+        new_balance += payout
+        
+    await supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+
+    return {
+        "prize": prize,
+        "payout": payout,
+        "result_symbols": result_symbols,
+        "is_pekari": is_pekari,
+        "is_early_pekari": is_early_pekari,
+        "new_balance": new_balance
+    }
+
