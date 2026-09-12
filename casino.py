@@ -279,20 +279,8 @@ async def cashout_tower(data: TowerCashoutRequest, authorization: str = Header(N
         "payout": payout,
         "new_balance": new_balance
     }
-# --- Slot用リクエストモデル ---
-class SlotSpinRequest(BaseModel):
-    wallet_id: str
-    bet_amount: int
-
 # --------------------------------------------------
-# カジノ画面配信ルート：スロット追加
-# --------------------------------------------------
-@router.get("/slot", response_class=HTMLResponse)
-async def get_slot(request: Request):
-    return templates.TemplateResponse(request=request, name="slot.html")
-
-# --------------------------------------------------
-# カジノAPI：スロットゲーム（完全ノントラスト抽選）
+# カジノAPI：スロットゲーム（ダイス基準・RTP 96.5%）
 # --------------------------------------------------
 @router.post("/api/slot/spin")
 async def spin_slot(data: SlotSpinRequest, authorization: str = Header(None)):
@@ -315,41 +303,48 @@ async def spin_slot(data: SlotSpinRequest, authorization: str = Header(None)):
     # 1. 賭け金を即時引き落とし
     new_balance = current_balance - data.bet_amount
     
-    # 2. 内部抽選 (RTP 95%想定: 脳汁が出る尖った確率配分)
+    # 2. 内部抽選 (ダイス基準 RTP 96.5%)
+    # 0~999の乱数
     rand_val = random.randint(0, 999)
     
-    # 図柄: "7", "BAR", "BELL", "GRAPE", "CHERRY", "REPLAY"
-    if rand_val < 15: # 1.5% BIG BONUS (30倍)
+    # BIG(20倍): 1.5% -> RTP 30.0%
+    # REG(8倍): 3.0% -> RTP 24.0%
+    # BELL(3倍): 5.0% -> RTP 15.0%
+    # GRAPE(2倍): 10.0% -> RTP 20.0%
+    # REPLAY/CHERRY(1倍): 7.5% -> RTP 7.5%
+    # 合計 RTP: 96.5%, 当たり確率: 27.0%
+    
+    if rand_val < 15:
         prize = "BIG"
-        payout = data.bet_amount * 30
+        payout = data.bet_amount * 20
         result_symbols = ["7", "7", "7"]
-    elif rand_val < 25: # 1.0% REGULAR BONUS (15倍)
+    elif rand_val < 45: # 15 + 30 = 45
         prize = "REG"
-        payout = data.bet_amount * 15
+        payout = data.bet_amount * 8
         result_symbols = ["BAR", "BAR", "BAR"]
-    elif rand_val < 75: # 5.0% ベル (5倍)
+    elif rand_val < 95: # 45 + 50 = 95
         prize = "BELL"
-        payout = data.bet_amount * 5
+        payout = data.bet_amount * 3
         result_symbols = ["BELL", "BELL", "BELL"]
-    elif rand_val < 175: # 10.0% ブドウ (2倍)
+    elif rand_val < 195: # 95 + 100 = 195
         prize = "GRAPE"
         payout = data.bet_amount * 2
         result_symbols = ["GRAPE", "GRAPE", "GRAPE"]
-    elif rand_val < 225: # 5.0% チェリー (1倍)
-        prize = "CHERRY"
-        payout = data.bet_amount * 1
-        result_symbols = ["CHERRY", random.choice(["BELL", "GRAPE", "REPLAY"]), random.choice(["BAR", "BELL", "GRAPE"])]
-    elif rand_val < 325: # 10.0% リプレイ (1倍)
+    elif rand_val < 270: # 195 + 75 = 270
         prize = "REPLAY"
         payout = data.bet_amount * 1
-        result_symbols = ["REPLAY", "REPLAY", "REPLAY"]
-    else: # 67.5% ハズレ (0倍)
+        # 1倍役は演出としてリプレイかチェリーに振り分け
+        if random.random() < 0.5:
+            result_symbols = ["REPLAY", "REPLAY", "REPLAY"]
+        else:
+            result_symbols = ["CHERRY", random.choice(["BELL", "GRAPE", "REPLAY"]), random.choice(["BAR", "BELL", "GRAPE"])]
+    else: # 残り 73.0% ハズレ
         prize = "MISS"
         payout = 0
         pool = ["7", "BAR", "BELL", "GRAPE", "REPLAY"]
         result_symbols = [random.choice(pool) for _ in range(3)]
         
-        # 万が一ランダムで揃ってしまったら、中リールをズラしてハズレを確定させる
+        # ハズレなのに揃ってしまった場合の補正処理
         if result_symbols[0] == result_symbols[1] == result_symbols[2]:
             others = [s for s in pool if s != result_symbols[1]]
             result_symbols[1] = random.choice(others)
