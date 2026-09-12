@@ -6,24 +6,24 @@
     <title>村岡王国 - IMPERIAL JUGGLER VIP</title>
     <style>
         /* ==========================================================================
-           ELEGANT & DOPAMINE UI FONTS
+           HYPER DOPAMINE UI FONTS
            ========================================================================== */
         @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=M+PLUS+1p:wght@400;700;900&family=Playfair+Display:ital,wght@1,900&family=Righteous&family=Share+Tech+Mono&display=swap');
 
         /* ==========================================================================
-           REFINED VARIABLES
+           OVERDOSE VARIABLES
            ========================================================================== */
         :root {
-            --vip-bg: #0a0510;
-            --vip-panel: rgba(20, 15, 30, 0.85);
-            --gold-light: #f9df9f;
-            --gold-base: #d4af37;
-            --gold-dark: #8a6a1c;
-            --neon-magenta: #ff007f;
-            --neon-cyan: #00e5ff;
-            --alert-red: #ff3333;
-            --gold-gradient: linear-gradient(135deg, #f9df9f 0%, #d4af37 25%, #997a15 50%, #d4af37 75%, #f9df9f 100%);
-            --glass-border: rgba(212, 175, 55, 0.3);
+            --vip-bg: #050010;
+            --vip-panel: rgba(10, 5, 20, 0.95);
+            --gold-light: #ffff00;
+            --gold-base: #ff007f;
+            --gold-dark: #cc00ff;
+            --neon-magenta: #ff0055;
+            --neon-cyan: #00ffff;
+            --alert-red: #ff0000;
+            --gold-gradient: linear-gradient(135deg, #ff00ff 0%, #00ffff 25%, #ffff00 50%, #ff00ff 75%, #00ffff 100%);
+            --glass-border: #00ffff;
             --sym-h: 100px; 
         }
 
@@ -38,11 +38,9 @@
             min-height: 100vh;
             user-select: none;
             overflow: hidden;
-            background-color: var(--vip-bg);
-            /* 上品なパーティクル風の静的背景（重いアニメーションを排除） */
-            background-image: 
-                radial-gradient(circle at 15% 50%, rgba(212, 175, 55, 0.08), transparent 25%),
-                radial-gradient(circle at 85% 30%, rgba(255, 0, 127, 0.08), transparent 25%);
+            background: linear-gradient(45deg, #110022, #001133, #220011, #002211);
+            background-size: 400% 400%;
+            animation: bg-rush 4s infinite linear;
             color: #fff; 
             display: flex; 
             justify-content: center; 
@@ -50,13 +48,12 @@
             position: relative;
         }
 
-        /* 軽量化されたジャックポット演出 */
         body.jackpot-mode {
-            animation: elegant-jackpot 1s infinite alternate ease-in-out;
+            animation: hyper-jackpot 0.2s infinite alternate linear;
         }
 
         /* ==========================================================================
-           CABINET (SLEEK VIP CASING)
+           CABINET (HYPER NEON CASING)
            ========================================================================== */
         .arcade-cabinet {
             width: 100%;
@@ -75,121 +72,114 @@
             .arcade-cabinet {
                 max-width: 800px;
                 height: 94vh;
-                background: linear-gradient(to bottom, #1a1525 0%, #0d0a14 100%);
+                background: linear-gradient(to bottom, #1a0025 0%, #0d0014 100%);
                 border-radius: 20px;
                 padding: 30px 40px;
                 gap: 20px;
-                border: 1px solid var(--glass-border);
+                border: 2px solid var(--neon-cyan);
                 box-shadow: 
-                    0 20px 50px rgba(0,0,0,0.8),
-                    inset 0 2px 10px rgba(255,255,255,0.1),
-                    0 0 30px rgba(212, 175, 55, 0.1);
+                    0 0 50px rgba(0, 255, 255, 0.4),
+                    inset 0 0 30px rgba(255, 0, 255, 0.4);
             }
         }
 
         /* ==========================================================================
-           MARQUEE (ELEGANT HEADER)
+           MARQUEE (OVERDRIVE HEADER)
            ========================================================================== */
         .marquee {
             text-align: center;
-            font-family: 'Playfair Display', serif;
+            font-family: 'Righteous', cursive;
             font-size: clamp(2rem, 6vw, 3.5rem);
             font-weight: 900;
-            font-style: italic;
-            color: transparent;
-            background: var(--gold-gradient);
+            color: #fff;
+            background: linear-gradient(90deg, #ff00ff, #00ffff, #ffff00, #ff00ff);
+            background-size: 300% 100%;
             background-clip: text;
             -webkit-background-clip: text;
+            color: transparent;
             padding: 15px 10px;
             letter-spacing: 4px;
-            text-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+            text-shadow: 0 0 20px rgba(255, 0, 255, 0.8);
             position: relative;
-            transition: all 0.3s ease;
+            animation: marquee-rush 1.5s infinite linear;
         }
 
         .marquee.active {
-            font-family: 'Righteous', cursive;
-            font-style: normal;
-            background: linear-gradient(135deg, #fff, var(--neon-cyan));
-            background-clip: text;
-            -webkit-background-clip: text;
-            text-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
-            letter-spacing: 6px;
-            transform: scale(1.02);
+            text-shadow: 0 0 30px #00ffff, 0 0 10px #fff;
+            transform: scale(1.05);
+            animation: marquee-rush 0.8s infinite linear;
         }
 
         .marquee.jackpot {
-            font-family: 'Righteous', cursive;
-            font-style: normal;
-            background: linear-gradient(135deg, #fff, var(--neon-magenta), var(--gold-base));
-            background-size: 200% 200%;
+            background: linear-gradient(90deg, #ff0000, #00ff00, #0000ff, #ff0000);
+            background-size: 300% 100%;
             background-clip: text;
             -webkit-background-clip: text;
-            text-shadow: 0 0 30px rgba(255, 0, 127, 0.8), 0 0 10px rgba(255,255,255,0.5);
-            animation: marquee-rainbow 2s infinite linear;
-            letter-spacing: 5px;
-            transform: scale(1.05);
+            text-shadow: 0 0 40px #ff00ff, 0 0 20px #fff;
+            animation: marquee-rush 0.3s infinite linear, text-shake 0.1s infinite;
+            letter-spacing: 6px;
+            transform: scale(1.1);
         }
 
         /* ==========================================================================
-           HUD PANEL (GLASSMORPHISM)
+           HUD PANEL (NEON BORDERS)
            ========================================================================== */
         .hud-panel {
             display: flex;
             flex-direction: column;
             gap: 12px;
             background: var(--vip-panel);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
+            border: 2px solid var(--neon-magenta);
             border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.5), inset 0 0 15px rgba(255, 0, 85, 0.3);
         }
         
         .inputs-row { display: flex; gap: 15px; }
         .input-group { flex: 1; display: flex; flex-direction: column; }
         .input-group label { 
-            font-family: 'Cinzel Decorative', serif; font-size: 0.85rem; color: var(--gold-base); 
-            font-weight: 700; letter-spacing: 2px; margin-bottom: 6px; 
+            font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; color: var(--neon-cyan); 
+            font-weight: 900; letter-spacing: 2px; margin-bottom: 6px; text-shadow: 0 0 5px var(--neon-cyan);
         }
         .input-group select, .input-group input { 
             width: 100%; padding: 12px; 
-            background: rgba(0,0,0,0.6);
-            border: 1px solid rgba(212, 175, 55, 0.5); 
+            background: rgba(0,0,0,0.8);
+            border: 2px solid var(--neon-cyan); 
             border-radius: 6px;
             color: #fff; 
-            font-family: 'Share Tech Mono', monospace; font-size: 1.2rem; 
+            font-family: 'Share Tech Mono', monospace; font-size: 1.2rem; font-weight: bold;
             outline: none;
-            transition: border-color 0.3s, box-shadow 0.3s;
+            transition: all 0.1s;
         }
         .input-group select:focus, .input-group input:focus { 
             border-color: var(--gold-light);
-            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3); 
+            box-shadow: 0 0 20px var(--gold-light); 
+            background: #111;
         }
         
         .meters-row { display: flex; gap: 15px; margin-top: 10px; }
         .meter {
             flex: 1; 
-            background: rgba(0,0,0,0.8); 
-            border: 1px solid #333;
+            background: #000; 
+            border: 2px solid var(--gold-dark);
             border-radius: 8px;
             padding: 12px 15px; text-align: right; position: relative;
-            box-shadow: inset 0 2px 10px rgba(0,0,0,1);
+            box-shadow: inset 0 0 15px rgba(204, 0, 255, 0.5);
         }
         .meter-label { 
             position: absolute; left: 12px; top: 12px; font-family: 'Share Tech Mono', monospace;
-            font-size: 0.8rem; color: #888; font-weight: 700; letter-spacing: 1px;
+            font-size: 0.85rem; color: #fff; font-weight: 900; letter-spacing: 1px;
+            text-shadow: 0 0 5px var(--gold-dark);
         }
         .meter-val { 
-            font-family: 'Share Tech Mono', monospace; font-size: clamp(1.4rem, 4vw, 2.2rem); 
+            font-family: 'Share Tech Mono', monospace; font-size: clamp(1.4rem, 4vw, 2.2rem); font-weight: 900;
             color: #fff; 
             line-height: 1; margin-top: 20px; 
-            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+            text-shadow: 0 0 10px #fff, 0 0 20px var(--neon-cyan);
         }
         .meter-val.green { 
             color: var(--gold-light); 
-            text-shadow: 0 0 15px rgba(212, 175, 55, 0.6); 
+            text-shadow: 0 0 15px var(--gold-light), 0 0 30px #ffaa00; 
         }
 
         /* ==========================================================================
@@ -197,11 +187,11 @@
            ========================================================================== */
         .stage-area {
             flex: 1; display: flex; align-items: center; justify-content: space-between;
-            background: linear-gradient(180deg, #110d17, #05040a);
-            border: 2px solid #2a2235;
+            background: radial-gradient(circle at center, #220033 0%, #000 100%);
+            border: 3px solid #ff00ff;
             border-radius: 12px;
             padding: 20px 15px;
-            box-shadow: inset 0 10px 30px rgba(0,0,0,0.8);
+            box-shadow: inset 0 0 40px rgba(255, 0, 255, 0.5), 0 0 20px rgba(255, 0, 255, 0.4);
             position: relative; min-height: 240px;
         }
 
@@ -209,33 +199,23 @@
 
         .gogo-lamp {
             width: 24%; aspect-ratio: 1;
-            background: radial-gradient(circle at 30% 30%, #1a1a1a 0%, #050505 100%);
+            background: #111;
             border-radius: 50%;
-            border: 4px solid #222;
+            border: 4px solid #333;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             font-family: 'Righteous', cursive;
             font-size: clamp(0.9rem, 2.5vw, 1.5rem);
-            color: #111; line-height: 1.1;
-            box-shadow: 
-                inset 0 4px 10px rgba(0,0,0,0.8),
-                0 4px 10px rgba(0,0,0,0.5);
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: #222; line-height: 1.1;
+            box-shadow: inset 0 0 20px #000;
             position: relative; z-index: 20;
+            transition: none; /* 即座に反応させるためトランジション削除 */
         }
-        .gogo-lamp span { font-size: clamp(1.2rem, 3.5vw, 2.2rem); margin-top: -2px; color: #111; }
+        .gogo-lamp span { font-size: clamp(1.2rem, 3.5vw, 2.2rem); margin-top: -2px; color: #222; }
         
-        /* THE ELEGANT PEKA STATE (軽量かつ鮮やか) */
+        /* HYPER PEKA STATE */
         .gogo-lamp.peka {
-            background: radial-gradient(circle at 40% 40%, #fff 0%, #ff66b2 30%, var(--neon-magenta) 100%);
-            color: #fff;
-            border-color: #ffb3d9;
-            box-shadow: 
-                0 0 40px rgba(255, 0, 127, 0.8), 
-                0 0 80px rgba(255, 0, 127, 0.4),
-                inset 0 0 20px rgba(255,255,255,0.8);
-            text-shadow: 0 0 8px rgba(255,255,255,0.8);
-            transform: scale(1.08);
-            animation: elegant-pulse 1s infinite alternate;
+            animation: hyper-peka 0.1s infinite alternate;
+            border-color: #fff;
         }
         .gogo-lamp.peka span { color: #fff; text-shadow: 0 0 10px #fff; }
 
@@ -246,26 +226,27 @@
             width: 72%; display: flex; gap: 10px;
             background: #000; padding: 10px;
             border-radius: 8px;
-            border: 2px solid #333;
+            border: 3px solid var(--neon-cyan);
             position: relative;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
         }
-        /* 美しい有効ライン */
+        /* ギラつく有効ライン */
         .reels-wrapper::after {
-            content: ""; position: absolute; top: 50%; left: -2%; right: -2%; height: 2px;
-            background: rgba(255, 255, 255, 0.5);
-            box-shadow: 0 0 8px rgba(0, 229, 255, 0.8);
+            content: ""; position: absolute; top: 50%; left: -2%; right: -2%; height: 4px;
+            background: #fff;
+            box-shadow: 0 0 15px var(--neon-cyan), 0 0 30px var(--neon-cyan);
             transform: translateY(-50%); z-index: 30; pointer-events: none;
+            mix-blend-mode: screen;
         }
         
         .reel-window {
             flex: 1; aspect-ratio: 1 / 2.4;
-            background: #f4f4f4; 
+            background: #fff; 
             border-radius: 4px;
             overflow: hidden; position: relative;
-            box-shadow: inset 0 20px 20px -10px rgba(0,0,0,0.5), inset 0 -20px 20px -10px rgba(0,0,0,0.5);
+            box-shadow: inset 0 20px 20px -10px rgba(0,0,0,0.8), inset 0 -20px 20px -10px rgba(0,0,0,0.8);
         }
-        .reel-window.bounce { animation: reel-elegant-bounce 0.2s ease-out; }
+        .reel-window.bounce { animation: reel-hyper-bounce 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
         .reel-strip {
             position: absolute; top: 0; left: 0; width: 100%;
@@ -279,62 +260,63 @@
             position: relative; z-index: 1;
         }
         
-        .sym-7 { color: var(--alert-red); text-shadow: 2px 2px 0px rgba(0,0,0,0.2); transform: scale(1.1); }
+        .sym-7 { color: var(--alert-red); text-shadow: 3px 3px 0px #000, 0 0 15px #ff0000; transform: scale(1.15); }
         .sym-bar { 
-            color: #fff; background: linear-gradient(180deg, #444 0%, #111 100%); 
-            border: 3px solid #ccc; border-radius: 4px;
+            color: #fff; background: #000; 
+            border: 4px solid #fff; border-radius: 4px;
             width: 85%; height: 45%; font-size: 0.35em; 
             display: flex; align-items: center; justify-content: center; 
-            letter-spacing: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            letter-spacing: 4px; box-shadow: 0 0 10px #fff;
         }
         
-        /* 激重のBlurを撤廃。高速移動時は不透明度を下げるだけで錯覚を利用 */
-        .spin-blur { opacity: 0.6; } 
+        /* 高速スピン時の錯覚効果（不透明度のみで軽量） */
+        .spin-blur { opacity: 0.8; filter: brightness(1.2); } 
 
         /* ==========================================================================
-           CONTROLS (ELEGANT TACTILE BUTTONS)
+           CONTROLS (SMASH BUTTONS)
            ========================================================================== */
         .controls-area { display: flex; flex-direction: column; gap: 15px; margin-top: 10px; }
         .stop-buttons { display: flex; justify-content: flex-end; width: 100%; gap: 12px; padding-left: 28%; }
         
         .btn-stop {
             flex: 1; aspect-ratio: 1.4;
-            background: linear-gradient(180deg, #ff4d4d 0%, #cc0000 100%);
-            border: 1px solid #ff9999; border-radius: 8px;
-            box-shadow: 0 6px 0 #660000, 0 8px 15px rgba(0,0,0,0.5);
+            background: #ff0000;
+            border: 2px solid #ffaaaa; border-radius: 8px;
+            box-shadow: 0 8px 0 #880000, 0 15px 20px rgba(255,0,0,0.6);
             color: #fff; font-family: 'Share Tech Mono', monospace;
-            font-size: clamp(1.2rem, 4vw, 2rem); font-weight: 700;
-            cursor: pointer; transition: all 0.1s; 
+            font-size: clamp(1.5rem, 5vw, 2.2rem); font-weight: 900;
+            cursor: pointer; transition: transform 0.05s, box-shadow 0.05s; 
         }
         .btn-stop:active:not(:disabled) {
-            transform: translateY(6px); 
-            box-shadow: 0 0 0 #660000, 0 2px 5px rgba(0,0,0,0.5);
-            background: linear-gradient(180deg, #e60000 0%, #990000 100%);
+            transform: translateY(8px); 
+            box-shadow: 0 0 0 #880000, 0 0 30px #ff0000;
+            background: #ff3333;
         }
         .btn-stop:disabled { 
-            background: linear-gradient(180deg, #333 0%, #1a1a1a 100%); 
-            border-color: #444; color: #555;
-            box-shadow: 0 6px 0 #0a0a0a; cursor: not-allowed; 
+            background: #333; border-color: #555; color: #777;
+            box-shadow: 0 8px 0 #111; cursor: not-allowed; 
         }
 
         .btn-start {
             width: 100%; padding: 20px 0;
             background: var(--gold-gradient);
-            background-size: 200% 200%;
-            border: none; border-radius: 12px;
-            color: #111; font-size: clamp(1.5rem, 5vw, 2.2rem); font-weight: 900; 
-            font-family: 'Cinzel Decorative', serif;
-            letter-spacing: 6px;
-            box-shadow: 0 8px 0 #8a6a1c, 0 15px 25px rgba(0,0,0,0.6);
-            cursor: pointer; transition: all 0.1s;
+            background-size: 300% 100%;
+            border: 2px solid #fff; border-radius: 12px;
+            color: #000; font-size: clamp(1.8rem, 6vw, 2.5rem); font-weight: 900; 
+            font-family: 'Righteous', cursive;
+            letter-spacing: 8px;
+            text-shadow: 0 2px 0 #fff;
+            box-shadow: 0 10px 0 #aa00aa, 0 0 40px rgba(255, 0, 255, 0.8);
+            cursor: pointer; transition: transform 0.05s, box-shadow 0.05s;
+            animation: marquee-rush 2s infinite linear;
         }
         .btn-start:active:not(:disabled) {
-            transform: translateY(8px); 
-            box-shadow: 0 0 0 #8a6a1c, 0 5px 10px rgba(0,0,0,0.6);
+            transform: translateY(10px); 
+            box-shadow: 0 0 0 #aa00aa, 0 0 50px #ffff00;
         }
         .btn-start:disabled { 
-            background: #2a2235; color: #555; 
-            box-shadow: 0 8px 0 #15111a; cursor: not-allowed; 
+            background: #222; color: #555; border-color: #444; text-shadow: none;
+            box-shadow: 0 10px 0 #000; cursor: not-allowed; animation: none;
         }
 
         /* ==========================================================================
@@ -342,55 +324,68 @@
            ========================================================================== */
         .footer-link { text-align: center; margin-top: 5px; padding-bottom: 10px; }
         .footer-link a { 
-            color: var(--gold-base); text-decoration: none; font-family: 'Cinzel Decorative', serif;
-            font-size: 1rem; font-weight: 700; transition: color 0.2s; 
+            color: var(--neon-cyan); text-decoration: none; font-family: 'Righteous', cursive;
+            font-size: 1.2rem; font-weight: 900; letter-spacing: 2px;
         }
-        .footer-link a:hover { color: #fff; text-shadow: 0 0 10px var(--gold-light); }
+        .footer-link a:hover { color: #fff; text-shadow: 0 0 20px var(--neon-cyan); }
 
         /* ==========================================================================
-           HYPER EFFECTS (LIGHTWEIGHT)
+           HYPER EFFECTS (DOM MINIMAL)
            ========================================================================== */
         #flash-bang {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: #fff; opacity: 0; pointer-events: none; z-index: 99999; 
-            mix-blend-mode: overlay;
+            mix-blend-mode: screen;
         }
-        body.mega-flash #flash-bang { animation: smooth-flash 0.8s ease-out forwards; }
+        body.mega-flash #flash-bang { animation: hyper-flash 0.3s ease-out forwards; }
         
         .num-pop { 
-            animation: subtle-pop 0.3s ease-out; 
-            color: var(--gold-light) !important; 
-            text-shadow: 0 0 20px rgba(212, 175, 55, 0.8) !important; 
+            animation: overdrive-pop 0.15s ease-out; 
+            color: #fff !important; 
+            text-shadow: 0 0 30px #ffff00, 0 0 10px #ff00ff !important; 
         }
 
         /* ==========================================================================
-           OPTIMIZED KEYFRAMES
+           OVERDOSE KEYFRAMES
            ========================================================================== */
-        @keyframes elegant-jackpot {
-            0% { background-color: #1a0510; }
-            100% { background-color: #2a0a20; }
+        @keyframes bg-rush {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
-        @keyframes marquee-rainbow { 
+        @keyframes hyper-jackpot {
+            0% { background-color: #ff0000; }
+            33% { background-color: #00ff00; }
+            66% { background-color: #0000ff; }
+            100% { background-color: #ff00ff; }
+        }
+        @keyframes marquee-rush { 
             0% { background-position: 0% 50%; } 
-            100% { background-position: 200% 50%; } 
+            100% { background-position: 300% 50%; } 
         }
-        @keyframes elegant-pulse { 
-            0% { box-shadow: 0 0 40px rgba(255, 0, 127, 0.6), inset 0 0 20px rgba(255,255,255,0.8); } 
-            100% { box-shadow: 0 0 60px rgba(255, 0, 127, 1), inset 0 0 30px rgba(255,255,255,1); } 
+        @keyframes text-shake {
+            0% { transform: translate(2px, 2px) scale(1.1); }
+            50% { transform: translate(-2px, -2px) scale(1.1); }
+            100% { transform: translate(2px, -2px) scale(1.1); }
         }
-        @keyframes reel-elegant-bounce { 
+        @keyframes hyper-peka { 
+            0% { background: radial-gradient(circle, #fff, #ff00ff); color: #fff; box-shadow: 0 0 50px #ff00ff, inset 0 0 20px #fff; transform: scale(1); } 
+            50% { background: radial-gradient(circle, #fff, #00ffff); color: #fff; box-shadow: 0 0 100px #00ffff, inset 0 0 50px #fff; transform: scale(1.15); } 
+            100% { background: radial-gradient(circle, #fff, #ffff00); color: #fff; box-shadow: 0 0 50px #ffff00, inset 0 0 20px #fff; transform: scale(1); } 
+        }
+        @keyframes reel-hyper-bounce { 
             0% { transform: translateY(0); } 
-            50% { transform: translateY(15px); } 
+            40% { transform: translateY(30px); } 
             100% { transform: translateY(0); } 
         }
-        @keyframes smooth-flash { 
-            0% { opacity: 0.8; } 
+        @keyframes hyper-flash { 
+            0% { opacity: 1; } 
             100% { opacity: 0; } 
         }
-        @keyframes subtle-pop { 
-            0% { transform: scale(1); } 
-            50% { transform: scale(1.1); } 
-            100% { transform: scale(1); } 
+        @keyframes overdrive-pop { 
+            0% { transform: scale(1) rotate(0deg); } 
+            50% { transform: scale(1.5) rotate(5deg); } 
+            100% { transform: scale(1) rotate(0deg); } 
         }
     </style>
 </head>
