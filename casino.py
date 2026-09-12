@@ -279,6 +279,19 @@ async def cashout_tower(data: TowerCashoutRequest, authorization: str = Header(N
         "payout": payout,
         "new_balance": new_balance
     }
+
+# --- Slot用リクエストモデル ---
+class SlotSpinRequest(BaseModel):
+    wallet_id: str
+    bet_amount: int
+
+# --------------------------------------------------
+# カジノ画面配信ルート：スロット
+# --------------------------------------------------
+@router.get("/slot", response_class=HTMLResponse)
+async def get_slot(request: Request):
+    return templates.TemplateResponse(request=request, name="slot.html")
+
 # --------------------------------------------------
 # カジノAPI：スロットゲーム（高配当＆高還元率 RTP 98.0%）
 # --------------------------------------------------
