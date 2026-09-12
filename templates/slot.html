@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>村岡王国 - MURAOKA BUGGLER</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=M+PLUS+1p:wght@900&display=swap');
+
+        :root {
+            --neon-pink: #ff007f;
+            --neon-cyan: #00f3ff;
+            --neon-yellow: #ffe600;
+            --neon-green: #00ff66;
+            --neon-red: #ff003c;
+            --bg-color: #05000a;
+        }
+
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'M PLUS 1p', 'Black Ops One', sans-serif; 
+            background: var(--bg-color);
+            background-image: linear-gradient(0deg, rgba(255, 0, 127, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: #fff; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            margin: 0; 
+            min-height: 100vh;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .machine-container {
+            width: 100%;
+            max-width: 420px;
+            background: linear-gradient(180deg, #1a0022 0%, #0d0014 100%);
+            border: 4px solid #333;
+            border-radius: 20px;
+            padding: 15px;
+            box-shadow: 0 0 30px rgba(255, 0, 127, 0.4), inset 0 0 20px #000;
+            position: relative;
+        }
+
+        .header-panel {
+            text-align: center;
+            font-size: 1.4rem;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px var(--neon-cyan);
+            border-bottom: 2px solid var(--neon-pink);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* セグメントLED風ディスプレイ */
+        .digital-displays {
+            display: flex;
+            justify-content: space-between;
+            background: #000;
+            padding: 8px;
+            border-radius: 8px;
+            border: 2px solid #222;
+            margin-bottom: 15px;
+            box-shadow: inset 0 0 10px #000;
+        }
+        .seg-box { text-align: center; }
+        .seg-label { font-size: 0.6rem; color: #777; }
+        .seg-val { 
+            font-family: 'Black Ops One', monospace; 
+            font-size: 1.1rem; 
+            color: var(--neon-red); 
+            text-shadow: 0 0 8px var(--neon-red); 
+        }
+        .seg-val.green { color: var(--neon-green); text-shadow: 0 0 8px var(--neon-green); }
+
+        /* リールとランプのエリア */
+        .reel-area-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #111;
+            padding: 10px;
+            border-radius: 10px;
+            border: 2px solid #444;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            position: relative;
+        }
+
+        /* 👑 MURAOKA ランプ (ペカり) */
+        .gogo-lamp {
+            width: 70px;
+            height: 70px;
+            background: #222;
+            border-radius: 50%;
+            border: 3px solid #111;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 900;
+            color: #111;
+            text-align: center;
+            line-height: 1.1;
+            transition: all 0.1s;
+        }
+        .gogo-lamp.peka {
+            background: radial-gradient(circle, #fff 0%, #ff00ea 60%, #8800ff 100%);
+            color: #fff;
+            text-shadow: 0 0 10px #fff;
+            border-color: #ff00ea;
+            box-shadow: 0 0 50px #ff00ea, 0 0 100px #8800ff;
+            animation: peka-flash 0.1s infinite alternate;
+        }
+        @keyframes peka-flash {
+            0% { filter: brightness(1); }
+            100% { filter: brightness(1.5); }
+        }
+
+        /* リール窓 */
+        .reels-container {
+            display: flex;
+            gap: 5px;
+            background: #000;
+            padding: 5px;
+            border: 3px solid silver;
+            border-radius: 5px;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.9);
+            position: relative;
+        }
+        
+        .reel-window {
+            width: 60px;
+            height: 60px;
+            background: #fff;
+            overflow: hidden;
+            position: relative;
+            border-radius: 3px;
+            box-shadow: inset 0 15px 10px -10px rgba(0,0,0,0.6), inset 0 -15px 10px -10px rgba(0,0,0,0.6);
+        }
+
+        .reel-strip {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            will-change: transform;
+        }
+
+        .symbol {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify
