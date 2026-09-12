@@ -279,7 +279,6 @@ async def cashout_tower(data: TowerCashoutRequest, authorization: str = Header(N
         "payout": payout,
         "new_balance": new_balance
     }
-
 # --- Slot用リクエストモデル ---
 class SlotSpinRequest(BaseModel):
     wallet_id: str
@@ -300,8 +299,8 @@ async def spin_slot(data: SlotSpinRequest, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
     supabase = await get_supabase()
 
-    if data.bet_amount != 3:
-        raise HTTPException(status_code=400, detail="MURAOKA JUGGLERは3Gold固定ベットです。")
+    if data.bet_amount < 1:
+        raise HTTPException(status_code=400, detail="賭け金は1Gold以上を指定してください。")
 
     wallet_res = await supabase.table("wallets").select("*").eq("wallet_id", data.wallet_id).eq("user_id", user.id).execute()
     if not wallet_res.data:
@@ -316,47 +315,41 @@ async def spin_slot(data: SlotSpinRequest, authorization: str = Header(None)):
     # 1. 賭け金を即時引き落とし
     new_balance = current_balance - data.bet_amount
     
-    # 2. 内部抽選 (RTP 95%想定程度の簡易確率設定)
-    # 0~999の乱数
+    # 2. 内部抽選 (RTP 95%想定: BIG=45%, REG=15%, ブドウ=20%, チェリー=5%, リプレイ=10%)
     rand_val = random.randint(0, 999)
     
     # 役と配当、リールに表示する最終図柄の決定
-    # 図柄: "7", "BAR", "GRAPE", "CHERRY", "REPLAY", "BLANK"
-    if rand_val < 15: # 1.5% BIG BONUS
+    if rand_val < 15: # 1.5% BIG BONUS (30倍)
         prize = "BIG"
-        payout = 100
+        payout = data.bet_amount * 30
         result_symbols = ["7", "7", "7"]
-    elif rand_val < 25: # 1.0% REGULAR BONUS
+    elif rand_val < 25: # 1.0% REGULAR BONUS (15倍)
         prize = "REG"
-        payout = 50
+        payout = data.bet_amount * 15
         result_symbols = ["BAR", "BAR", "BAR"]
-    elif rand_val < 185: # 16.0% ブドウ
+    elif rand_val < 125: # 10.0% ブドウ (2倍)
         prize = "GRAPE"
-        payout = 7
+        payout = data.bet_amount * 2
         result_symbols = ["GRAPE", "GRAPE", "GRAPE"]
-    elif rand_val < 235: # 5.0% チェリー
+    elif rand_val < 175: # 5.0% チェリー (1倍)
         prize = "CHERRY"
-        payout = 2
-        # チェリーは左リールのみで成立とする
+        payout = data.bet_amount * 1
         result_symbols = ["CHERRY", random.choice(["BLANK", "GRAPE"]), random.choice(["BLANK", "BAR"])]
-    elif rand_val < 370: # 13.5% リプレイ
+    elif rand_val < 275: # 10.0% リプレイ (1倍)
         prize = "REPLAY"
-        payout = 3
+        payout = data.bet_amount * 1
         result_symbols = ["REPLAY", "REPLAY", "REPLAY"]
     else: # ハズレ
         prize = "MISS"
         payout = 0
-        # 絶対に揃わないようにバラバラの図柄を配置
         pool = ["7", "BAR", "GRAPE", "CHERRY", "REPLAY", "BLANK"]
         result_symbols = [random.choice(pool) for _ in range(3)]
-        # もし偶然揃ってしまったら真ん中をBLANKにズラす
         if result_symbols[0] == result_symbols[1] == result_symbols[2]:
             result_symbols[1] = "BLANK"
         if result_symbols[0] == "CHERRY":
             result_symbols[0] = "BLANK"
 
     # ペカり（告知）フラグの決定
-    # ボーナス当選時、先告知(1/4)か後告知(3/4)か
     is_pekari = False
     is_early_pekari = False
     if prize in ["BIG", "REG"]:
@@ -364,7 +357,7 @@ async def spin_slot(data: SlotSpinRequest, authorization: str = Header(None)):
         if random.random() < 0.25:
             is_early_pekari = True
 
-    # 3. 配当があれば即時加算（口座情報の確定）
+    # 3. 配当があれば即時加算
     if payout > 0:
         new_balance += payout
         
@@ -378,4 +371,3 @@ async def spin_slot(data: SlotSpinRequest, authorization: str = Header(None)):
         "is_early_pekari": is_early_pekari,
         "new_balance": new_balance
     }
-
