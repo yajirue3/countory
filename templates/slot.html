@@ -13,15 +13,18 @@
             --neon-yellow: #ffe600;
             --neon-green: #00ff66;
             --neon-red: #ff003c;
-            --bg-color: #05000a;
+            --machine-bg: #151518;
         }
 
         * { box-sizing: border-box; }
         body { 
             font-family: 'M PLUS 1p', 'Black Ops One', sans-serif; 
-            background: var(--bg-color);
-            background-image: linear-gradient(0deg, rgba(255, 0, 127, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
-            background-size: 20px 20px;
+            background: #000;
+            background-image: 
+                radial-gradient(circle at 50% 50%, #2a0033 0%, #000000 90%),
+                linear-gradient(0deg, rgba(255, 0, 127, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
+            background-size: 100% 100%, 15px 15px, 15px 15px;
             color: #fff; 
             display: flex; 
             justify-content: center; 
@@ -30,208 +33,276 @@
             min-height: 100vh;
             user-select: none;
             overflow: hidden;
+            padding: 10px;
         }
 
+        /* --- 筐体デザイン --- */
         .machine-container {
             width: 100%;
-            max-width: 420px;
-            background: linear-gradient(180deg, #1a0022 0%, #0d0014 100%);
-            border: 4px solid #333;
-            border-radius: 20px;
+            max-width: 440px;
+            background: linear-gradient(135deg, #1c1c22 0%, #050508 100%);
+            border: 4px solid #444;
+            border-radius: 16px;
             padding: 15px;
-            box-shadow: 0 0 30px rgba(255, 0, 127, 0.4), inset 0 0 20px #000;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), inset 0 0 15px rgba(255,255,255,0.05);
             position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
+        /* 👑 ボーナス告知パネル */
         .header-panel {
             text-align: center;
             font-size: 1.4rem;
+            font-weight: 900;
+            color: #444;
+            background: #000;
+            border: 2px solid #222;
+            border-radius: 8px;
+            padding: 6px;
+            letter-spacing: 2px;
+            transition: all 0.2s;
+            text-shadow: none;
+        }
+        .header-panel.big-hit {
+            color: var(--neon-yellow);
+            border-color: var(--neon-yellow);
+            text-shadow: 0 0 20px var(--neon-yellow), 0 0 40px var(--neon-pink);
+            animation: hyper-rainbow-glow 0.15s linear infinite;
+        }
+        .header-panel.reg-hit {
             color: var(--neon-cyan);
-            text-shadow: 0 0 10px var(--neon-cyan);
-            border-bottom: 2px solid var(--neon-pink);
-            padding-bottom: 10px;
-            margin-bottom: 15px;
+            border-color: var(--neon-cyan);
+            text-shadow: 0 0 20px var(--neon-cyan);
+            animation: active-pulse 0.2s infinite alternate;
         }
 
-        /* セグメントLED風ディスプレイ */
+        /* 🎛️ コントロール（口座・ベット額） */
+        .inputs-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 8px;
+            background: rgba(0,0,0,0.5);
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        .input-group { display: flex; flex-direction: column; }
+        .label { font-size: 0.6rem; color: var(--neon-cyan); font-weight: 900; margin-bottom: 2px; }
+        input, select { 
+            width: 100%; padding: 6px; border-radius: 4px; 
+            border: 1px solid var(--neon-cyan); background: #111; 
+            color: #fff; font-size: 0.8rem; font-weight: bold; outline: none;
+        }
+
+        /* セグメントLED */
         .digital-displays {
             display: flex;
             justify-content: space-between;
-            background: #000;
+            background: #050505;
             padding: 8px;
             border-radius: 8px;
-            border: 2px solid #222;
-            margin-bottom: 15px;
+            border: 2px inset #333;
             box-shadow: inset 0 0 10px #000;
         }
-        .seg-box { text-align: center; }
-        .seg-label { font-size: 0.6rem; color: #777; }
+        .seg-box { text-align: center; flex: 1; }
+        .seg-label { font-size: 0.6rem; color: #555; font-weight: 900; }
         .seg-val { 
             font-family: 'Black Ops One', monospace; 
-            font-size: 1.1rem; 
+            font-size: 1.2rem; 
             color: var(--neon-red); 
             text-shadow: 0 0 8px var(--neon-red); 
+            transition: all 0.1s;
         }
         .seg-val.green { color: var(--neon-green); text-shadow: 0 0 8px var(--neon-green); }
 
-        /* リールとランプのエリア */
+        /* --- リール＆ランプエリア --- */
         .reel-area-wrapper {
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             justify-content: space-between;
-            background: #111;
-            padding: 10px;
+            background: linear-gradient(180deg, #222 0%, #111 100%);
+            padding: 12px 10px;
             border-radius: 10px;
-            border: 2px solid #444;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            border: 2px solid #555;
+            box-shadow: inset 0 20px 20px rgba(0,0,0,0.8);
             position: relative;
         }
 
-        /* 👑 MURAOKA ランプ (ペカり) */
+        /* 👑 ペカりランプ */
         .gogo-lamp {
             width: 70px;
             height: 70px;
-            background: #222;
+            background: #1a1a1a;
             border-radius: 50%;
-            border: 3px solid #111;
+            border: 4px solid #111;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 900;
-            color: #111;
+            color: #1a1a1a;
             text-align: center;
-            line-height: 1.1;
+            line-height: 1.2;
+            margin-bottom: 5px;
+            box-shadow: inset 0 0 10px #000;
             transition: all 0.1s;
         }
         .gogo-lamp.peka {
-            background: radial-gradient(circle, #fff 0%, #ff00ea 60%, #8800ff 100%);
+            background: radial-gradient(circle, #fff 10%, #ff00ea 50%, #8800ff 100%);
             color: #fff;
-            text-shadow: 0 0 10px #fff;
             border-color: #ff00ea;
-            box-shadow: 0 0 50px #ff00ea, 0 0 100px #8800ff;
-            animation: peka-flash 0.1s infinite alternate;
-        }
-        @keyframes peka-flash {
-            0% { filter: brightness(1); }
-            100% { filter: brightness(1.5); }
+            box-shadow: 0 0 40px #ff00ea, 0 0 80px #8800ff, inset 0 0 20px #fff;
+            text-shadow: 0 0 10px #fff;
+            animation: peka-flash 0.08s infinite alternate;
         }
 
         /* リール窓 */
         .reels-container {
             display: flex;
-            gap: 5px;
+            gap: 6px;
             background: #000;
-            padding: 5px;
-            border: 3px solid silver;
-            border-radius: 5px;
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.9);
-            position: relative;
+            padding: 6px;
+            border: 3px solid #888;
+            border-radius: 6px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.9);
         }
-        
         .reel-window {
-            width: 60px;
-            height: 60px;
-            background: #fff;
+            width: 65px;
+            height: 75px;
+            background: #fdfdfd;
             overflow: hidden;
             position: relative;
-            border-radius: 3px;
-            box-shadow: inset 0 15px 10px -10px rgba(0,0,0,0.6), inset 0 -15px 10px -10px rgba(0,0,0,0.6);
+            border-radius: 4px;
+            box-shadow: inset 0 20px 10px -10px rgba(0,0,0,0.5), inset 0 -20px 10px -10px rgba(0,0,0,0.5);
         }
-
         .reel-strip {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
+            top: 0; left: 0; width: 100%;
+            display: flex; flex-direction: column;
             will-change: transform;
         }
-
         .symbol {
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.8rem;
-            font-weight: 900;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
+            width: 65px; height: 75px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.2rem; font-weight: 900;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
         }
-        
-        .sym-7 { color: #ff0000; text-shadow: 2px 2px 0 #000; }
-        .sym-bar { color: #000; background: #ccc; border: 2px solid #000; width: 90%; height: 50%; font-size: 1rem; display: flex; align-items: center; justify-content: center; }
-        .sym-grape { color: #8a2be2; }
-        .sym-cherry { color: #dc143c; }
-        .sym-replay { color: #00f3ff; text-shadow: 1px 1px 0 #000; font-size:1.2rem; }
+        .sym-7 { color: #ff0000; text-shadow: 2px 2px 0 #333; }
+        .sym-bar { color: #000; background: linear-gradient(180deg, #ddd 0%, #999 100%); border: 3px solid #000; width: 85%; height: 45%; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; border-radius: 2px; }
+        .sym-grape { color: #8a2be2; font-size: 2.0rem; }
+        .sym-cherry { color: #dc143c; font-size: 2.0rem; }
+        .sym-replay { color: #00f3ff; text-shadow: 1px 1px 0 #000; font-size: 1.4rem; }
         .sym-blank { color: transparent; }
 
         .blur { filter: blur(1.5px); }
 
-        /* コントロールパネル */
-        .control-panel {
-            margin-top: 20px;
+        /* --- アクションボタン（実機レイアウト） --- */
+        .stop-buttons-row {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
+            justify-content: flex-end; /* ランプの右側に配置するため */
+            gap: 6px;
+            margin-top: -5px; /* リールの真下に寄せる */
+            padding-right: 12px;
         }
-
-        .buttons-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .action-btn {
-            flex: 1;
-            padding: 12px 0;
-            font-size: 1.1rem;
-            border: none;
-            border-radius: 10px;
-            font-family: inherit;
+        
+        .btn-stop {
+            width: 71px; /* リール幅+paddingに合わせて調整 */
+            height: 45px;
+            background: linear-gradient(180deg, #ff3333 0%, #aa0000 100%);
+            border: 2px solid #ff9999;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 900;
+            font-size: 0.8rem;
             cursor: pointer;
-            box-shadow: 0 5px 0 #111;
-            transition: all 0.1s;
+            box-shadow: 0 6px 0 #550000, 0 8px 10px rgba(0,0,0,0.5);
+            transition: transform 0.05s, box-shadow 0.05s, filter 0.2s;
         }
-        .action-btn:active:not(:disabled) {
-            transform: translateY(5px);
-            box-shadow: 0 0 0 #111;
+        .btn-stop:active:not(:disabled) {
+            transform: translateY(6px);
+            box-shadow: 0 0 0 #550000, 0 0 0 rgba(0,0,0,0);
         }
-        .action-btn:disabled {
-            filter: grayscale(1);
-            cursor: not-allowed;
-            opacity: 0.5;
+        .btn-stop:disabled {
+            background: #444; border-color: #555; color: #777;
+            box-shadow: 0 6px 0 #111; cursor: not-allowed;
         }
 
-        .btn-start { background: linear-gradient(180deg, var(--neon-pink) 0%, #a00050 100%); color: #fff; }
-        .btn-stop { background: linear-gradient(180deg, var(--neon-yellow) 0%, #b3a200 100%); color: #000; }
-        
-        .input-group select {
+        .btn-start {
+            margin-top: 10px;
             width: 100%;
-            padding: 8px;
-            background: #111;
-            color: var(--neon-cyan);
-            border: 1px solid var(--neon-cyan);
-            border-radius: 5px;
-            margin-bottom: 10px;
-            outline: none;
+            height: 55px;
+            background: linear-gradient(180deg, var(--neon-pink) 0%, #800040 100%);
+            border: 3px solid #ff99cc;
+            border-radius: 12px;
+            color: #fff;
+            font-weight: 900;
+            font-size: 1.3rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            box-shadow: 0 8px 0 #400020, 0 10px 15px rgba(0,0,0,0.5);
+            text-shadow: 0 0 10px #fff;
+            transition: transform 0.05s, box-shadow 0.05s;
         }
-        
-        .footer-link {
-            text-align: center;
-            margin-top: 15px;
+        .btn-start:active:not(:disabled) {
+            transform: translateY(8px);
+            box-shadow: 0 0 0 #400020, 0 0 0 rgba(0,0,0,0);
         }
-        .footer-link a { color: #888; text-decoration: none; font-size: 0.8rem; }
+        .btn-start:disabled {
+            background: #333; border-color: #555; color: #666;
+            box-shadow: 0 8px 0 #111; text-shadow: none; cursor: not-allowed;
+        }
+
+        .footer-link { text-align: center; margin-top: 5px; }
+        .footer-link a { color: #888; text-decoration: none; font-size: 0.8rem; font-weight: bold; }
+
+        /* 💥💥 ドーパミン演出アニメーション 💥💥 */
+        body.hyper-flash-active { animation: hyper-body-flash 0.3s linear; }
+        .machine-container.shake { animation: hyper-shake-anim 0.08s ease-in-out infinite alternate; }
+        .num-pop { animation: hyper-pop-bounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.5); }
+
+        @keyframes peka-flash { 0% { filter: brightness(1); } 100% { filter: brightness(1.5); } }
+        @keyframes active-pulse { from { box-shadow: 0 0 10px var(--neon-cyan); } to { box-shadow: 0 0 25px var(--neon-cyan); } }
+        @keyframes hyper-body-flash {
+            0% { background-color: #fff; filter: invert(1) hue-rotate(180deg); }
+            50% { background-color: var(--neon-pink); }
+            100% { background-color: #000; filter: none; }
+        }
+        @keyframes hyper-rainbow-glow {
+            0% { border-color: #ff0000; box-shadow: 0 0 40px #ff0000; }
+            33% { border-color: #00ff00; box-shadow: 0 0 40px #00ff00; }
+            66% { border-color: #00ffff; box-shadow: 0 0 40px #00ffff; }
+            100% { border-color: #ff0000; box-shadow: 0 0 40px #ff0000; }
+        }
+        @keyframes hyper-shake-anim {
+            0% { transform: scale(1.02) translate(2px, 2px) rotate(0deg); }
+            25% { transform: scale(1.02) translate(-2px, -2px) rotate(-1deg); }
+            50% { transform: scale(1.02) translate(-2px, 2px) rotate(1deg); }
+            75% { transform: scale(1.02) translate(2px, -2px) rotate(-1deg); }
+            100% { transform: scale(1.02) translate(2px, 2px) rotate(1deg); }
+        }
+        @keyframes hyper-pop-bounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.8); color: #fff; text-shadow: 0 0 20px #fff, 0 0 40px var(--neon-pink); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
 
-<div class="machine-container">
-    <div class="header-panel">MURAOKA JUGGLER</div>
+<div class="machine-container" id="machine">
+    <div class="header-panel" id="header-panel">MURAOKA JUGGLER</div>
     
-    <div class="input-group">
-        <select id="wallet-select"></select>
+    <div class="inputs-grid">
+        <div class="input-group">
+            <div class="label">💳 支払口座</div>
+            <select id="wallet-select"></select>
+        </div>
+        <div class="input-group">
+            <div class="label">💎 賭け金</div>
+            <input type="number" id="bet-amount" min="1" value="3">
+        </div>
     </div>
 
     <div class="digital-displays">
@@ -240,11 +311,7 @@
             <div class="seg-val" id="credit-display">---</div>
         </div>
         <div class="seg-box">
-            <div class="seg-label">BET</div>
-            <div class="seg-val" id="bet-display">3</div>
-        </div>
-        <div class="seg-box">
-            <div class="seg-label">PAYOUT</div>
+            <div class="seg-label">WIN</div>
             <div class="seg-val green" id="payout-display">0</div>
         </div>
     </div>
@@ -258,14 +325,13 @@
         </div>
     </div>
 
-    <div class="control-panel">
-        <button id="btn-start" class="action-btn btn-start">LEVER ON (3G)</button>
-        <div class="buttons-row">
-            <button class="action-btn btn-stop" id="btn-stop-0" disabled>STOP 1</button>
-            <button class="action-btn btn-stop" id="btn-stop-1" disabled>STOP 2</button>
-            <button class="action-btn btn-stop" id="btn-stop-2" disabled>STOP 3</button>
-        </div>
+    <div class="stop-buttons-row">
+        <button class="btn-stop" id="btn-stop-0" disabled>STOP</button>
+        <button class="btn-stop" id="btn-stop-1" disabled>STOP</button>
+        <button class="btn-stop" id="btn-stop-2" disabled>STOP</button>
     </div>
+
+    <button id="btn-start" class="btn-start">🚀 LEVER ON</button>
     
     <div class="footer-link"><a href="/casino">◀ カジノに戻る</a></div>
 </div>
@@ -283,6 +349,7 @@
         "BLANK": '<div class="symbol sym-blank">-</div>'
     };
     
+    let myWalletsData = [];
     let reelElements = [document.getElementById('reel-0'), document.getElementById('reel-1'), document.getElementById('reel-2')];
     let reelIntervals = [null, null, null];
     let reelPositions = [0, 0, 0];
@@ -301,26 +368,85 @@
         document.getElementById("btn-stop-0").addEventListener("click", () => stopReel(0));
         document.getElementById("btn-stop-1").addEventListener("click", () => stopReel(1));
         document.getElementById("btn-stop-2").addEventListener("click", () => stopReel(2));
+
+        // 口座変更時の即時反映
+        document.getElementById("wallet-select").addEventListener("change", (e) => {
+            const w = myWalletsData.find(w => w.wallet_id === e.target.value);
+            if(w) updateCredit(w.balance);
+        });
     }
 
     async function loadWallets() {
         try {
             const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
-            const data = await res.json();
+            myWalletsData = await res.json();
+            
             const select = document.getElementById("wallet-select");
-            select.innerHTML = data.map(w => `<option value="${w.wallet_id}">${w.wallet_name} (${w.balance}G)</option>`).join('');
-            if(data.length > 0) updateCredit(data[0].balance);
+            const currentSelected = select.value;
+
+            select.innerHTML = myWalletsData.map(w => `<option value="${w.wallet_id}">${w.wallet_name}</option>`).join('');
+            
+            if (currentSelected && myWalletsData.some(w => w.wallet_id === currentSelected)) {
+                select.value = currentSelected;
+            }
+            
+            const w = myWalletsData.find(w => w.wallet_id === select.value);
+            if(w) updateCredit(w.balance);
         } catch (e) { console.error(e); }
     }
 
-    function updateCredit(val) { document.getElementById("credit-display").innerText = val; }
-    function updatePayout(val) { document.getElementById("payout-display").innerText = val; }
+    function updateCredit(val) { 
+        const el = document.getElementById("credit-display");
+        el.innerText = val;
+        el.classList.remove("num-pop");
+        void el.offsetWidth; // リフロー
+        el.classList.add("num-pop");
+    }
+    
+    function updatePayout(val) { 
+        const el = document.getElementById("payout-display");
+        el.innerText = val; 
+        if(val > 0) {
+            el.classList.remove("num-pop");
+            void el.offsetWidth;
+            el.classList.add("num-pop");
+        }
+    }
 
+    function triggerDopamine(type) {
+        if(type === "PEKA") {
+            document.body.classList.add("hyper-flash-active");
+            setTimeout(() => document.body.classList.remove("hyper-flash-active"), 300);
+            document.getElementById("gogo-lamp").classList.add("peka");
+        } else if (type === "BIG") {
+            document.getElementById("machine").classList.add("shake");
+            const header = document.getElementById("header-panel");
+            header.innerText = "🎉 BIG BONUS 🎉";
+            header.className = "header-panel big-hit";
+            setTimeout(() => document.getElementById("machine").classList.remove("shake"), 1000);
+        } else if (type === "REG") {
+            const header = document.getElementById("header-panel");
+            header.innerText = "✨ REGULAR ✨";
+            header.className = "header-panel reg-hit";
+        }
+    }
+
+    function resetUI() {
+        document.getElementById("gogo-lamp").classList.remove("peka");
+        const header = document.getElementById("header-panel");
+        header.innerText = "MURAOKA JUGGLER";
+        header.className = "header-panel";
+        updatePayout(0);
+    }
+
+    // 空白図柄を多めに混ぜてハズレのリアリティを出す
     function setupReels(isInitial = false, resultSymbols = ["7","7","7"]) {
         for(let i=0; i<3; i++) {
             let html = "";
             for(let j=0; j<20; j++) {
-                const randomSym = Object.keys(SYMBOL_TYPES)[Math.floor(Math.random() * 5)];
+                // 通常よりBLANKの出現率を上げる
+                const pool = ["7", "BAR", "GRAPE", "CHERRY", "REPLAY", "BLANK", "BLANK", "BLANK"];
+                const randomSym = pool[Math.floor(Math.random() * pool.length)];
                 html += SYMBOL_TYPES[randomSym];
             }
             if(!isInitial && serverResult) {
@@ -337,13 +463,15 @@
         if (isSpinning) return;
         
         const walletId = document.getElementById("wallet-select").value;
+        const betAmt = parseInt(document.getElementById("bet-amount").value, 10);
+        
         if(!walletId) return alert("口座がありません");
+        if(isNaN(betAmt) || betAmt < 1) return alert("賭け金を正しく入力してください");
 
         isSpinning = true;
         stoppedCount = 0;
         serverResult = null;
-        updatePayout(0);
-        document.getElementById("gogo-lamp").classList.remove("peka");
+        resetUI();
         
         document.getElementById("btn-start").disabled = true;
         
@@ -351,7 +479,7 @@
             const res = await fetch("/api/slot/spin", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                body: JSON.stringify({ wallet_id: walletId, bet_amount: 3 })
+                body: JSON.stringify({ wallet_id: walletId, bet_amount: betAmt })
             });
             const data = await res.json();
             if (!res.ok) {
@@ -362,7 +490,13 @@
             }
 
             serverResult = data;
-            updateCredit(data.new_balance - data.payout);
+            
+            // 手持ちの残高データを先引きしてUIを更新
+            const w = myWalletsData.find(w => w.wallet_id === walletId);
+            if(w) {
+                w.balance = data.new_balance - data.payout;
+                updateCredit(w.balance);
+            }
 
             setupReels(false, data.result_symbols);
 
@@ -370,15 +504,17 @@
                 document.getElementById(`btn-stop-${i}`).disabled = false;
                 reelElements[i].classList.add("blur");
                 reelPositions[i] = 0;
+                // リールの回転速度を少し上げて爽快感を出す
                 reelIntervals[i] = setInterval(() => {
-                    reelPositions[i] -= 20;
-                    if (reelPositions[i] <= -1100) reelPositions[i] = 0;
+                    reelPositions[i] -= 25;
+                    if (reelPositions[i] <= -1500) reelPositions[i] = 0;
                     reelElements[i].style.transform = `translateY(${reelPositions[i]}px)`;
                 }, 16);
             }
 
+            // 先ペカ
             if (data.is_early_pekari) {
-                document.getElementById("gogo-lamp").classList.add("peka");
+                triggerDopamine("PEKA");
             }
 
         } catch (e) {
@@ -396,7 +532,8 @@
         clearInterval(reelIntervals[idx]);
         reelElements[idx].classList.remove("blur");
         
-        reelElements[idx].style.transform = `translateY(-1200px)`;
+        // 当たり図柄の位置（一番下）に強制スベリ停止
+        reelElements[idx].style.transform = `translateY(-1500px)`;
         
         stoppedCount++;
         if (stoppedCount === 3) {
@@ -408,14 +545,29 @@
         isSpinning = false;
         document.getElementById("btn-start").disabled = false;
         
+        // 後ペカ
         if (serverResult.is_pekari && !serverResult.is_early_pekari) {
-            document.getElementById("gogo-lamp").classList.add("peka");
+            triggerDopamine("PEKA");
         }
 
+        // ボーナス確定演出
+        if (serverResult.prize === "BIG") {
+            triggerDopamine("BIG");
+        } else if (serverResult.prize === "REG") {
+            triggerDopamine("REG");
+        }
+
+        // 配当反映
         if (serverResult.payout > 0) {
             updatePayout(serverResult.payout);
-            updateCredit(serverResult.new_balance);
+            const w = myWalletsData.find(w => w.wallet_id === document.getElementById("wallet-select").value);
+            if(w) {
+                w.balance = serverResult.new_balance;
+                updateCredit(w.balance);
+            }
         }
+        
+        // 裏でウォレット情報を再同期
         loadWallets();
     }
 </script>
