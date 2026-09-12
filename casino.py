@@ -279,6 +279,18 @@ async def cashout_tower(data: TowerCashoutRequest, authorization: str = Header(N
         "payout": payout,
         "new_balance": new_balance
     }
+# --- Slot用リクエストモデル ---
+class SlotSpinRequest(BaseModel):
+    wallet_id: str
+    bet_amount: int
+
+# --------------------------------------------------
+# カジノ画面配信ルート：スロット追加
+# --------------------------------------------------
+@router.get("/slot", response_class=HTMLResponse)
+async def get_slot(request: Request):
+    return templates.TemplateResponse(request=request, name="slot.html")
+
 # --------------------------------------------------
 # カジノAPI：スロットゲーム（ダイス基準・RTP 96.5%）
 # --------------------------------------------------
@@ -304,41 +316,32 @@ async def spin_slot(data: SlotSpinRequest, authorization: str = Header(None)):
     new_balance = current_balance - data.bet_amount
     
     # 2. 内部抽選 (ダイス基準 RTP 96.5%)
-    # 0~999の乱数
     rand_val = random.randint(0, 999)
-    
-    # BIG(20倍): 1.5% -> RTP 30.0%
-    # REG(8倍): 3.0% -> RTP 24.0%
-    # BELL(3倍): 5.0% -> RTP 15.0%
-    # GRAPE(2倍): 10.0% -> RTP 20.0%
-    # REPLAY/CHERRY(1倍): 7.5% -> RTP 7.5%
-    # 合計 RTP: 96.5%, 当たり確率: 27.0%
     
     if rand_val < 15:
         prize = "BIG"
         payout = data.bet_amount * 20
         result_symbols = ["7", "7", "7"]
-    elif rand_val < 45: # 15 + 30 = 45
+    elif rand_val < 45: 
         prize = "REG"
         payout = data.bet_amount * 8
         result_symbols = ["BAR", "BAR", "BAR"]
-    elif rand_val < 95: # 45 + 50 = 95
+    elif rand_val < 95: 
         prize = "BELL"
         payout = data.bet_amount * 3
         result_symbols = ["BELL", "BELL", "BELL"]
-    elif rand_val < 195: # 95 + 100 = 195
+    elif rand_val < 195: 
         prize = "GRAPE"
         payout = data.bet_amount * 2
         result_symbols = ["GRAPE", "GRAPE", "GRAPE"]
-    elif rand_val < 270: # 195 + 75 = 270
+    elif rand_val < 270: 
         prize = "REPLAY"
         payout = data.bet_amount * 1
-        # 1倍役は演出としてリプレイかチェリーに振り分け
         if random.random() < 0.5:
             result_symbols = ["REPLAY", "REPLAY", "REPLAY"]
         else:
             result_symbols = ["CHERRY", random.choice(["BELL", "GRAPE", "REPLAY"]), random.choice(["BAR", "BELL", "GRAPE"])]
-    else: # 残り 73.0% ハズレ
+    else: 
         prize = "MISS"
         payout = 0
         pool = ["7", "BAR", "BELL", "GRAPE", "REPLAY"]
@@ -354,7 +357,7 @@ async def spin_slot(data: SlotSpinRequest, authorization: str = Header(None)):
     is_early_pekari = False
     if prize in ["BIG", "REG"]:
         is_pekari = True
-        if random.random() < 0.25: # 25%の確率で先ペカ
+        if random.random() < 0.25: 
             is_early_pekari = True
 
     # 3. 配当があれば即時加算
