@@ -1,3 +1,4 @@
+<!-- templates/coin.html -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -20,9 +21,9 @@
             background: #000;
             background-image: 
                 radial-gradient(circle at 50% 50%, #1a1a2e 0%, #000000 90%),
-                linear-gradient(0deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 0, 127, 0.1) 1px, transparent 1px);
-            background-size: 100% 100%, 20px 20px, 20px 20px;
+                linear-gradient(0deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 0, 127, 0.05) 1px, transparent 1px);
+            background-size: 100% 100%, 30px 30px, 30px 30px;
             color: #fff; display: flex; justify-content: center; align-items: center;
             margin: 0; min-height: 100vh; padding: 10px;
         }
@@ -122,78 +123,110 @@
     let entryAmountSol = 0;
     let entryGold = 0;
     let ws;
+    
+    // データ保持数（画面枠に収まる最大数）
+    const MAX_POINTS = 20; 
+    let chartData = []; 
 
-    // --- チャート初期化 ---
     const chartProperties = {
         width: document.getElementById('chart-container').clientWidth,
         height: 260,
         layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#d1d4dc' },
-        grid: { vertLines: { color: 'rgba(42, 46, 57, 0.2)' }, horzLines: { color: 'rgba(42, 46, 57, 0.2)' } },
+        grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(42, 46, 57, 0.2)' } },
         crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-        timeScale: { timeVisible: true, secondsVisible: false },
+        timeScale: { timeVisible: true, secondsVisible: false, fixLeftEdge: true, rightOffset: 2 },
     };
+    
     const chart = LightweightCharts.createChart(document.getElementById('chart-container'), chartProperties);
-    const lineSeries = chart.addLineSeries({ color: '#00f3ff', lineWidth: 2 });
+    const lineSeries = chart.addLineSeries({ color: '#00f3ff', lineWidth: 3 });
 
-    async function fetchHistoricalData() {
-        try {
-            // 直近60分(1分足)のデータを取得しチャートの空白を防ぐ
-            const res = await fetch("https://api.binance.com/api/v3/klines?symbol=SOLUSDT&interval=1m&limit=60");
-            const data = await res.json();
-            const historical = data.map(d => ({
-                time: Math.floor(d[0] / 1000), 
-                value: parseFloat(d[4])
-            }));
-            lineSeries.setData(historical);
-        } catch (e) {
-            console.error("過去データ取得失敗", e);
-        }
-    }
-
-    function connectWebSocket() {
-        if (ws) ws.close();
-        ws = new WebSocket('wss://stream.binance.com:9443/ws/solusdt@miniTicker');
-        
-        ws.onmessage = (event) => {
-            const msg = JSON.parse(event.data);
-            if (!msg.c) return;
-
-            currentPrice = parseFloat(msg.c);
-            const t = Math.floor(msg.E / 1000);
-            lineSeries.update({ time: t, value: currentPrice });
-            
-            document.getElementById('current-price').innerText = currentPrice.toFixed(2);
-            updateUI();
-        };
-
-        ws.onclose = () => setTimeout(connectWebSocket, 3000); // 切断時は自動再接続
-    }
-
+    // 1. 口座とポジションの取得（エラーが起きてもUIを止めない設計）
     async function loadUserState() {
+        const infoEl = document.getElementById("position-info");
         try {
-            // 1. ウォレット取得
-            const wRes = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
-            const wallets = await wRes.json();
-            document.getElementById("wallet-select").innerHTML = wallets.map(w => 
-                `<option value="${w.wallet_id}">${w.wallet_name} - ${w.balance}G</option>`
-            ).join('');
+            const [wRes, pRes] = await Promise.all([
+                fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } }),
+                fetch("/api/coin/position", { headers: { "Authorization": `Bearer ${token}` } })
+            ]);
 
-            // 2. 現在の保有ポジション取得（リロード対策）
-            const pRes = await fetch("/api/coin/position", { headers: { "Authorization": `Bearer ${token}` } });
+            if (wRes.ok) {
+                const wallets = await wRes.json();
+                const selectEl = document.getElementById("wallet-select");
+                if (selectEl && wallets.length > 0) {
+                    selectEl.innerHTML = wallets.map(w => 
+                        `<option value="${w.wallet_id}">${w.wallet_name} - ${w.balance}G</option>`
+                    ).join('');
+                }
+            }
+
             if (pRes.ok) {
                 const pos = await pRes.json();
-                if (pos) {
+                if (pos && pos.wallet_id) {
                     isHolding = true;
                     entryPrice = parseFloat(pos.entry_price);
                     entryAmountSol = parseFloat(pos.sol_amount);
                     entryGold = parseInt(pos.bet_gold);
-                    document.getElementById('wallet-select').value = pos.wallet_id;
+                    const selectEl = document.getElementById('wallet-select');
+                    if (selectEl) selectEl.value = pos.wallet_id;
                 }
             }
-            updateUI();
-            document.getElementById("position-info").innerText = "接続完了 - リアルタイム更新中";
+            if (infoEl) infoEl.innerText = "接続完了 - リアルタイム更新中";
         } catch (e) {
-            document.getElementById("position-info").innerText = "データの読み込みに失敗しました";
+            if (infoEl) infoEl.innerText = "口座情報の取得に失敗しました。";
+        } finally {
+            updateUI();
+        }
+    }
+
+    // 2. 過去データの取得（awaitなしの非同期。直近20件のみ）
+    async function fetchHistoricalData() {
+        try {
+            const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=SOLUSDT&interval=1m&limit=${MAX_POINTS}`);
+            if (!res.ok) return;
+            
+            const data = await res.json();
+            chartData = data.map(d => ({
+                time: Math.floor(d[0] / 1000), 
+                value: parseFloat(d[4])
+            }));
+            lineSeries.setData(chartData);
+            chart.timeScale().fitContent();
+        } catch (e) {
+            // ブロックされている場合は無視（リアルタイムのみで稼働）
+        }
+    }
+
+    // 3. WebSocket（リアルタイム＆古いデータを消去するリングバッファ構造）
+    function connectWebSocket() {
+        if (ws) ws.close();
+        try {
+            ws = new WebSocket('wss://stream.binance.com:9443/ws/solusdt@miniTicker');
+            
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (!msg.c) return;
+
+                    currentPrice = parseFloat(msg.c);
+                    const t = Math.floor(msg.E / 1000);
+                    
+                    // 古いデータを消して最新を保つ
+                    chartData.push({ time: t, value: currentPrice });
+                    if (chartData.length > MAX_POINTS) {
+                        chartData.shift(); 
+                    }
+                    lineSeries.setData(chartData);
+                    chart.timeScale().fitContent();
+                    
+                    const priceEl = document.getElementById('current-price');
+                    if (priceEl) priceEl.innerText = currentPrice.toFixed(2);
+                    
+                    updateUI();
+                } catch(e) {}
+            };
+            ws.onclose = () => setTimeout(connectWebSocket, 3000);
+        } catch(e) {
+            setTimeout(connectWebSocket, 3000);
         }
     }
 
@@ -204,6 +237,8 @@
         const betInput = document.getElementById('bet-amount');
         const valEl = document.getElementById('my-value');
         const infoEl = document.getElementById('position-info');
+
+        if (!btnBuy || !valEl) return;
 
         if (isHolding) {
             btnBuy.disabled = true;
@@ -217,9 +252,8 @@
             
             valEl.innerText = `${currentGold} Gold`;
             valEl.className = `stat-val ${pnl > 0 ? 'val-up' : (pnl < 0 ? 'val-down' : 'val-neutral')}`;
-            infoEl.innerText = `購入価格: ${entryPrice.toFixed(2)} USDT | 損益: ${sign}${pnl} G`;
+            if(infoEl) infoEl.innerText = `購入: ${entryPrice.toFixed(2)} USDT | 損益: ${sign}${pnl} G`;
         } else {
-            // 価格取得済み ＆ ウォレットが存在する場合のみBuyを有効化
             btnBuy.disabled = (currentPrice === 0 || walletSelect.options.length === 0);
             btnSell.disabled = true;
             walletSelect.disabled = false;
@@ -227,7 +261,9 @@
             
             valEl.innerText = "未保有";
             valEl.className = "stat-val val-neutral";
-            if(currentPrice > 0) infoEl.innerText = "投資額を入力して購入してください";
+            if (infoEl && currentPrice > 0 && infoEl.innerText.includes("接続完了")) {
+                infoEl.innerText = "投資額を入力して購入してください";
+            }
         }
     }
 
@@ -235,9 +271,8 @@
         const wallet_id = document.getElementById("wallet-select").value;
         const amount = parseInt(document.getElementById("bet-amount").value);
 
-        if(!wallet_id || isNaN(amount) || amount < 10) return alert("10 Gold以上を指定してください");
+        if (!wallet_id || isNaN(amount) || amount < 10) return alert("10 Gold以上を指定してください");
         
-        // 【重要】多重リクエスト防止
         document.getElementById('btn-buy').disabled = true;
         document.getElementById('position-info').innerText = "購入処理中...";
 
@@ -265,7 +300,6 @@
     document.getElementById('btn-sell').addEventListener('click', async () => {
         const wallet_id = document.getElementById("wallet-select").value;
         
-        // 【重要】多重リクエスト防止
         document.getElementById('btn-sell').disabled = true;
         document.getElementById('position-info').innerText = "決済処理中...";
 
@@ -283,7 +317,6 @@
             const sign = data.pnl_gold >= 0 ? "+" : "";
             alert(`決済完了！\n決済価格: ${data.exit_price} USDT\n損益: ${sign}${data.pnl_gold} Gold`);
             
-            // 決済後にウォレット残高を再取得して表示を更新
             await loadUserState();
         } catch (e) {
             alert(e.message);
@@ -292,14 +325,15 @@
     });
 
     window.addEventListener('resize', () => {
-        chart.applyOptions({ width: document.getElementById('chart-container').clientWidth });
+        const container = document.getElementById('chart-container');
+        if (container) chart.applyOptions({ width: container.clientWidth });
     });
 
-    // 初期化シーケンス
+    // 初期化シーケンス（必ず自サーバーのデータ取得を優先させ、描画ブロックを防ぐ）
     (async () => {
-        await fetchHistoricalData();
-        connectWebSocket();
         await loadUserState();
+        connectWebSocket();
+        fetchHistoricalData(); // 背景で実行（awaitしない）
     })();
 </script>
 </body>
