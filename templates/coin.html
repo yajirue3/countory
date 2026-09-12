@@ -9,11 +9,8 @@
         @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=M+PLUS+1p:wght@900&display=swap');
 
         :root {
-            --neon-pink: #ff007f;
-            --neon-cyan: #00f3ff;
-            --neon-yellow: #ffe600;
-            --neon-green: #00ff66;
-            --neon-red: #ff003c;
+            --neon-pink: #ff007f; --neon-cyan: #00f3ff; --neon-yellow: #ffe600;
+            --neon-green: #00ff66; --neon-red: #ff003c;
         }
 
         * { box-sizing: border-box; }
@@ -26,79 +23,69 @@
                 linear-gradient(0deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255, 0, 127, 0.1) 1px, transparent 1px);
             background-size: 100% 100%, 20px 20px, 20px 20px;
-            color: #fff; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center;
-            margin: 0; 
-            min-height: 100vh;
-            padding: 10px;
+            color: #fff; display: flex; justify-content: center; align-items: center;
+            margin: 0; min-height: 100vh; padding: 10px;
         }
 
         .container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 10px; }
-        
         .card { 
             background: rgba(10, 2, 18, 0.95); border: 2px solid var(--neon-cyan); 
-            border-radius: 14px; padding: 10px; box-shadow: 0 0 25px rgba(0, 243, 255, 0.4); 
-            display: flex; flex-direction: column; gap: 10px;
+            border-radius: 14px; padding: 15px; box-shadow: 0 0 25px rgba(0, 243, 255, 0.4); 
+            display: flex; flex-direction: column; gap: 12px;
         }
-
         .header { 
-            font-size: 1.2rem; font-weight: 900; color: var(--neon-yellow); 
+            font-size: 1.3rem; font-weight: 900; color: var(--neon-yellow); 
             text-align: center; border-bottom: 2px solid var(--neon-pink); 
-            padding-bottom: 5px; margin-bottom: 5px; text-shadow: 0 0 10px var(--neon-yellow);
+            padding-bottom: 5px; text-shadow: 0 0 10px var(--neon-yellow);
         }
 
-        .description { font-size: 0.75rem; color: #ccc; text-align: center; margin-bottom: 5px; line-height: 1.4; }
+        #chart-container { width: 100%; height: 260px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; overflow: hidden; background: #050510; }
 
-        #chart-container { width: 100%; height: 250px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; overflow: hidden; background: #050510; }
-
-        .status-display { display: flex; justify-content: space-between; background: #000; border: 1px solid var(--neon-cyan); border-radius: 8px; padding: 8px; }
+        .status-display { display: flex; justify-content: space-between; background: #000; border: 1px solid var(--neon-cyan); border-radius: 8px; padding: 10px; }
         .stat-box { text-align: center; width: 48%; }
-        .stat-label { font-size: 0.7rem; color: #aaa; }
-        .stat-val { font-size: 1.1rem; font-weight: 900; font-family: 'Black Ops One', monospace; }
+        .stat-label { font-size: 0.75rem; color: #aaa; margin-bottom: 3px; }
+        .stat-val { font-size: 1.2rem; font-weight: 900; font-family: 'Black Ops One', monospace; transition: color 0.3s;}
         .val-up { color: var(--neon-green); text-shadow: 0 0 10px var(--neon-green); }
         .val-down { color: var(--neon-red); text-shadow: 0 0 10px var(--neon-red); }
         .val-neutral { color: #fff; }
+        
+        #position-info { font-size: 0.8rem; color: var(--neon-cyan); text-align: center; min-height: 1.2rem; }
 
-        .inputs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .inputs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .input-group { display: flex; flex-direction: column; }
-        .label { font-size: 0.7rem; color: var(--neon-cyan); margin-bottom: 2px; }
+        .label { font-size: 0.75rem; color: var(--neon-cyan); margin-bottom: 4px; }
         input, select { 
-            width: 100%; padding: 6px; border-radius: 6px; 
-            border: 1.5px solid var(--neon-cyan); background: rgba(10, 10, 20, 0.9); 
-            color: #fff; font-weight: bold; outline: none;
+            width: 100%; padding: 8px; border-radius: 6px; border: 1.5px solid var(--neon-cyan); 
+            background: rgba(10, 10, 20, 0.9); color: #fff; font-weight: bold; outline: none;
         }
 
-        .btn-group { display: flex; gap: 8px; margin-top: 5px; }
-        button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: 900; cursor: pointer; transition: transform 0.1s; }
+        .btn-group { display: flex; gap: 10px; margin-top: 5px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: 900; font-size: 1rem; cursor: pointer; transition: transform 0.1s; }
         button:active:not(:disabled) { transform: scale(0.95); }
         button:disabled { filter: grayscale(1); cursor: not-allowed; opacity: 0.5; }
         .btn-buy { background: linear-gradient(135deg, #00f3ff 0%, #0066ff 100%); color: #fff; box-shadow: 0 0 15px var(--neon-cyan); }
         .btn-sell { background: linear-gradient(135deg, #ff007f 0%, #990000 100%); color: #fff; box-shadow: 0 0 15px var(--neon-pink); }
         
-        .footer { text-align: center; margin-top: 10px; }
-        .btn-back { background: transparent; color: #888; border: 1px solid #555; padding: 5px 10px; font-size: 0.8rem;}
+        .footer { text-align: center; margin-top: 5px; }
+        .btn-back { background: transparent; color: #888; border: 1px solid #555; padding: 5px 15px; font-size: 0.85rem;}
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="card">
-        <div class="header">📈 Solana (SOL) トレード</div>
-        <div class="description">
-            この機能は、暗号資産「Solana (SOL)」の実際の市場価格（Binance API）にリアルタイムで連動しています。現在のSOL価格に基づいてGoldで疑似投資を行い、価格変動による損益を体験できます。
-        </div>
+        <div class="header">📈 SOL トレード</div>
         
         <div id="chart-container"></div>
+        <div id="position-info">データを読み込み中...</div>
 
         <div class="status-display">
             <div class="stat-box">
-                <div class="stat-label">現在価格</div>
-                <div id="current-price" class="stat-val val-neutral">--- USDT</div>
+                <div class="stat-label">現在価格 (USDT)</div>
+                <div id="current-price" class="stat-val val-neutral">---</div>
             </div>
             <div class="stat-box">
-                <div class="stat-label">あなたの評価額</div>
+                <div class="stat-label">評価額 (Gold)</div>
                 <div id="my-value" class="stat-val val-neutral">未保有</div>
             </div>
         </div>
@@ -120,7 +107,7 @@
         </div>
         
         <div class="footer">
-            <button class="btn-back" onclick="location.href='/casino'">◀ カジノ一覧に戻る</button>
+            <button class="btn-back" onclick="location.href='/casino'">◀ 戻る</button>
         </div>
     </div>
 </div>
@@ -131,79 +118,116 @@
 
     let currentPrice = 0;
     let isHolding = false;
+    let entryPrice = 0;
     let entryAmountSol = 0;
     let entryGold = 0;
+    let ws;
 
+    // --- チャート初期化 ---
     const chartProperties = {
         width: document.getElementById('chart-container').clientWidth,
-        height: 250,
+        height: 260,
         layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#d1d4dc' },
         grid: { vertLines: { color: 'rgba(42, 46, 57, 0.2)' }, horzLines: { color: 'rgba(42, 46, 57, 0.2)' } },
         crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-        timeScale: { timeVisible: true, secondsVisible: true },
+        timeScale: { timeVisible: true, secondsVisible: false },
     };
-    
     const chart = LightweightCharts.createChart(document.getElementById('chart-container'), chartProperties);
     const lineSeries = chart.addLineSeries({ color: '#00f3ff', lineWidth: 2 });
 
-    // 【ゼロトラスト修正】不正な kline_1s を破棄し、リアルタイムの miniTicker に変更
-    const ws = new WebSocket('wss://stream.binance.com:9443/ws/solusdt@miniTicker');
-    
-    ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        if (!message.c) return;
-
-        currentPrice = parseFloat(message.c);
-        
-        // x軸を現在のUNIXタイムスタンプ(秒)としてプロット
-        const nowInSeconds = Math.floor(Date.now() / 1000);
-        lineSeries.update({ time: nowInSeconds, value: currentPrice });
-        
-        document.getElementById('current-price').innerText = currentPrice.toFixed(2) + " USDT";
-        
-        // 価格受信後に購入ボタンを有効化 (未保有時のみ)
-        if (!isHolding && currentPrice > 0 && document.getElementById("wallet-select").options.length > 0) {
-            document.getElementById('btn-buy').disabled = false;
-        }
-        
-        if (isHolding) {
-            const currentGold = Math.floor(entryAmountSol * currentPrice);
-            const valEl = document.getElementById('my-value');
-            valEl.innerText = currentGold + " Gold";
-            
-            if (currentGold > entryGold) {
-                valEl.className = "stat-val val-up";
-            } else if (currentGold < entryGold) {
-                valEl.className = "stat-val val-down";
-            } else {
-                valEl.className = "stat-val val-neutral";
-            }
-        }
-    };
-
-    ws.onerror = (err) => {
-        console.error("WebSocket通信エラー:", err);
-        alert("価格ストリームへの接続に失敗しました。");
-    };
-
-    async function init() {
+    async function fetchHistoricalData() {
         try {
-            const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
-            if (!res.ok) throw new Error("ウォレット取得失敗");
-            const wallets = await res.json();
+            // 直近60分(1分足)のデータを取得しチャートの空白を防ぐ
+            const res = await fetch("https://api.binance.com/api/v3/klines?symbol=SOLUSDT&interval=1m&limit=60");
+            const data = await res.json();
+            const historical = data.map(d => ({
+                time: Math.floor(d[0] / 1000), 
+                value: parseFloat(d[4])
+            }));
+            lineSeries.setData(historical);
+        } catch (e) {
+            console.error("過去データ取得失敗", e);
+        }
+    }
+
+    function connectWebSocket() {
+        if (ws) ws.close();
+        ws = new WebSocket('wss://stream.binance.com:9443/ws/solusdt@miniTicker');
+        
+        ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            if (!msg.c) return;
+
+            currentPrice = parseFloat(msg.c);
+            const t = Math.floor(msg.E / 1000);
+            lineSeries.update({ time: t, value: currentPrice });
             
-            const selectEl = document.getElementById("wallet-select");
-            selectEl.innerHTML = wallets.map(w => 
+            document.getElementById('current-price').innerText = currentPrice.toFixed(2);
+            updateUI();
+        };
+
+        ws.onclose = () => setTimeout(connectWebSocket, 3000); // 切断時は自動再接続
+    }
+
+    async function loadUserState() {
+        try {
+            // 1. ウォレット取得
+            const wRes = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
+            const wallets = await wRes.json();
+            document.getElementById("wallet-select").innerHTML = wallets.map(w => 
                 `<option value="${w.wallet_id}">${w.wallet_name} - ${w.balance}G</option>`
             ).join('');
 
-            // ウォレットがあり、価格が既に取得できていればボタンを解放
-            if (wallets.length > 0 && currentPrice > 0 && !isHolding) {
-                document.getElementById('btn-buy').disabled = false;
+            // 2. 現在の保有ポジション取得（リロード対策）
+            const pRes = await fetch("/api/coin/position", { headers: { "Authorization": `Bearer ${token}` } });
+            if (pRes.ok) {
+                const pos = await pRes.json();
+                if (pos) {
+                    isHolding = true;
+                    entryPrice = parseFloat(pos.entry_price);
+                    entryAmountSol = parseFloat(pos.sol_amount);
+                    entryGold = parseInt(pos.bet_gold);
+                    document.getElementById('wallet-select').value = pos.wallet_id;
+                }
             }
-        } catch (e) { 
-            console.error(e);
-            alert("口座情報の取得に失敗しました。");
+            updateUI();
+            document.getElementById("position-info").innerText = "接続完了 - リアルタイム更新中";
+        } catch (e) {
+            document.getElementById("position-info").innerText = "データの読み込みに失敗しました";
+        }
+    }
+
+    function updateUI() {
+        const btnBuy = document.getElementById('btn-buy');
+        const btnSell = document.getElementById('btn-sell');
+        const walletSelect = document.getElementById('wallet-select');
+        const betInput = document.getElementById('bet-amount');
+        const valEl = document.getElementById('my-value');
+        const infoEl = document.getElementById('position-info');
+
+        if (isHolding) {
+            btnBuy.disabled = true;
+            btnSell.disabled = false;
+            walletSelect.disabled = true;
+            betInput.disabled = true;
+
+            const currentGold = Math.floor(entryAmountSol * currentPrice);
+            const pnl = currentGold - entryGold;
+            const sign = pnl >= 0 ? "+" : "";
+            
+            valEl.innerText = `${currentGold} Gold`;
+            valEl.className = `stat-val ${pnl > 0 ? 'val-up' : (pnl < 0 ? 'val-down' : 'val-neutral')}`;
+            infoEl.innerText = `購入価格: ${entryPrice.toFixed(2)} USDT | 損益: ${sign}${pnl} G`;
+        } else {
+            // 価格取得済み ＆ ウォレットが存在する場合のみBuyを有効化
+            btnBuy.disabled = (currentPrice === 0 || walletSelect.options.length === 0);
+            btnSell.disabled = true;
+            walletSelect.disabled = false;
+            betInput.disabled = false;
+            
+            valEl.innerText = "未保有";
+            valEl.className = "stat-val val-neutral";
+            if(currentPrice > 0) infoEl.innerText = "投資額を入力して購入してください";
         }
     }
 
@@ -211,10 +235,11 @@
         const wallet_id = document.getElementById("wallet-select").value;
         const amount = parseInt(document.getElementById("bet-amount").value);
 
-        if(!wallet_id || isNaN(amount) || amount <= 0) return alert("入力が正しくありません");
-        if(currentPrice === 0) return alert("価格データを受信中です。少々お待ちください。");
+        if(!wallet_id || isNaN(amount) || amount < 10) return alert("10 Gold以上を指定してください");
         
+        // 【重要】多重リクエスト防止
         document.getElementById('btn-buy').disabled = true;
+        document.getElementById('position-info').innerText = "購入処理中...";
 
         try {
             const res = await fetch("/api/coin/buy", {
@@ -224,29 +249,25 @@
             });
             const data = await res.json();
             
-            if (!res.ok) {
-                document.getElementById('btn-buy').disabled = false;
-                return alert(data.detail || "購入に失敗しました");
-            }
+            if (!res.ok) throw new Error(data.detail || "購入エラー");
 
             isHolding = true;
+            entryPrice = data.entry_price;
             entryAmountSol = data.sol_amount;
             entryGold = amount;
-            
-            document.getElementById('btn-sell').disabled = false;
-            document.getElementById('wallet-select').disabled = true;
-            document.getElementById('bet-amount').disabled = true;
-            
-            alert(`購入完了！\n購入価格: ${data.entry_price} USDT`);
+            alert(`購入完了！\n約定価格: ${data.entry_price} USDT`);
         } catch (e) {
-            alert("通信エラーが発生しました");
-            document.getElementById('btn-buy').disabled = false;
+            alert(e.message);
         }
+        updateUI();
     });
 
     document.getElementById('btn-sell').addEventListener('click', async () => {
         const wallet_id = document.getElementById("wallet-select").value;
+        
+        // 【重要】多重リクエスト防止
         document.getElementById('btn-sell').disabled = true;
+        document.getElementById('position-info').innerText = "決済処理中...";
 
         try {
             const res = await fetch("/api/coin/sell", {
@@ -256,37 +277,30 @@
             });
             const data = await res.json();
             
-            if (!res.ok) {
-                document.getElementById('btn-sell').disabled = false;
-                return alert(data.detail || "売却に失敗しました");
-            }
+            if (!res.ok) throw new Error(data.detail || "決済エラー");
 
             isHolding = false;
-            entryAmountSol = 0;
-            entryGold = 0;
-            
-            document.getElementById('my-value').innerText = "未保有";
-            document.getElementById('my-value').className = "stat-val val-neutral";
-            
-            document.getElementById('btn-buy').disabled = false;
-            document.getElementById('wallet-select').disabled = false;
-            document.getElementById('bet-amount').disabled = false;
-
             const sign = data.pnl_gold >= 0 ? "+" : "";
             alert(`決済完了！\n決済価格: ${data.exit_price} USDT\n損益: ${sign}${data.pnl_gold} Gold`);
             
-            await init(); 
+            // 決済後にウォレット残高を再取得して表示を更新
+            await loadUserState();
         } catch (e) {
-            alert("通信エラーが発生しました");
-            document.getElementById('btn-sell').disabled = false;
+            alert(e.message);
         }
+        updateUI();
     });
 
     window.addEventListener('resize', () => {
         chart.applyOptions({ width: document.getElementById('chart-container').clientWidth });
     });
 
-    init();
+    // 初期化シーケンス
+    (async () => {
+        await fetchHistoricalData();
+        connectWebSocket();
+        await loadUserState();
+    })();
 </script>
 </body>
 </html>
