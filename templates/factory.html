@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>村岡王国 - 国立機械工場</title>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
             --bg-color: #1a1d20;
-            --panel-bg: #24282e;
+            --panel-bg: #1e2227;
             --border-color: #3b414a;
             --accent-color: #4a90e2;
             --accent-orange: #d97706;
@@ -20,216 +22,305 @@
             background: var(--bg-color); 
             color: var(--text-main); 
             font-family: 'Consolas', 'Courier New', monospace; 
-            padding: 20px; 
+            padding: 10px; 
             display: flex;
             justify-content: center;
             margin: 0;
+            overflow-x: hidden;
         }
 
         .factory-container { 
             width: 100%;
             max-width: 640px; 
             background: var(--panel-bg); 
-            padding: 24px; 
-            border-radius: 4px; 
             border: 2px solid var(--border-color);
             box-shadow: inset 0 0 10px rgba(0,0,0,0.5), 0 8px 20px rgba(0,0,0,0.6);
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
         }
+
+        /* 3D Viewport */
+        #viewport-3d {
+            width: 100%;
+            height: 240px;
+            background: #000;
+            border-bottom: 2px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* OSD (On-Screen Display) Overlay for CCTV */
+        .cctv-osd {
+            position: absolute;
+            top: 5px; left: 10px; right: 10px;
+            pointer-events: none;
+            color: #fff;
+            font-size: 0.75rem;
+            text-shadow: 1px 1px 0 #000;
+            display: flex;
+            justify-content: space-between;
+        }
+        .cctv-osd .red-dot {
+            display: inline-block; width: 8px; height: 8px; background: red; border-radius: 50%;
+            animation: blink 1s infinite; margin-right: 5px;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .ui-section { padding: 15px; }
 
         .header-panel {
-            border-bottom: 2px dashed var(--border-color);
-            padding-bottom: 12px;
-            margin-bottom: 16px;
-            text-align: left;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            display: flex; justify-content: space-between; align-items: flex-end;
         }
-
-        .header-panel h2 {
-            margin: 0 0 8px 0;
-            font-size: 1.1rem;
-            letter-spacing: 1px;
-            color: #f3f4f6;
-        }
+        .header-panel h2 { margin: 0; font-size: 1.1rem; color: #f3f4f6; }
 
         select {
-            background: #111827;
-            color: #3b82f6;
-            border: 1px solid var(--border-color);
-            padding: 6px 10px;
-            font-family: inherit;
-            width: 100%;
-            box-sizing: border-box;
-            border-radius: 4px;
+            background: #111827; color: #3b82f6; border: 1px solid var(--border-color);
+            padding: 4px 8px; font-family: inherit; border-radius: 4px;
         }
+
+        /* Tools Wear Gauge */
+        .wear-container {
+            font-size: 0.8rem; margin-top: 5px; color: var(--accent-orange);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .wear-bar-bg { flex: 1; height: 8px; background: #111; border: 1px solid #333; position: relative; }
+        .wear-bar-fill { height: 100%; background: var(--accent-orange); width: 0%; transition: width 0.3s; }
 
         .track-container {
-            background: #111827;
-            height: 32px;
-            border: 1px solid var(--border-color);
-            margin: 16px 0;
-            position: relative;
-            display: flex;
-            align-items: center;
-            padding: 0 4px;
+            background: #111827; height: 20px; border: 1px solid var(--border-color);
+            margin: 10px 0; display: flex; align-items: center; padding: 0 4px;
         }
-
-        .track-node {
-            flex: 1;
-            height: 12px;
-            background: #1f2937;
-            margin: 0 2px;
-            border: 1px solid #374151;
-            transition: all 0.3s;
-        }
-
-        .track-node.active {
-            background: var(--accent-color);
-            box-shadow: 0 0 8px var(--accent-color);
-        }
-
-        .track-node.completed {
-            background: #374151;
-        }
+        .track-node { flex: 1; height: 8px; background: #1f2937; margin: 0 2px; transition: all 0.3s; }
+        .track-node.active { background: var(--accent-color); box-shadow: 0 0 8px var(--accent-color); }
+        .track-node.completed { background: #374151; }
 
         .control-panel { 
-            background: #1e2227; 
-            padding: 20px; 
-            border: 1px solid var(--border-color); 
-            text-align: left;
-            margin-bottom: 16px;
+            background: #15181c; padding: 15px; border: 1px solid var(--border-color); 
+            min-height: 120px;
         }
-
-        .panel-title {
-            font-size: 0.9rem;
-            color: var(--accent-orange);
-            margin-bottom: 12px;
-            border-left: 3px solid var(--accent-orange);
-            padding-left: 8px;
-        }
+        .panel-title { font-size: 0.9rem; color: var(--accent-orange); margin-bottom: 12px; border-left: 3px solid var(--accent-orange); padding-left: 8px; }
 
         .btn-machinery { 
-            background: #374151; 
-            color: #f9fafb; 
-            border: 1px solid #4b5563; 
-            border-bottom: 3px solid #1f2937;
-            padding: 10px 16px; 
-            font-weight: bold; 
-            font-family: inherit;
-            cursor: pointer; 
-            margin: 4px 4px 4px 0; 
-            display: inline-block;
-            transition: all 0.1s;
+            background: #374151; color: #f9fafb; border: 1px solid #4b5563; border-bottom: 3px solid #1f2937;
+            padding: 8px 12px; font-weight: bold; font-family: inherit; cursor: pointer; 
+            margin: 4px; display: inline-block; transition: all 0.1s; font-size: 0.85rem;
         }
+        .btn-machinery:active { transform: translateY(2px); border-bottom-width: 1px; }
+        .btn-machinery:hover { background: #4b5563; }
+        .btn-action { background: #2563eb; border-color: #1d4ed8; }
+        .btn-action:hover { background: #1d4ed8; }
+        .btn-maint { background: #b91c1c; border-color: #7f1d1d; width: 100%; margin: 10px 0; display: none; }
 
-        .btn-machinery:active { 
-            transform: translateY(2px);
-            border-bottom-width: 1px;
-        }
+        /* Color Code UI */
+        .color-selectors { display: flex; gap: 5px; margin-bottom: 10px; }
+        .color-sel { flex: 1; text-align: center; }
 
-        .btn-machinery:hover { 
-            background: #4b5563; 
-        }
+        .gauge-container { width: 100%; background: #111827; height: 24px; border: 1px solid var(--border-color); position: relative; margin: 12px 0; }
+        .gauge-target { position: absolute; left: 45%; width: 10%; height: 100%; background: rgba(16, 185, 129, 0.3); border-left: 1px solid var(--success-color); border-right: 1px solid var(--success-color); }
+        .gauge-pointer { position: absolute; width: 2px; height: 100%; background: #ef4444; left: 0%; }
 
-        .btn-action {
-            background: #2563eb;
-            border-color: #1d4ed8;
-        }
+        .console-log { background: #0d1117; border: 1px solid var(--border-color); padding: 8px; height: 80px; overflow-y: auto; font-size: 0.75rem; color: #10b981; }
+        .btn-back { background: #374151; color: #ccc; border: none; padding: 8px; margin-top: 10px; cursor: pointer; width: 100%; font-family: inherit; }
 
-        .btn-action:hover {
-            background: #1d4ed8;
-        }
-
-        .gauge-container { 
-            width: 100%; 
-            background: #111827; 
-            height: 24px; 
-            border: 1px solid var(--border-color); 
-            position: relative; 
-            margin: 12px 0;
-        }
-
-        .gauge-target { 
-            position: absolute; 
-            left: 45%; 
-            width: 10%; 
-            height: 100%; 
-            background: rgba(16, 185, 129, 0.3); 
-            border-left: 1px solid var(--success-color);
-            border-right: 1px solid var(--success-color);
-        }
-
-        .gauge-pointer { 
-            position: absolute; 
-            width: 2px; 
-            height: 100%; 
-            background: #ef4444; 
-            left: 0%; 
-        }
-
-        .console-log {
-            background: #0d1117;
-            border: 1px solid var(--border-color);
-            padding: 8px 12px;
-            height: 100px;
-            overflow-y: auto;
-            font-size: 0.8rem;
-            color: #10b981;
-            text-align: left;
-        }
-
-        .btn-back {
-            background: #374151;
-            color: #ccc;
-            border: none;
-            padding: 8px 16px;
-            margin-top: 12px;
-            cursor: pointer;
-            width: 100%;
-            font-family: inherit;
+        .shake { animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
         }
     </style>
 </head>
 <body>
 
-<div class="factory-container">
-    <div class="header-panel">
-        <h2>SYS_MURAOKA // NATIONAL_FACTORY_01</h2>
-        <div>
-            <label style="font-size: 0.8rem; color: var(--text-dim);">DESTINATION_ACCOUNT:</label>
-            <select id="walletSelect"></select>
+<div class="factory-container" id="main-container">
+    <!-- 3D Viewport -->
+    <div id="viewport-3d">
+        <div class="cctv-osd">
+            <div><span class="red-dot"></span>REC</div>
+            <div id="cctv-cam">CAM-01 [RECEIVE]</div>
         </div>
     </div>
 
-    <div class="track-container">
-        <div id="node1" class="track-node"></div>
-        <div id="node2" class="track-node"></div>
-        <div id="node3" class="track-node"></div>
-        <div id="node4" class="track-node"></div>
-        <div id="node5" class="track-node"></div>
-    </div>
+    <div class="ui-section">
+        <div class="header-panel">
+            <div>
+                <h2>NATIONAL_FACTORY_01</h2>
+                <div class="wear-container">
+                    <span>TOOL WEAR:</span>
+                    <div class="wear-bar-bg"><div class="wear-bar-fill" id="wearBar"></div></div>
+                    <span id="wearText">0%</span>
+                </div>
+            </div>
+            <div>
+                <label style="font-size: 0.7rem; color: var(--text-dim); display:block;">DEST_ACCOUNT:</label>
+                <select id="walletSelect"></select>
+            </div>
+        </div>
 
-    <div class="control-panel">
-        <div class="panel-title" id="stepTitle">INITIALIZING...</div>
-        <div id="actionArea"></div>
-    </div>
+        <button id="btnMaint" class="btn-machinery btn-maint" onclick="performMaintenance()">⚠️ 設備摩耗限界 - エアパージ実行</button>
 
-    <div class="console-log" id="consoleLog">
-        > SYSTEM READY.<br>
-    </div>
+        <div class="track-container">
+            <div id="node1" class="track-node"></div><div id="node2" class="track-node"></div>
+            <div id="node3" class="track-node"></div><div id="node4" class="track-node"></div>
+            <div id="node5" class="track-node"></div>
+        </div>
 
-    <button class="btn-back" onclick="location.href='/dashboard'">◀ 国民証に戻る</button>
+        <div class="control-panel">
+            <div class="panel-title" id="stepTitle">INITIALIZING...</div>
+            <div id="actionArea"></div>
+        </div>
+
+        <div class="console-log" id="consoleLog">> SYSTEM READY.<br></div>
+        <button class="btn-back" onclick="location.href='/dashboard'">◀ 国民証に戻る</button>
+    </div>
 </div>
 
 <script>
-const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+// --- Web Audio API (オシレーター合成音響) ---
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
 
-if (!token) {
-    window.location.href = "/";
+    const now = audioCtx.currentTime;
+    if (type === 'click') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+        osc.start(now); osc.stop(now + 0.05);
+    } else if (type === 'error') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
+    } else if (type === 'success') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.setValueAtTime(800, now + 0.1);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
+    } else if (type === 'heavy') { // Press / Shock
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(100, now);
+        osc.frequency.exponentialRampToValueAtTime(20, now + 0.2);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.start(now); osc.stop(now + 0.2);
+    }
 }
+
+// --- Three.js 3D Setup ---
+const vp = document.getElementById('viewport-3d');
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x000000, 5, 25);
+const camera = new THREE.PerspectiveCamera(50, vp.clientWidth / vp.clientHeight, 0.1, 100);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(vp.clientWidth, vp.clientHeight);
+vp.appendChild(renderer.domElement);
+
+// Lights
+const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
+scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+dirLight.position.set(5, 10, 5);
+scene.add(dirLight);
+
+// Common Materials
+const matMetal = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.6, metalness: 0.8 });
+const matHighlight = new THREE.MeshStandardMaterial({ color: 0x4a90e2, roughness: 0.3, metalness: 0.9 });
+const matRed = new THREE.MeshBasicMaterial({ color: 0x220000 });
+const matYellow = new THREE.MeshBasicMaterial({ color: 0x222200 });
+const matGreen = new THREE.MeshBasicMaterial({ color: 0x002200 });
+
+// 1. Conveyor / Base
+const baseGeo = new THREE.BoxGeometry(20, 0.5, 5);
+const baseMesh = new THREE.Mesh(baseGeo, matMetal);
+scene.add(baseMesh);
+
+// 2. Patlite (Signal Tower)
+const patliteGroup = new THREE.Group();
+patliteGroup.position.set(-3, 1, -1);
+const lRed = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.4), matRed); lRed.position.y = 1.2;
+const lYel = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.4), matYellow); lYel.position.y = 0.8;
+const lGrn = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.4), matGreen); lGrn.position.y = 0.4;
+patliteGroup.add(lRed, lYel, lGrn, new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.4), matMetal));
+scene.add(patliteGroup);
+
+// 3. Center Target (Changes based on step)
+let targetMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), matHighlight);
+targetMesh.position.y = 0.75;
+scene.add(targetMesh);
+
+// Camera Positions for Steps
+const camViews = [
+    { pos: [0, 5, 8], look: [0, 0, 0], text: "CAM-00 [STANDBY]" },
+    { pos: [-4, 4, 4], look: [0, 0.5, 0], text: "CAM-01 [RECEIVE]" },
+    { pos: [0, 3, 3], look: [0, 0.5, 0], text: "CAM-02 [CALIBRATE]" },
+    { pos: [3, 4, 3], look: [0, 0.5, 0], text: "CAM-03 [CLUTCH]" },
+    { pos: [0, 6, 2], look: [0, 0.5, 0], text: "CAM-04 [PRESSURE]" },
+    { pos: [4, 5, 5], look: [0, 0, 0], text: "CAM-05 [PRESS/OUT]" }
+];
+
+function setCamera(step) {
+    const v = camViews[step] || camViews[0];
+    camera.position.set(...v.pos);
+    camera.lookAt(...v.look);
+    document.getElementById('cctv-cam').innerText = v.text;
+    playSound('click');
+}
+
+function setPatlite(status) {
+    lRed.material.color.setHex(0x220000);
+    lYel.material.color.setHex(0x222200);
+    lGrn.material.color.setHex(0x002200);
+    if(status === 'error') lRed.material.color.setHex(0xff0000);
+    if(status === 'warn') lYel.material.color.setHex(0xffff00);
+    if(status === 'ok') lGrn.material.color.setHex(0x00ff00);
+}
+
+// Animation Loop
+let frame = 0;
+function animate() {
+    requestAnimationFrame(animate);
+    frame++;
+    // Subtle machinery idle movement
+    if(frame % 30 === 0 && lYel.material.color.getHex() === 0xffff00) {
+        lYel.material.color.setHex(0x222200);
+    } else if (frame % 30 === 15 && lRed.material.color.getHex() !== 0xff0000 && lGrn.material.color.getHex() !== 0x00ff00) {
+        lYel.material.color.setHex(0xffff00); // Idle blink
+    }
+    renderer.render(scene, camera);
+}
+animate();
+
+// --- Logic & State ---
+const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+if (!token) window.location.href = "/";
 
 let currentSession = null;
 let gaugeVal = 0, gaugeDir = 2, gaugeInterval = null;
 let tapCount = 0;
+let isLocked = false;
+
+const colorCodes = [
+    {n:"黒", v:0, c:"#000000", tc:"#fff"}, {n:"茶", v:1, c:"#8b4513", tc:"#fff"},
+    {n:"赤", v:2, c:"#ff0000", tc:"#fff"}, {n:"橙", v:3, c:"#ff8c00", tc:"#000"},
+    {n:"黄", v:4, c:"#ffd700", tc:"#000"}, {n:"緑", v:5, c:"#008000", tc:"#fff"},
+    {n:"青", v:6, c:"#0000ff", tc:"#fff"}, {n:"紫", v:7, c:"#800080", tc:"#fff"},
+    {n:"灰", v:8, c:"#808080", tc:"#fff"}, {n:"白", v:9, c:"#ffffff", tc:"#000"}
+];
 
 async function initFactory() {
     await loadWallets();
@@ -242,27 +333,17 @@ function logMessage(msg) {
     log.scrollTop = log.scrollHeight;
 }
 
-function escapeHtml(str) { 
-    return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; 
-}
+function escapeHtml(str) { return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
 
 async function loadWallets() {
     try {
         const res = await fetch('/api/wallets', { headers: { 'Authorization': `Bearer ${token}` } });
-        if (!res.ok) {
-            logMessage("<span style='color:#ef4444;'>ERROR: Failed to load wallets. Status: " + res.status + "</span>");
-            return;
-        }
+        if (!res.ok) return;
         const wallets = await res.json();
         const sel = document.getElementById('walletSelect');
-        if (wallets.length === 0) {
-            sel.innerHTML = '<option value="">口座が存在しません</option>';
-            return;
-        }
-        sel.innerHTML = wallets.map(w => `<option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} (${w.wallet_id}) - 残高:${Math.floor(w.balance)}G</option>`).join('');
-    } catch(e) {
-        logMessage("<span style='color:#ef4444;'>ERROR: Failed to load wallets.</span>");
-    }
+        if (wallets.length === 0) { sel.innerHTML = '<option value="">口座なし</option>'; return; }
+        sel.innerHTML = wallets.map(w => `<option value="${w.wallet_id}">${escapeHtml(w.wallet_name)} - ${Math.floor(w.balance)}G</option>`).join('');
+    } catch(e) {}
 }
 
 async function fetchStatus() {
@@ -270,10 +351,37 @@ async function fetchStatus() {
         const res = await fetch('/api/factory/status', { headers: { 'Authorization': `Bearer ${token}` } });
         const data = await res.json();
         currentSession = data.session;
+        updateWear(data.wear);
         renderStep();
-    } catch(e) {
-        logMessage("<span style='color:#ef4444;'>ERROR: Connection failed.</span>");
+    } catch(e) { logMessage("<span style='color:#ef4444;'>ERROR: Connection failed.</span>"); }
+}
+
+function updateWear(wear) {
+    document.getElementById('wearBar').style.width = `${wear}%`;
+    document.getElementById('wearText').innerText = `${wear}%`;
+    document.getElementById('wearText').style.color = wear >= 100 ? '#ef4444' : 'var(--accent-orange)';
+    document.getElementById('wearBar').style.background = wear >= 100 ? '#ef4444' : 'var(--accent-orange)';
+    
+    if (wear >= 100) {
+        document.getElementById('btnMaint').style.display = 'block';
+        isLocked = true;
+        setPatlite('error');
+    } else {
+        document.getElementById('btnMaint').style.display = 'none';
+        isLocked = false;
+        setPatlite('warn');
     }
+}
+
+async function performMaintenance() {
+    playSound('air');
+    try {
+        const res = await fetch('/api/factory/maintain', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        logMessage(`<span style="color:var(--success-color);">${data.message}</span>`);
+        updateWear(data.wear);
+        setPatlite('ok');
+    } catch(e) {}
 }
 
 function updateNodes(currentStep) {
@@ -286,76 +394,108 @@ function updateNodes(currentStep) {
 }
 
 function renderStep() {
+    if(!currentSession) return;
     const step = currentSession.current_step;
     document.getElementById('stepTitle').innerText = currentSession.title;
     updateNodes(step);
+    setCamera(step);
+    if(!isLocked) setPatlite('warn'); // Standby
 
     const area = document.getElementById('actionArea');
     area.innerHTML = '';
 
     if (step === 1) {
-        area.innerHTML = `<p style="font-size:0.9rem;">指定仕様: <b style="color:var(--accent-color);">${currentSession.target_part}</b></p>` +
+        targetMesh.geometry = new THREE.BoxGeometry(1,1,1);
+        area.innerHTML = `<p style="font-size:0.85rem;">指定仕様: <b style="color:var(--accent-color);">${currentSession.target_part}</b></p>` +
             currentSession.options.map(opt => `<button class="btn-machinery" onclick="submitStep(${step}, '${opt}')">${opt}</button>`).join('');
     } else if (step === 2) {
-        area.innerHTML = `<p style="font-size:0.9rem;">${currentSession.math_question}</p>
-            <input type="number" id="mathAns" step="1" style="background:#111827; color:#fff; border:1px solid var(--border-color); padding:8px; width:80px; font-family:inherit;">
-            <button class="btn-machinery btn-action" onclick="submitStep(${step}, parseInt(document.getElementById('mathAns').value, 10))">入力実行</button>`;
+        targetMesh.geometry = new THREE.CylinderGeometry(0.3, 0.3, 1.5, 16);
+        targetMesh.rotation.z = Math.PI/2;
+        let opts = colorCodes.map(c => `<option value="${c.v}">${c.n}</option>`).join('');
+        let mOpts = colorCodes.slice(0,5).map(c => `<option value="${c.v}">x10^${c.v} (${c.n})</option>`).join('');
+        area.innerHTML = `<p style="font-size:0.85rem;">${currentSession.math_question}</p>
+            <div class="color-selectors">
+                <select id="col1" class="color-sel">${opts}</select>
+                <select id="col2" class="color-sel">${opts}</select>
+                <select id="colM" class="color-sel">${mOpts}</select>
+            </div>
+            <button class="btn-machinery btn-action" onclick="submitColorCode()">抵抗器セット</button>`;
     } else if (step === 3) {
-        area.innerHTML = `<p style="font-size:0.85rem; color:var(--text-dim);">${currentSession.instruction}</p>
+        targetMesh.geometry = new THREE.TorusGeometry(0.5, 0.2, 8, 12);
+        targetMesh.rotation.z = 0;
+        area.innerHTML = `<p style="font-size:0.8rem; color:var(--text-dim);">${currentSession.instruction}</p>
             <div class="gauge-container"><div class="gauge-target"></div><div id="pointer" class="gauge-pointer"></div></div>
             <button class="btn-machinery btn-action" onclick="stopGauge(${step})">クラッチ結合 [LOCK]</button>`;
         startGauge();
     } else if (step === 4) {
+        targetMesh.geometry = new THREE.CylinderGeometry(0.4, 0.4, 1.5);
+        targetMesh.rotation.z = 0;
         tapCount = 0;
-        area.innerHTML = `<p style="font-size:0.85rem; color:var(--text-dim);">${currentSession.instruction}</p>
+        area.innerHTML = `<p style="font-size:0.8rem; color:var(--text-dim);">${currentSession.instruction}</p>
             <p style="font-size:1.1rem; font-weight:bold;">圧力: <span id="taps" style="color:var(--accent-orange);">0</span> / 10 Bar</p>
             <button class="btn-machinery btn-action" onclick="countTap(${step})">加圧ストローク [PUMP]</button>`;
     } else if (step === 5) {
-        area.innerHTML = `<p style="font-size:0.85rem; color:var(--text-dim);">${currentSession.instruction}</p>
-            <button class="btn-machinery" style="background:var(--success-color); border-color:#059669; color:#000;" onclick="submitStep(${step}, true)">出荷シーケンス起動</button>`;
+        targetMesh.geometry = new THREE.BoxGeometry(1.2, 0.5, 0.8);
+        area.innerHTML = `<p style="font-size:0.8rem; color:var(--text-dim);">${currentSession.instruction}</p>
+            <button class="btn-machinery" style="background:var(--success-color); border-color:#059669; color:#000;" onclick="submitStep(${step}, true)">出荷打刻・転送</button>`;
     }
 }
 
+function submitColorCode() {
+    const v1 = document.getElementById('col1').value;
+    const v2 = document.getElementById('col2').value;
+    const vm = document.getElementById('colM').value;
+    submitStep(2, [parseInt(v1), parseInt(v2), parseInt(vm)]);
+}
+
 function startGauge() {
-    gaugeVal = 0;
-    gaugeDir = 2;
-    clearInterval(gaugeInterval);
+    gaugeVal = 0; gaugeDir = 2; clearInterval(gaugeInterval);
     gaugeInterval = setInterval(() => {
         gaugeVal += gaugeDir;
         if (gaugeVal >= 100 || gaugeVal <= 0) gaugeDir *= -1;
         const ptr = document.getElementById('pointer');
         if (ptr) ptr.style.left = `${gaugeVal}%`;
+        if (gaugeVal % 20 === 0) playSound('click');
     }, 20);
 }
 
 function stopGauge(step) {
     clearInterval(gaugeInterval);
-    submitStep(step, Math.floor(gaugeVal)); // 端数をカットして整数化
+    submitStep(step, Math.floor(gaugeVal));
 }
 
 function countTap(step) {
+    if(isLocked) return;
     tapCount++;
+    playSound('heavy');
+    targetMesh.position.y -= 0.05; // Visual press
+    setTimeout(()=>targetMesh.position.y += 0.05, 100);
     document.getElementById('taps').innerText = tapCount;
-    if (tapCount >= 10) {
-        submitStep(step, tapCount);
-    }
+    if (tapCount >= 10) submitStep(step, tapCount);
+}
+
+function triggerShake() {
+    const container = document.getElementById("main-container");
+    container.classList.remove("shake");
+    void container.offsetWidth;
+    container.classList.add("shake");
 }
 
 async function submitStep(step, answer) {
+    if (isLocked) return;
     const walletId = document.getElementById('walletSelect').value;
     
     if (step === 5 && !walletId) {
         logMessage("<span style='color:#ef4444;'>ERROR: 出荷先口座を選択してください。</span>");
+        playSound('error');
+        setPatlite('error');
         return;
     }
 
     try {
         const res = await fetch('/api/factory/process', {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` 
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ step: step, answer: answer, wallet_id: walletId })
         });
         
@@ -363,8 +503,25 @@ async function submitStep(step, answer) {
         
         if (!res.ok) {
             logMessage(`<span style="color:#ef4444;">${data.detail}</span>`);
-            await fetchStatus();
+            playSound('error');
+            setPatlite('error');
+            if(data.detail.includes("WEAR")) {
+                updateWear(100);
+            } else {
+                targetMesh.position.y = -2; // Drop item (Scrap)
+                setTimeout(()=> fetchStatus(), 1500); // Reload state
+            }
             return;
+        }
+
+        updateWear(data.wear);
+        playSound('success');
+        setPatlite('ok');
+        targetMesh.rotation.y += Math.PI;
+
+        if (step === 5) {
+            playSound('heavy');
+            triggerShake();
         }
 
         if (data.completed) {
@@ -375,9 +532,9 @@ async function submitStep(step, answer) {
         }
 
         currentSession = data.next_step;
-        renderStep();
+        setTimeout(() => renderStep(), 800); // Delay for animation
     } catch(e) {
-        logMessage("<span style='color:#ef4444;'>ERROR: リクエストの送信に失敗しました。</span>");
+        logMessage("<span style='color:#ef4444;'>ERROR: リクエスト送信失敗。</span>");
     }
 }
 
