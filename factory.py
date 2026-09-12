@@ -2,7 +2,7 @@ import random
 import time
 from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 
 from db import get_supabase
 
@@ -96,9 +96,10 @@ def reset_session(user_id: str) -> Dict[str, Any]:
     return factory_sessions[user_id]
 
 # --- ノントラスト対応: フロントに渡すデータから正解をマスキング ---
+# ※ 型番が表示されなかった原因はここです。「target_part」をフロントへ送る許可リストに追加しました。
 def mask_session_data(session: Dict[str, Any]) -> Dict[str, Any]:
     masked = {}
-    safe_keys = ["current_step", "title", "options", "math_question", "instruction", "serial_number"]
+    safe_keys = ["current_step", "title", "options", "math_question", "instruction", "serial_number", "target_part"]
     for k in safe_keys:
         if k in session:
             masked[k] = session[k]
@@ -113,7 +114,7 @@ async def get_factory_status(authorization: str = Header(None)):
         user_wear[user.id] = 0
 
     return {
-        "session": mask_session_data(factory_sessions[user.id]), # マスキングして送信
+        "session": mask_session_data(factory_sessions[user.id]),
         "steps_total": len(PROCESS_STEPS),
         "system_status": "ONLINE",
         "wear": user_wear.get(user.id, 0)
@@ -139,13 +140,13 @@ async def process_step(data: ProcessAction, authorization: str = Header(None)):
 
     user_wear[user.id] = min(100, current_wear + random.randint(5, 12))
 
-    # ステップ 1 バリデーション
+    # ステップ 1
     if data.step == 1:
         if data.answer != session["target_part"]:
             factory_metrics["total_calibration_errors"] += 1
             raise HTTPException(status_code=400, detail="[ERROR: MISMATCH] 規格外の不適合パーツが挿入されました。")
 
-    # ステップ 2 バリデーション (4本帯カラーコード)
+    # ステップ 2 (4本帯カラーコード)
     elif data.step == 2:
         try:
             ans_list = [int(x) for x in data.answer]
@@ -157,7 +158,7 @@ async def process_step(data: ProcessAction, authorization: str = Header(None)):
             factory_metrics["total_calibration_errors"] += 1
             raise HTTPException(status_code=400, detail="[ERROR: CALIBRATION FAILED] 抵抗値または公差が目標と一致しません。")
 
-    # ステップ 3 バリデーション
+    # ステップ 3
     elif data.step == 3:
         try: val = int(data.answer)
         except: val = 0
@@ -165,7 +166,7 @@ async def process_step(data: ProcessAction, authorization: str = Header(None)):
             factory_metrics["total_calibration_errors"] += 1
             raise HTTPException(status_code=400, detail=f"[ERROR: TOLERANCE EXCEEDED] トルク公差外（{val} Nm）。規定値: 50±5 Nm")
 
-    # ステップ 4 バリデーション
+    # ステップ 4
     elif data.step == 4:
         try: val = int(data.answer)
         except: val = 0
@@ -173,7 +174,7 @@ async def process_step(data: ProcessAction, authorization: str = Header(None)):
             factory_metrics["total_calibration_errors"] += 1
             raise HTTPException(status_code=400, detail=f"[ERROR: PRESSURE LOW] 油圧不足（{val} Bar）。規定圧 10 Bar 未満です。")
 
-    # ステップ 5 出荷処理
+    # ステップ 5 出荷
     if data.step == 5:
         if not data.wallet_id:
             raise HTTPException(status_code=400, detail="[ERROR: NO DESTINATION] 報酬転送用口座が指定されていません。")
@@ -199,7 +200,7 @@ async def process_step(data: ProcessAction, authorization: str = Header(None)):
             "next_step": mask_session_data(factory_sessions[user.id])
         }
 
-    # 次のステップへ進行
+    # 次のステップへ
     next_step = data.step + 1
     factory_sessions[user.id] = generate_step_data(next_step)
     factory_sessions[user.id]["serial_number"] = session.get("serial_number")
