@@ -2,25 +2,25 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>村岡王国 - ROYAL IMPERIAL SLOT</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>村岡王国 - 脳汁スロット</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=M+PLUS+1p:wght@900&family=Share+Tech+Mono&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=M+PLUS+1p:wght@900&family=Share+Tech+Mono&display=swap');
 
         :root {
-            --gold-light: #ffe55c;
-            --gold-base: #d4af37;
-            --gold-dark: #8a6d1c;
             --neon-magenta: #ff007f;
             --neon-cyan: #00f3ff;
-            --neon-red: #ff3333;
-            --machine-bg: #0d0d12;
+            --neon-green: #00ff66;
+            --neon-yellow: #ffe600;
+            --gold-gradient: linear-gradient(180deg, #ffd700 0%, #ff8c00 100%);
+            --alert-red: #ff0000;
         }
 
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; touch-action: manipulation; }
+        
         body { 
-            font-family: 'M PLUS 1p', sans-serif; 
-            background: radial-gradient(circle at 50% 50%, #1a1a24 0%, #050508 100%);
+            font-family: 'M PLUS 1p', 'Black Ops One', sans-serif; 
+            background: #000;
             color: #fff; 
             display: flex; 
             justify-content: center; 
@@ -29,342 +29,321 @@
             min-height: 100vh;
             user-select: none;
             overflow: hidden;
+            /* 背景のサイバーパンクグリッド */
+            background-image: 
+                linear-gradient(rgba(255, 0, 127, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
+            background-size: 30px 30px;
+            animation: bg-scroll 10s linear infinite;
         }
 
-        /* 👑 豪華な筐体ベース */
-        .machine-container {
+        @keyframes bg-scroll { 0% { background-position: 0 0; } 100% { background-position: 30px 30px; } }
+
+        /* 📱 レスポンシブコンテナ */
+        .arcade-cabinet {
             width: 100%;
-            max-width: 460px;
-            background: linear-gradient(135deg, #2a2a36 0%, #111118 100%);
-            border: 4px solid var(--gold-dark);
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 
-                0 20px 50px rgba(0, 0, 0, 0.9), 
-                inset 0 0 5px var(--gold-light),
-                inset 0 0 30px rgba(0,0,0,0.8);
-            position: relative;
+            height: 100%;
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            z-index: 10;
+            justify-content: space-between;
+            padding: env(safe-area-inset-top, 10px) 10px env(safe-area-inset-bottom, 10px) 10px;
         }
 
-        /* 筐体上部の装飾パネル */
-        .header-panel {
-            font-family: 'Cinzel', serif;
+        /* 💻 デスクトップ向けオーバーライド */
+        @media (min-width: 768px) {
+            .arcade-cabinet {
+                max-width: 600px;
+                height: auto;
+                aspect-ratio: 9/16;
+                background: linear-gradient(180deg, #111 0%, #000 100%);
+                border: 8px solid #222;
+                border-radius: 20px;
+                box-shadow: 0 0 50px rgba(255, 0, 127, 0.2), inset 0 0 20px rgba(0,0,0,0.8);
+                padding: 20px;
+                gap: 15px;
+            }
+        }
+
+        /* 👑 超発光ヘッダー */
+        .marquee {
             text-align: center;
-            font-size: 1.6rem;
-            font-weight: 900;
-            color: var(--gold-light);
-            background: linear-gradient(180deg, #111 0%, #000 100%);
-            border: 2px solid var(--gold-base);
+            font-family: 'Black Ops One', sans-serif;
+            font-size: clamp(1.5rem, 6vw, 2.5rem);
+            color: var(--neon-cyan);
+            background: #050505;
+            border: 3px solid #222;
+            border-radius: 12px;
+            padding: 10px;
+            text-shadow: 0 0 10px var(--neon-cyan);
+            box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.2);
+            transition: all 0.1s;
+        }
+        .marquee.rgb-mode {
+            animation: text-rgb 0.1s linear infinite, shake-hard 0.05s infinite;
+            border-color: #fff;
+            box-shadow: 0 0 50px var(--neon-magenta);
+        }
+        @keyframes text-rgb {
+            0% { color: #ff0000; text-shadow: 0 0 20px #ff0000; }
+            33% { color: #00ff00; text-shadow: 0 0 20px #00ff00; }
+            66% { color: #0000ff; text-shadow: 0 0 20px #0000ff; }
+            100% { color: #ff0000; text-shadow: 0 0 20px #ff0000; }
+        }
+
+        /* 🎛️ HUD (設定・メーター類) */
+        .hud-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: rgba(10, 10, 15, 0.9);
+            border: 2px solid #333;
             border-radius: 10px;
             padding: 10px;
-            letter-spacing: 3px;
-            text-shadow: 0 0 10px var(--gold-base), 0 2px 2px #000;
-            box-shadow: inset 0 0 15px rgba(255, 215, 0, 0.1);
-            position: relative;
-            overflow: hidden;
         }
-        .header-panel::after {
-            content: "";
-            position: absolute;
-            top: -50%; left: -50%; width: 200%; height: 200%;
-            background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
-            animation: glass-shine 4s infinite linear;
+        .inputs-row { display: flex; gap: 10px; }
+        .input-group { flex: 1; display: flex; flex-direction: column; }
+        .input-group label { font-size: 0.6rem; color: #888; font-weight: 900; letter-spacing: 1px; }
+        .input-group select, .input-group input { 
+            width: 100%; padding: 8px; background: #000; border: 1px solid var(--neon-magenta); 
+            color: #fff; font-size: 1rem; font-weight: 900; outline: none; border-radius: 6px;
+            box-shadow: inset 0 0 10px rgba(255,0,127,0.2);
         }
+        
+        .meters-row { display: flex; gap: 10px; margin-top: 5px; }
+        .meter {
+            flex: 1; background: #000; border: 2px solid #444; border-radius: 8px;
+            padding: 8px; text-align: center;
+        }
+        .meter-label { font-size: 0.6rem; color: #aaa; font-weight: 900; margin-bottom: 2px; }
+        .meter-val { 
+            font-family: 'Share Tech Mono', monospace; font-size: clamp(1.2rem, 5vw, 1.8rem); 
+            color: var(--neon-red); text-shadow: 0 0 10px var(--neon-red); line-height: 1;
+        }
+        .meter-val.green { color: var(--neon-green); text-shadow: 0 0 15px var(--neon-green); }
 
-        /* 🎛️ 入力エリア (VFD風) */
-        .inputs-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 10px;
-            background: #050505;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px inset #333;
-            box-shadow: inset 0 0 10px #000;
-        }
-        .input-group { display: flex; flex-direction: column; }
-        .label { font-size: 0.65rem; color: #888; font-weight: 900; margin-bottom: 4px; letter-spacing: 1px; }
-        input, select { 
-            width: 100%; padding: 8px; border-radius: 4px; 
-            border: 1px solid #444; background: #111; 
-            color: var(--gold-light); font-size: 0.9rem; font-weight: bold; outline: none;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);
-        }
-
-        /* デジタルメーター (VFD/LED) */
-        .digital-displays {
-            display: flex;
-            justify-content: space-between;
-            background: #0a0a0a;
-            padding: 12px;
-            border-radius: 10px;
-            border: 2px solid #222;
-            border-bottom-color: #444;
-            box-shadow: inset 0 5px 15px rgba(0,0,0,0.9);
-            position: relative;
-        }
-        .digital-displays::before {
-            content: ""; position: absolute; top:0; left:0; right:0; bottom:0;
-            background: linear-gradient(0deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-            background-size: 100% 3px; pointer-events: none;
-        }
-        .seg-box { text-align: center; flex: 1; z-index: 2; }
-        .seg-label { font-size: 0.65rem; color: #555; font-weight: 900; letter-spacing: 1px; }
-        .seg-val { 
-            font-family: 'Share Tech Mono', monospace; 
-            font-size: 1.6rem; 
-            color: var(--neon-red); 
-            text-shadow: 0 0 12px var(--neon-red); 
-            line-height: 1.2;
-        }
-        .seg-val.green { color: #00ffaa; text-shadow: 0 0 12px #00ffaa; }
-
-        /* --- リール＆ランプエリア --- */
-        .reel-area-wrapper {
+        /* 🎰 メインステージ (リール & ランプ) */
+        .stage-area {
+            flex: 1;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: linear-gradient(180deg, #111 0%, #000 100%);
-            padding: 20px 15px;
+            background: radial-gradient(circle, #222 0%, #000 100%);
+            border: 4px solid #555;
             border-radius: 12px;
-            border: 2px solid #333;
-            box-shadow: inset 0 20px 30px rgba(0,0,0,0.9);
+            padding: 10px 5px;
+            box-shadow: inset 0 0 50px #000;
             position: relative;
         }
 
-        /* 👑 究極のペカりランプ */
+        /* 🚨 GOGOランプ (左側) */
         .gogo-lamp {
-            width: 80px;
-            height: 80px;
-            background: radial-gradient(circle, #1a1a1a 0%, #050505 100%);
+            width: 22%;
+            aspect-ratio: 1;
+            background: #111;
             border-radius: 50%;
-            border: 4px solid #111;
+            border: 4px solid #000;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-family: 'Cinzel', serif;
-            font-size: 0.75rem;
-            font-weight: 900;
+            font-family: 'Black Ops One', sans-serif;
+            font-size: clamp(0.7rem, 2.5vw, 1rem);
             color: #111;
-            text-align: center;
             line-height: 1.1;
-            box-shadow: inset 0 0 15px #000, 0 5px 10px rgba(0,0,0,0.5);
-            transition: all 0.05s;
-            position: relative;
+            box-shadow: inset 0 0 20px #000;
+            transition: all 0.1s;
         }
-        .gogo-lamp span { font-size: 1.2rem; color: #111; margin-top:-2px;}
+        .gogo-lamp span { font-size: clamp(0.9rem, 3.5vw, 1.4rem); color: #111; }
         .gogo-lamp.peka {
-            background: radial-gradient(circle, #fff 0%, #ff00ff 40%, #5500ff 100%);
-            color: #fff;
-            border-color: #ff00ff;
-            box-shadow: 
-                0 0 50px #ff00ff, 
-                0 0 100px #5500ff, 
-                inset 0 0 30px #fff;
-            text-shadow: 0 0 10px #fff, 0 0 20px #ff00ff;
-            animation: kyuin-flash 0.05s infinite alternate;
+            background: #fff;
+            color: var(--neon-magenta);
+            border-color: #fff;
+            box-shadow: 0 0 60px #fff, 0 0 120px var(--neon-magenta), inset 0 0 20px #fff;
+            text-shadow: 0 0 10px var(--neon-magenta);
+            animation: strobe-flash 0.05s infinite;
         }
-        .gogo-lamp.peka span { color: #fff; text-shadow: 0 0 10px #fff; }
+        .gogo-lamp.peka span { color: var(--neon-magenta); text-shadow: 0 0 10px var(--neon-magenta); }
+        @keyframes strobe-flash { 0% { opacity: 1; filter: invert(0); } 100% { opacity: 0.8; filter: invert(1); } }
 
-        /* 🎰 実機仕様：3段表示リール窓 */
-        .reels-container {
+        /* リールコンテナ */
+        .reels-wrapper {
+            width: 75%;
             display: flex;
-            gap: 8px;
+            gap: 4px;
             background: #000;
-            padding: 8px;
-            border: 4px solid #555;
-            border-top-color: #333;
-            border-bottom-color: #777;
+            padding: 6px;
+            border: 4px solid #444;
             border-radius: 8px;
-            box-shadow: inset 0 0 30px rgba(0,0,0,1);
             position: relative;
         }
-        /* 有効ライン（赤く光る線） */
-        .reels-container::after {
+        /* 有効ライン・レーザー */
+        .reels-wrapper::after {
             content: ""; position: absolute;
-            top: 50%; left: 0; right: 0; height: 2px;
-            background: rgba(255,0,0,0.6);
-            box-shadow: 0 0 10px red;
+            top: 50%; left: 0; right: 0; height: 3px;
+            background: var(--alert-red);
+            box-shadow: 0 0 15px var(--alert-red), 0 0 30px #ff0000;
             transform: translateY(-50%);
-            z-index: 5; pointer-events: none;
+            z-index: 10; pointer-events: none;
+            mix-blend-mode: screen;
         }
         .reel-window {
-            width: 70px;
-            height: 180px; /* 60px * 3図柄 */
-            background: linear-gradient(90deg, #e0e0e0 0%, #fff 50%, #e0e0e0 100%);
+            flex: 1;
+            aspect-ratio: 1 / 2.5;
+            background: #e6e6e6;
             overflow: hidden;
             position: relative;
             border-radius: 4px;
-            box-shadow: 
-                inset 0 40px 20px -20px rgba(0,0,0,0.8), 
-                inset 0 -40px 20px -20px rgba(0,0,0,0.8),
-                inset 10px 0 10px -10px rgba(0,0,0,0.3);
+            box-shadow: inset 0 30px 20px -20px #000, inset 0 -30px 20px -20px #000;
         }
         .reel-strip {
-            position: absolute;
-            top: 0; left: 0; width: 100%;
-            display: flex; flex-direction: column;
-            will-change: transform;
+            position: absolute; top: 0; left: 0; width: 100%;
+            display: flex; flex-direction: column; will-change: transform;
         }
         .symbol {
-            width: 70px; height: 60px;
+            width: 100%; height: 33.333%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 2.2rem; font-weight: 900;
+            font-size: clamp(2rem, 7vw, 3rem); font-weight: 900;
             border-bottom: 1px solid rgba(0,0,0,0.1);
-            box-shadow: inset 0 0 10px rgba(255,255,255,0.5);
         }
-        
-        /* 彫刻レベルの図柄デザイン */
-        .sym-7 { color: #e60000; text-shadow: -1px -1px 0 #fff, 2px 2px 0 #440000, 0 0 10px rgba(255,0,0,0.5); font-size: 2.6rem; }
+        /* 図柄デザイン */
+        .sym-7 { color: #ff0000; text-shadow: 2px 2px 0 #550000, -1px -1px 0 #fff; font-size: 1.2em; }
         .sym-bar { 
-            color: #fff; background: linear-gradient(180deg, #333 0%, #000 100%); 
-            border: 3px solid #silver; width: 90%; height: 60%; 
-            font-size: 1.1rem; display: flex; align-items: center; justify-content: center; 
-            border-radius: 4px; box-shadow: inset 0 2px 5px rgba(255,255,255,0.5), 0 4px 5px rgba(0,0,0,0.4);
+            color: #fff; background: #222; border: 4px solid #888; 
+            width: 90%; height: 60%; font-size: 0.5em; 
+            display: flex; align-items: center; justify-content: center; 
+            border-radius: 6px; box-shadow: inset 0 5px 10px rgba(255,255,255,0.4); 
             letter-spacing: 2px;
         }
-        .sym-bell { font-size: 2.3rem; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3)); }
-        .sym-grape { font-size: 2.4rem; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3)); }
-        .sym-cherry { font-size: 2.4rem; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3)); }
-        .sym-replay { font-size: 2.0rem; filter: drop-shadow(0 0 5px #00f3ff); }
+        .sym-bell { font-size: 0.9em; filter: drop-shadow(2px 2px 0px #000); }
+        .sym-grape { font-size: 0.9em; filter: drop-shadow(2px 2px 0px #000); }
+        .sym-cherry { font-size: 0.9em; filter: drop-shadow(2px 2px 0px #000); }
+        .sym-replay { font-size: 0.8em; filter: drop-shadow(0 0 8px #00f3ff); }
+        
+        .spin-blur { filter: blur(3px) brightness(1.2); }
 
-        .blur { filter: blur(2px); }
-
-        /* --- 物理的質感のストップボタン --- */
-        .stop-buttons-row {
+        /* 🔘 アクションボタン群 */
+        .controls-area {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .stop-buttons {
             display: flex;
             justify-content: flex-end;
-            gap: 12px;
-            margin-top: -5px;
-            padding-right: 15px;
+            width: 100%;
+            gap: 8px;
+            padding-left: 25%; /* ランプの右側に配置 */
         }
         .btn-stop {
-            width: 74px; height: 50px;
-            background: linear-gradient(180deg, #ff4d4d 0%, #cc0000 100%);
-            border: 2px solid #ffb3b3;
-            border-radius: 8px;
-            color: #fff; font-weight: 900; font-size: 0.9rem;
-            cursor: pointer;
-            box-shadow: 0 8px 0 #660000, 0 15px 20px rgba(0,0,0,0.6), inset 0 2px 5px rgba(255,255,255,0.5);
-            transition: all 0.05s;
-            position: relative;
+            flex: 1; aspect-ratio: 1.5;
+            background: linear-gradient(180deg, #ff4444 0%, #aa0000 100%);
+            border: 2px solid #ffaaaa; border-radius: 10px;
+            box-shadow: 0 8px 0 #550000, 0 10px 20px rgba(0,0,0,0.8);
+            color: #fff; font-size: clamp(0.8rem, 3vw, 1.2rem); font-weight: 900;
+            cursor: pointer; transition: all 0.05s;
         }
-        .btn-stop::after { content: "STOP"; position: absolute; top: 12px; left: 0; right: 0; text-align: center; text-shadow: 0 -1px 2px #000; }
         .btn-stop:active:not(:disabled) {
-            transform: translateY(8px);
-            box-shadow: 0 0 0 #660000, 0 0 0 rgba(0,0,0,0), inset 0 5px 10px rgba(0,0,0,0.6);
+            transform: translateY(8px); box-shadow: 0 0 0 #550000; background: #ff0000;
         }
         .btn-stop:disabled {
-            background: linear-gradient(180deg, #555 0%, #333 100%); border-color: #666; color: transparent;
-            box-shadow: 0 8px 0 #111, inset 0 2px 5px rgba(255,255,255,0.1); cursor: not-allowed;
+            background: #333; border-color: #444; color: transparent;
+            box-shadow: 0 8px 0 #111; cursor: not-allowed;
         }
-        .btn-stop:disabled::after { color: #777; text-shadow: none; }
 
-        /* スタートレバー */
         .btn-start {
-            margin-top: 15px;
-            width: 100%; height: 60px;
-            background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold-dark) 100%);
-            border: 3px solid #fff;
-            border-radius: 12px;
-            color: #111; font-family: 'Cinzel', serif; font-weight: 900; font-size: 1.5rem;
-            letter-spacing: 3px; cursor: pointer;
-            box-shadow: 0 8px 0 #4a3804, 0 15px 25px rgba(0,0,0,0.8), inset 0 2px 10px rgba(255,255,255,0.8);
-            text-shadow: 0 1px 0 rgba(255,255,255,0.5);
-            transition: all 0.05s;
+            width: 100%; padding: 20px 0;
+            background: var(--gold-gradient);
+            border: 4px solid #fff; border-radius: 16px;
+            color: #000; font-size: clamp(1.5rem, 6vw, 2.2rem); font-weight: 900; font-family: 'Black Ops One', sans-serif;
+            text-transform: uppercase; letter-spacing: 2px;
+            box-shadow: 0 10px 0 #a65c00, 0 20px 40px rgba(0,0,0,0.9);
+            text-shadow: 0 2px 2px rgba(255,255,255,0.8);
+            cursor: pointer; transition: all 0.05s;
         }
         .btn-start:active:not(:disabled) {
-            transform: translateY(8px);
-            box-shadow: 0 0 0 #4a3804, inset 0 5px 15px rgba(0,0,0,0.7);
+            transform: translateY(10px); box-shadow: 0 0 0 #a65c00;
         }
         .btn-start:disabled {
-            background: #333; border-color: #555; color: #666;
-            box-shadow: 0 8px 0 #111; text-shadow: none; cursor: not-allowed;
+            background: #222; border-color: #444; color: #555;
+            box-shadow: 0 10px 0 #111; text-shadow: none; cursor: not-allowed;
         }
 
         .footer-link { text-align: center; margin-top: 5px; }
-        .footer-link a { color: #666; text-decoration: none; font-size: 0.8rem; font-weight: bold; }
+        .footer-link a { color: var(--neon-cyan); text-decoration: none; font-size: 0.8rem; font-weight: bold; }
 
-        /* 💥💥 ドーパミン・オーバーロード演出 💥💥 */
-        #flash-overlay {
+        /* 💥 脳汁オーバーロード演出 */
+        #flash-bang {
             position: fixed; top:0; left:0; width:100%; height:100%;
-            background: #fff; mix-blend-mode: overlay; opacity: 0; pointer-events: none; z-index: 999;
+            background: #fff; opacity: 0; pointer-events: none; z-index: 9999; mix-blend-mode: overlay;
         }
-        body.hyper-flash-active #flash-overlay { animation: flash-bang 0.4s ease-out; }
-        .machine-container.shake { animation: hyper-shake-anim 0.08s ease-in-out infinite alternate; }
-        .num-pop { animation: coin-count-pop 0.1s alternate 2; color: #fff !important; text-shadow: 0 0 20px #fff, 0 0 40px var(--gold-light) !important; }
+        body.mega-flash #flash-bang { animation: bang-anim 0.3s ease-out; }
+        .shake-hard { animation: shake-hard 0.05s infinite; }
+        .num-pop { animation: mega-pop 0.1s alternate 2; color: #fff !important; text-shadow: 0 0 20px #fff, 0 0 40px var(--neon-yellow) !important; }
 
-        @keyframes kyuin-flash { 0% { filter: brightness(1) contrast(1.2); } 100% { filter: brightness(1.8) contrast(1.5); } }
-        @keyframes glass-shine { 0% { transform: translate(-50%, -50%) rotate(45deg); } 100% { transform: translate(150%, 150%) rotate(45deg); } }
-        @keyframes flash-bang { 0% { opacity: 1; background: #fff; } 30% { background: var(--neon-magenta); } 100% { opacity: 0; } }
-        @keyframes hyper-shake-anim {
-            0% { transform: scale(1.02) translate(3px, 3px) rotate(0.5deg); }
-            50% { transform: scale(1.02) translate(-3px, -3px) rotate(-0.5deg); }
-            100% { transform: scale(1.02) translate(3px, -3px) rotate(0.5deg); }
+        @keyframes bang-anim { 0% { opacity: 1; background: #fff; } 50% { background: var(--neon-magenta); } 100% { opacity: 0; } }
+        @keyframes shake-hard {
+            0% { transform: translate(4px, 4px) rotate(1deg); }
+            50% { transform: translate(-4px, -4px) rotate(-1deg); }
+            100% { transform: translate(4px, -4px) rotate(1deg); }
         }
-        @keyframes coin-count-pop { 0% { transform: scale(1); } 100% { transform: scale(1.3); } }
+        @keyframes mega-pop { 0% { transform: scale(1); } 100% { transform: scale(1.4); } }
     </style>
 </head>
 <body>
 
-<div id="flash-overlay"></div>
+<div id="flash-bang"></div>
 
-<div class="machine-container" id="machine">
-    <div class="header-panel" id="header-panel">IMPERIAL SLOT</div>
-    
-    <div class="inputs-grid">
-        <div class="input-group">
-            <div class="label">ACCOUNT</div>
-            <select id="wallet-select"></select>
+<div class="arcade-cabinet" id="cabinet">
+    <div class="marquee" id="marquee">MURAOKA CHANCE</div>
+
+    <div class="hud-panel">
+        <div class="inputs-row">
+            <div class="input-group">
+                <label>ACCOUNT</label>
+                <select id="wallet-select"></select>
+            </div>
+            <div class="input-group">
+                <label>BET</label>
+                <input type="number" id="bet-amount" min="1" value="3">
+            </div>
         </div>
-        <div class="input-group">
-            <div class="label">BET (GOLD)</div>
-            <input type="number" id="bet-amount" min="1" value="3">
+        <div class="meters-row">
+            <div class="meter">
+                <div class="meter-label">CREDIT</div>
+                <div class="meter-val" id="credit-display">---</div>
+            </div>
+            <div class="meter">
+                <div class="meter-label">WIN</div>
+                <div class="meter-val green" id="payout-display">0</div>
+            </div>
         </div>
     </div>
 
-    <div class="digital-displays">
-        <div class="seg-box">
-            <div class="seg-label">CREDIT</div>
-            <div class="seg-val" id="credit-display">---</div>
-        </div>
-        <div class="seg-box">
-            <div class="seg-label">PAYOUT</div>
-            <div class="seg-val green" id="payout-display">0</div>
-        </div>
-    </div>
-
-    <div class="reel-area-wrapper">
-        <div class="gogo-lamp" id="gogo-lamp">DIVINE<br><span>CHANCE</span></div>
-        <div class="reels-container">
+    <div class="stage-area">
+        <div class="gogo-lamp" id="gogo-lamp">GOGO!<br><span>CHANCE</span></div>
+        <div class="reels-wrapper">
             <div class="reel-window"><div class="reel-strip" id="reel-0"></div></div>
             <div class="reel-window"><div class="reel-strip" id="reel-1"></div></div>
             <div class="reel-window"><div class="reel-strip" id="reel-2"></div></div>
         </div>
     </div>
 
-    <div class="stop-buttons-row">
-        <button class="btn-stop" id="btn-stop-0" disabled></button>
-        <button class="btn-stop" id="btn-stop-1" disabled></button>
-        <button class="btn-stop" id="btn-stop-2" disabled></button>
+    <div class="controls-area">
+        <div class="stop-buttons">
+            <button class="btn-stop" id="btn-stop-0" disabled>1</button>
+            <button class="btn-stop" id="btn-stop-1" disabled>2</button>
+            <button class="btn-stop" id="btn-stop-2" disabled>3</button>
+        </div>
+        <button class="btn-start" id="btn-start">SPIN</button>
+        <div class="footer-link"><a href="/casino">◀ BACK TO CASINO</a></div>
     </div>
-
-    <button id="btn-start" class="btn-start">SPIN REELS</button>
-    
-    <div class="footer-link"><a href="/casino">◀ カジノに戻る</a></div>
 </div>
 
 <script>
     const token = localStorage.getItem("access_token");
     if (!token) window.location.href = "/";
 
-    // 高品質図柄マップ
-    const SYMBOL_TYPES = {
+    const SYMBOLS = {
         "7": '<div class="symbol"><div class="sym-7">7</div></div>',
         "BAR": '<div class="symbol"><div class="sym-bar">BAR</div></div>',
         "BELL": '<div class="symbol sym-bell">🔔</div>',
@@ -373,7 +352,7 @@
         "REPLAY": '<div class="symbol sym-replay">💎</div>'
     };
     
-    // --- 脳汁 Web Audio API シンセサイザー ---
+    // --- ドーパミン Web Audio API (過激化) ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx = new AudioContext();
 
@@ -381,71 +360,68 @@
         if(audioCtx.state === 'suspended') audioCtx.resume();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
+        osc.connect(gain); gain.connect(audioCtx.destination);
         const now = audioCtx.currentTime;
+
         if (type === 'SPIN') {
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(800, now);
-            osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
-            gain.gain.setValueAtTime(0.1, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-            osc.start(now); osc.stop(now + 0.1);
-        } else if (type === 'STOP') {
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(150, now);
-            osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
-            gain.gain.setValueAtTime(0.5, now);
-            gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
-            osc.start(now); osc.stop(now + 0.15);
-        } else if (type === 'PEKA') { // キュイン！
-            osc.type = 'square';
+            osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(400, now);
-            osc.frequency.exponentialRampToValueAtTime(2500, now + 0.4);
-            gain.gain.setValueAtTime(0, now);
-            gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
-            osc.start(now); osc.stop(now + 1.2);
-        } else if (type === 'COIN') {
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(1200, now);
-            gain.gain.setValueAtTime(0.1, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.frequency.exponentialRampToValueAtTime(1200, now + 0.2);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            osc.start(now); osc.stop(now + 0.2);
+        } else if (type === 'STOP') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(80, now);
+            osc.frequency.exponentialRampToValueAtTime(20, now + 0.1);
+            gain.gain.setValueAtTime(0.6, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
             osc.start(now); osc.stop(now + 0.1);
-        } else if (type === 'FANFARE') {
-            // BIGボーナスファンファーレ和音
-            const freqs = [523.25, 659.25, 783.99]; // C, E, G
-            freqs.forEach(f => {
-                const o = audioCtx.createOscillator();
-                const g = audioCtx.createGain();
-                o.type = 'sawtooth';
-                o.frequency.value = f;
-                g.gain.setValueAtTime(0.1, now);
-                g.gain.linearRampToValueAtTime(0, now + 2);
-                o.connect(g); g.connect(audioCtx.destination);
-                o.start(now); o.stop(now + 2);
-            });
+        } else if (type === 'PEKA') { 
+            // 脳を焼くキュイン音
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.linearRampToValueAtTime(3000, now + 0.3);
+            
+            const lfo = audioCtx.createOscillator();
+            lfo.type = 'sine'; lfo.frequency.value = 20; // 激しいビブラート
+            const lfoGain = audioCtx.createGain();
+            lfoGain.gain.value = 1000;
+            lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+            lfo.start(now); lfo.stop(now + 1.5);
+
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.4, now + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+            osc.start(now); osc.stop(now + 1.5);
+        } else if (type === 'COIN') {
+            // 超高速払い出し音
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1500 + Math.random()*500, now);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+            osc.start(now); osc.stop(now + 0.05);
         }
     }
 
-    // --- ゲームロジック ---
+    // --- ロジック ---
     let myWalletsData = [];
-    let reelElements = [document.getElementById('reel-0'), document.getElementById('reel-1'), document.getElementById('reel-2')];
-    let reelPositions = [0, 0, 0];
-    let reelStates = [0, 0, 0]; // 0:止, 1:回転中, 2:停止処理中
-    let reqAnimFrame = null;
+    let reelEls = [document.getElementById('reel-0'), document.getElementById('reel-1'), document.getElementById('reel-2')];
+    let rPos = [0, 0, 0];
+    let rState = [0, 0, 0]; // 0:止, 1:回転中, 2:停止中
+    let symbolHeight = 0;
+    let reqAnim;
     
     let isSpinning = false;
     let stoppedCount = 0;
-    let serverResult = null;
+    let serverRes = null;
 
     init();
 
     async function init() {
         await loadWallets();
         setupReels(true);
-        requestAnimationFrame(animateReels);
+        requestAnimationFrame(animate);
         
         document.getElementById("btn-start").addEventListener("click", () => {
             if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -454,11 +430,14 @@
         document.getElementById("btn-stop-0").addEventListener("click", () => stopReel(0));
         document.getElementById("btn-stop-1").addEventListener("click", () => stopReel(1));
         document.getElementById("btn-stop-2").addEventListener("click", () => stopReel(2));
-
+        
         document.getElementById("wallet-select").addEventListener("change", (e) => {
             const w = myWalletsData.find(w => w.wallet_id === e.target.value);
             if(w) updateCredit(w.balance);
         });
+
+        // リサイズ時に図柄の高さを再計算
+        window.addEventListener('resize', () => { setupReels(true); });
     }
 
     async function loadWallets() {
@@ -466,93 +445,97 @@
             const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
             myWalletsData = await res.json();
             const select = document.getElementById("wallet-select");
-            const currentSelected = select.value;
+            const cur = select.value;
             select.innerHTML = myWalletsData.map(w => `<option value="${w.wallet_id}">${w.wallet_name}</option>`).join('');
-            if (currentSelected && myWalletsData.some(w => w.wallet_id === currentSelected)) select.value = currentSelected;
+            if (cur && myWalletsData.some(w => w.wallet_id === cur)) select.value = cur;
             const w = myWalletsData.find(w => w.wallet_id === select.value);
             if(w) updateCredit(w.balance);
         } catch (e) {}
     }
 
     function updateCredit(val) { document.getElementById("credit-display").innerText = val; }
-    function updatePayoutText(val) { document.getElementById("payout-display").innerText = val; }
+    function updateWin(val) { document.getElementById("payout-display").innerText = val; }
 
-    function triggerDopamine(type) {
+    function fireDopamine(type) {
         if(type === "PEKA") {
             playSound("PEKA");
-            document.body.classList.add("hyper-flash-active");
-            setTimeout(() => document.body.classList.remove("hyper-flash-active"), 400);
+            document.body.classList.add("mega-flash");
+            setTimeout(() => document.body.classList.remove("mega-flash"), 300);
             document.getElementById("gogo-lamp").classList.add("peka");
         } else if (type === "BIG") {
-            playSound("FANFARE");
-            document.getElementById("machine").classList.add("shake");
-            const header = document.getElementById("header-panel");
-            header.innerHTML = '<span style="color:#fff; text-shadow: 0 0 20px #ff00ff;">💎 ROYAL JACKPOT 💎</span>';
-            setTimeout(() => document.getElementById("machine").classList.remove("shake"), 1500);
+            document.getElementById("cabinet").classList.add("shake-hard");
+            const mq = document.getElementById("marquee");
+            mq.innerText = "!!! JACKPOT !!!";
+            mq.classList.add("rgb-mode");
+            setTimeout(() => {
+                document.getElementById("cabinet").classList.remove("shake-hard");
+            }, 2000);
         } else if (type === "REG") {
-            const header = document.getElementById("header-panel");
-            header.innerHTML = '<span style="color:#00f3ff; text-shadow: 0 0 20px #00f3ff;">✨ BIG BONUS ✨</span>';
+            document.getElementById("marquee").innerText = "BONUS WIN!";
         }
     }
 
     function resetUI() {
         document.getElementById("gogo-lamp").classList.remove("peka");
-        document.getElementById("header-panel").innerText = "IMPERIAL SLOT";
-        updatePayoutText(0);
+        const mq = document.getElementById("marquee");
+        mq.innerText = "MURAOKA CHANCE";
+        mq.classList.remove("rgb-mode");
+        updateWin(0);
     }
 
-    function setupReels(isInitial = false, resultSymbols = ["7","7","7"]) {
+    function setupReels(isInit = false, resSyms = ["7","7","7"]) {
+        symbolHeight = reelEls[0].offsetHeight / 3;
         for(let i=0; i<3; i++) {
             let html = "";
-            // ストリップ長: 32図柄
-            for(let j=0; j<32; j++) {
+            const totalSyms = 32;
+            for(let j=0; j<totalSyms; j++) {
                 const pool = ["7", "BAR", "BELL", "GRAPE", "CHERRY", "REPLAY"];
-                html += SYMBOL_TYPES[pool[Math.floor(Math.random() * pool.length)]];
+                html += SYMBOLS[pool[Math.floor(Math.random() * pool.length)]];
             }
-            // ターゲット図柄をインデックス29（下から3番目）に仕込む
-            if(!isInitial && serverResult) {
-                html += SYMBOL_TYPES[resultSymbols[i]];
-            } else {
-                html += SYMBOL_TYPES["7"];
-            }
-            // 最後のパディング（表示枠を埋めるため）
-            html += SYMBOL_TYPES["GRAPE"];
-            html += SYMBOL_TYPES["REPLAY"];
+            // ターゲット（下から3番目）
+            if(!isInit && serverRes) html += SYMBOLS[resSyms[i]];
+            else html += SYMBOLS["7"];
+            // パディング2個
+            html += SYMBOLS["GRAPE"];
+            html += SYMBOLS["REPLAY"];
             
-            reelElements[i].innerHTML = html;
+            reelEls[i].innerHTML = html;
+            rPos[i] = 0;
+            reelEls[i].style.transform = `translateY(0px)`;
         }
     }
 
-    // requestAnimationFrameによる極上なめらか回転
-    function animateReels() {
+    function animate() {
+        const speed = symbolHeight * 0.8; // 超高速
+        const maxScroll = -(32 * symbolHeight);
+        
         for(let i=0; i<3; i++) {
-            if(reelStates[i] === 1) {
-                reelPositions[i] -= 35; // 高速回転
-                if(reelPositions[i] <= -1920) reelPositions[i] += 1920; // 60px * 32
-                reelElements[i].style.transform = `translateY(${reelPositions[i]}px)`;
-            } else if (reelStates[i] === 2) {
-                // ターゲット図柄(インデックス32)を中央ライン(Y=60位置)に合わせる
-                // - (32 * 60) + 60 = -1860
-                reelPositions[i] = -1860;
-                reelElements[i].style.transform = `translateY(${reelPositions[i]}px)`;
-                reelElements[i].classList.remove("blur");
-                reelStates[i] = 0;
+            if(rState[i] === 1) {
+                rPos[i] -= speed;
+                if(rPos[i] <= maxScroll) rPos[i] += Math.abs(maxScroll);
+                reelEls[i].style.transform = `translateY(${rPos[i]}px)`;
+            } else if (rState[i] === 2) {
+                // 中央揃え (ターゲットはインデックス32。 32 * H - H)
+                rPos[i] = -(32 * symbolHeight) + symbolHeight;
+                reelEls[i].style.transform = `translateY(${rPos[i]}px)`;
+                reelEls[i].classList.remove("spin-blur");
+                rState[i] = 0;
                 playSound("STOP");
             }
         }
-        reqAnimFrame = requestAnimationFrame(animateReels);
+        reqAnim = requestAnimationFrame(animate);
     }
 
     async function startSpin() {
         if (isSpinning) return;
-        const walletId = document.getElementById("wallet-select").value;
-        const betAmt = parseInt(document.getElementById("bet-amount").value, 10);
+        const wid = document.getElementById("wallet-select").value;
+        const bet = parseInt(document.getElementById("bet-amount").value, 10);
         
-        if(!walletId || isNaN(betAmt) || betAmt < 1) return;
+        if(!wid || isNaN(bet) || bet < 1) return;
 
         isSpinning = true;
         stoppedCount = 0;
-        serverResult = null;
+        serverRes = null;
         resetUI();
         playSound("SPIN");
         
@@ -562,27 +545,24 @@
             const res = await fetch("/api/slot/spin", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                body: JSON.stringify({ wallet_id: walletId, bet_amount: betAmt })
+                body: JSON.stringify({ wallet_id: wid, bet_amount: bet })
             });
-            const data = await res.json();
-            if (!res.ok) {
-                isSpinning = false; document.getElementById("btn-start").disabled = false; return;
-            }
-
-            serverResult = data;
+            if (!res.ok) throw new Error();
             
-            const w = myWalletsData.find(w => w.wallet_id === walletId);
-            if(w) { w.balance = data.new_balance - data.payout; updateCredit(w.balance); }
+            serverRes = await res.json();
+            
+            const w = myWalletsData.find(w => w.wallet_id === wid);
+            if(w) { w.balance = serverRes.new_balance - serverRes.payout; updateCredit(w.balance); }
 
-            setupReels(false, data.result_symbols);
+            setupReels(false, serverRes.result_symbols);
 
             for (let i = 0; i < 3; i++) {
                 document.getElementById(`btn-stop-${i}`).disabled = false;
-                reelElements[i].classList.add("blur");
-                reelStates[i] = 1;
+                reelEls[i].classList.add("spin-blur");
+                rState[i] = 1;
             }
 
-            if (data.is_early_pekari) triggerDopamine("PEKA");
+            if (serverRes.is_early_pekari) fireDopamine("PEKA");
 
         } catch (e) {
             isSpinning = false; document.getElementById("btn-start").disabled = false;
@@ -590,14 +570,13 @@
     }
 
     function stopReel(idx) {
-        if (reelStates[idx] !== 1) return;
+        if (rState[idx] !== 1) return;
         document.getElementById(`btn-stop-${idx}`).disabled = true;
-        
-        reelStates[idx] = 2; // animateReels内で処理される
+        rState[idx] = 2; 
         stoppedCount++;
         
         if (stoppedCount === 3) {
-            setTimeout(finishGame, 200); // 最後の音が鳴り終わるまで微小待機
+            setTimeout(finishGame, 150);
         }
     }
 
@@ -605,35 +584,33 @@
         isSpinning = false;
         document.getElementById("btn-start").disabled = false;
         
-        if (serverResult.is_pekari && !serverResult.is_early_pekari) {
-            triggerDopamine("PEKA");
-        }
+        if (serverRes.is_pekari && !serverRes.is_early_pekari) fireDopamine("PEKA");
 
-        if (serverResult.prize === "BIG") triggerDopamine("BIG");
-        else if (serverResult.prize === "REG") triggerDopamine("REG");
+        if (serverRes.prize === "BIG") fireDopamine("BIG");
+        else if (serverRes.prize === "REG") fireDopamine("REG");
 
-        // ドーパミン払い出しカウント演出
-        if (serverResult.payout > 0) {
-            let currentDisplay = 0;
-            const target = serverResult.payout;
-            const step = Math.ceil(target / 20); // 約20フレームでカウントアップ
+        // 超高速脳汁払い出し演出
+        if (serverRes.payout > 0) {
+            let cur = 0;
+            const tgt = serverRes.payout;
+            const step = Math.ceil(tgt / 30); // 30フレームで爆速カウント
             
-            const countInterval = setInterval(() => {
-                currentDisplay += step;
-                if(currentDisplay >= target) {
-                    currentDisplay = target;
-                    clearInterval(countInterval);
+            const countTimer = setInterval(() => {
+                cur += step;
+                if(cur >= tgt) {
+                    cur = tgt;
+                    clearInterval(countTimer);
                     const w = myWalletsData.find(w => w.wallet_id === document.getElementById("wallet-select").value);
-                    if(w) { w.balance = serverResult.new_balance; updateCredit(w.balance); }
+                    if(w) { w.balance = serverRes.new_balance; updateCredit(w.balance); }
                 }
-                updatePayoutText(currentDisplay);
-                document.getElementById("payout-display").classList.remove("num-pop");
-                void document.getElementById("payout-display").offsetWidth;
-                document.getElementById("payout-display").classList.add("num-pop");
+                updateWin(cur);
+                const pEl = document.getElementById("payout-display");
+                pEl.classList.remove("num-pop");
+                void pEl.offsetWidth;
+                pEl.classList.add("num-pop");
                 playSound("COIN");
-            }, 50);
+            }, 30);
         }
-        
         loadWallets();
     }
 </script>
