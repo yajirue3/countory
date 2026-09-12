@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Solana (SOL) トレード</title>
-    <!-- 軽量チャートライブラリ -->
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=M+PLUS+1p:wght@900&display=swap');
@@ -36,63 +35,25 @@
             padding: 10px;
         }
 
-        .container { 
-            width: 100%; 
-            max-width: 500px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 10px;
-        }
-
+        .container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 10px; }
+        
         .card { 
-            background: rgba(10, 2, 18, 0.95); 
-            border: 2px solid var(--neon-cyan); 
-            border-radius: 14px; 
-            padding: 10px; 
-            box-shadow: 0 0 25px rgba(0, 243, 255, 0.4); 
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            background: rgba(10, 2, 18, 0.95); border: 2px solid var(--neon-cyan); 
+            border-radius: 14px; padding: 10px; box-shadow: 0 0 25px rgba(0, 243, 255, 0.4); 
+            display: flex; flex-direction: column; gap: 10px;
         }
 
         .header { 
-            font-size: 1.2rem; 
-            font-weight: 900; 
-            color: var(--neon-yellow); 
-            text-align: center; 
-            border-bottom: 2px solid var(--neon-pink); 
-            padding-bottom: 5px; 
-            margin-bottom: 5px;
-            text-shadow: 0 0 10px var(--neon-yellow);
+            font-size: 1.2rem; font-weight: 900; color: var(--neon-yellow); 
+            text-align: center; border-bottom: 2px solid var(--neon-pink); 
+            padding-bottom: 5px; margin-bottom: 5px; text-shadow: 0 0 10px var(--neon-yellow);
         }
 
-        .description {
-            font-size: 0.75rem;
-            color: #ccc;
-            text-align: center;
-            margin-bottom: 5px;
-            line-height: 1.4;
-        }
+        .description { font-size: 0.75rem; color: #ccc; text-align: center; margin-bottom: 5px; line-height: 1.4; }
 
-        /* チャートエリア */
-        #chart-container {
-            width: 100%;
-            height: 250px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            overflow: hidden;
-            background: #050510;
-        }
+        #chart-container { width: 100%; height: 250px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; overflow: hidden; background: #050510; }
 
-        .status-display {
-            display: flex;
-            justify-content: space-between;
-            background: #000;
-            border: 1px solid var(--neon-cyan);
-            border-radius: 8px;
-            padding: 8px;
-        }
-
+        .status-display { display: flex; justify-content: space-between; background: #000; border: 1px solid var(--neon-cyan); border-radius: 8px; padding: 8px; }
         .stat-box { text-align: center; width: 48%; }
         .stat-label { font-size: 0.7rem; color: #aaa; }
         .stat-val { font-size: 1.1rem; font-weight: 900; font-family: 'Black Ops One', monospace; }
@@ -100,7 +61,6 @@
         .val-down { color: var(--neon-red); text-shadow: 0 0 10px var(--neon-red); }
         .val-neutral { color: #fff; }
 
-        /* 入力エリア */
         .inputs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .input-group { display: flex; flex-direction: column; }
         .label { font-size: 0.7rem; color: var(--neon-cyan); margin-bottom: 2px; }
@@ -110,23 +70,12 @@
             color: #fff; font-weight: bold; outline: none;
         }
 
-        /* ボタン */
         .btn-group { display: flex; gap: 8px; margin-top: 5px; }
-        button { 
-            flex: 1; padding: 10px; border: none; border-radius: 8px; 
-            font-weight: 900; cursor: pointer; transition: transform 0.1s; 
-        }
+        button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: 900; cursor: pointer; transition: transform 0.1s; }
         button:active:not(:disabled) { transform: scale(0.95); }
         button:disabled { filter: grayscale(1); cursor: not-allowed; opacity: 0.5; }
-
-        .btn-buy { 
-            background: linear-gradient(135deg, #00f3ff 0%, #0066ff 100%); 
-            color: #fff; box-shadow: 0 0 15px var(--neon-cyan); 
-        }
-        .btn-sell { 
-            background: linear-gradient(135deg, #ff007f 0%, #990000 100%); 
-            color: #fff; box-shadow: 0 0 15px var(--neon-pink); 
-        }
+        .btn-buy { background: linear-gradient(135deg, #00f3ff 0%, #0066ff 100%); color: #fff; box-shadow: 0 0 15px var(--neon-cyan); }
+        .btn-sell { background: linear-gradient(135deg, #ff007f 0%, #990000 100%); color: #fff; box-shadow: 0 0 15px var(--neon-pink); }
         
         .footer { text-align: center; margin-top: 10px; }
         .btn-back { background: transparent; color: #888; border: 1px solid #555; padding: 5px 10px; font-size: 0.8rem;}
@@ -141,10 +90,8 @@
             この機能は、暗号資産「Solana (SOL)」の実際の市場価格（Binance API）にリアルタイムで連動しています。現在のSOL価格に基づいてGoldで疑似投資を行い、価格変動による損益を体験できます。
         </div>
         
-        <!-- チャートエリア -->
         <div id="chart-container"></div>
 
-        <!-- リアルタイムステータス -->
         <div class="status-display">
             <div class="stat-box">
                 <div class="stat-label">現在価格</div>
@@ -168,7 +115,7 @@
         </div>
 
         <div class="btn-group">
-            <button id="btn-buy" class="btn-buy">📈 買い (Buy)</button>
+            <button id="btn-buy" class="btn-buy" disabled>📈 買い (Buy)</button>
             <button id="btn-sell" class="btn-sell" disabled>📉 決済 (Sell)</button>
         </div>
         
@@ -187,7 +134,6 @@
     let entryAmountSol = 0;
     let entryGold = 0;
 
-    // 軽量チャートの初期化
     const chartProperties = {
         width: document.getElementById('chart-container').clientWidth,
         height: 250,
@@ -200,23 +146,26 @@
     const chart = LightweightCharts.createChart(document.getElementById('chart-container'), chartProperties);
     const lineSeries = chart.addLineSeries({ color: '#00f3ff', lineWidth: 2 });
 
-    // Binance WebSocket通信 (SOL/USDT 1秒足)
-    const ws = new WebSocket('wss://stream.binance.com:9443/ws/solusdt@kline_1s');
+    // 【ゼロトラスト修正】不正な kline_1s を破棄し、リアルタイムの miniTicker に変更
+    const ws = new WebSocket('wss://stream.binance.com:9443/ws/solusdt@miniTicker');
     
     ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
-        const kline = message.k;
+        if (!message.c) return;
+
+        currentPrice = parseFloat(message.c);
         
-        currentPrice = parseFloat(kline.c); // 終値(現在価格)
+        // x軸を現在のUNIXタイムスタンプ(秒)としてプロット
+        const nowInSeconds = Math.floor(Date.now() / 1000);
+        lineSeries.update({ time: nowInSeconds, value: currentPrice });
         
-        // チャートの更新
-        lineSeries.update({ time: kline.t / 1000, value: currentPrice });
+        document.getElementById('current-price').innerText = currentPrice.toFixed(2) + " USDT";
         
-        // 価格表示の更新
-        const priceEl = document.getElementById('current-price');
-        priceEl.innerText = currentPrice.toFixed(2) + " USDT";
+        // 価格受信後に購入ボタンを有効化 (未保有時のみ)
+        if (!isHolding && currentPrice > 0 && document.getElementById("wallet-select").options.length > 0) {
+            document.getElementById('btn-buy').disabled = false;
+        }
         
-        // 保有中の場合、評価額を計算
         if (isHolding) {
             const currentGold = Math.floor(entryAmountSol * currentPrice);
             const valEl = document.getElementById('my-value');
@@ -232,25 +181,38 @@
         }
     };
 
-    // 初期化処理
+    ws.onerror = (err) => {
+        console.error("WebSocket通信エラー:", err);
+        alert("価格ストリームへの接続に失敗しました。");
+    };
+
     async function init() {
         try {
             const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
-            if (!res.ok) return;
+            if (!res.ok) throw new Error("ウォレット取得失敗");
             const wallets = await res.json();
             
-            document.getElementById("wallet-select").innerHTML = wallets.map(w => 
+            const selectEl = document.getElementById("wallet-select");
+            selectEl.innerHTML = wallets.map(w => 
                 `<option value="${w.wallet_id}">${w.wallet_name} - ${w.balance}G</option>`
             ).join('');
-        } catch (e) { console.error(e); }
+
+            // ウォレットがあり、価格が既に取得できていればボタンを解放
+            if (wallets.length > 0 && currentPrice > 0 && !isHolding) {
+                document.getElementById('btn-buy').disabled = false;
+            }
+        } catch (e) { 
+            console.error(e);
+            alert("口座情報の取得に失敗しました。");
+        }
     }
 
-    // 購入処理
     document.getElementById('btn-buy').addEventListener('click', async () => {
         const wallet_id = document.getElementById("wallet-select").value;
         const amount = parseInt(document.getElementById("bet-amount").value);
 
-        if(!wallet_id || amount <= 0) return alert("入力が正しくありません");
+        if(!wallet_id || isNaN(amount) || amount <= 0) return alert("入力が正しくありません");
+        if(currentPrice === 0) return alert("価格データを受信中です。少々お待ちください。");
         
         document.getElementById('btn-buy').disabled = true;
 
@@ -264,7 +226,7 @@
             
             if (!res.ok) {
                 document.getElementById('btn-buy').disabled = false;
-                return alert(data.detail);
+                return alert(data.detail || "購入に失敗しました");
             }
 
             isHolding = true;
@@ -275,14 +237,13 @@
             document.getElementById('wallet-select').disabled = true;
             document.getElementById('bet-amount').disabled = true;
             
-            alert(`購入完了！購入価格: ${data.entry_price} USDT`);
+            alert(`購入完了！\n購入価格: ${data.entry_price} USDT`);
         } catch (e) {
-            alert("通信エラー");
+            alert("通信エラーが発生しました");
             document.getElementById('btn-buy').disabled = false;
         }
     });
 
-    // 売却処理
     document.getElementById('btn-sell').addEventListener('click', async () => {
         const wallet_id = document.getElementById("wallet-select").value;
         document.getElementById('btn-sell').disabled = true;
@@ -297,7 +258,7 @@
             
             if (!res.ok) {
                 document.getElementById('btn-sell').disabled = false;
-                return alert(data.detail);
+                return alert(data.detail || "売却に失敗しました");
             }
 
             isHolding = false;
@@ -313,10 +274,10 @@
 
             const sign = data.pnl_gold >= 0 ? "+" : "";
             alert(`決済完了！\n決済価格: ${data.exit_price} USDT\n損益: ${sign}${data.pnl_gold} Gold`);
-            init(); // 残高更新のため再読み込み
             
+            await init(); 
         } catch (e) {
-            alert("通信エラー");
+            alert("通信エラーが発生しました");
             document.getElementById('btn-sell').disabled = false;
         }
     });
