@@ -191,62 +191,72 @@
 
 <!-- ルールモーダル -->
 <div id="rules-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center;">
-    <div class="rule-content" style="max-height: 85vh; overflow-y: auto; width: 90%; max-width: 460px; box-sizing: border-box; padding: 16px;">
-        <h3>📖 超究極ルールガイド</h3>
+    <div class="rule-content" style="max-height: 85vh; overflow-y: auto; width: 90%; max-width: 480px; box-sizing: border-box; padding: 16px;">
+        <h3>📖 超究極完全体ルールガイド</h3>
 
-        <!-- 勝利条件（目的） -->
+        <!-- 勝利条件・賭け金 -->
         <div style="background: rgba(212, 175, 55, 0.15); border: 1px solid #d4af37; padding: 12px; border-radius: 8px; margin-bottom: 12px; text-align: center;">
-            <div style="font-size: 0.95rem; font-weight: bold; color: #ffd700;">🎯 勝利条件</div>
-            <div style="font-size: 0.85rem; color: #fff; margin-top: 4px;">
-                相手の「ヒーロー(顔)」を攻撃して、<strong>HP(体力) 20 を 0 にした方の勝ち</strong>です！
+            <div style="font-size: 0.95rem; font-weight: bold; color: #ffd700;">🎯 勝利条件と報酬</div>
+            <div style="font-size: 0.82rem; color: #fff; margin-top: 4px; line-height: 1.6;">
+                敵のヒーローを攻撃して<strong>HP(体力) 20 を先に 0 にした方の勝利</strong>！<br>
+                勝者は<strong>賭け金の総取り（2倍）</strong>を獲得します（引き分け時は全額返金）。
             </div>
         </div>
 
-        <!-- プレイの基本手順 -->
+        <!-- 1. ゲーム進行の掟 -->
         <div style="background: rgba(0,0,0,0.35); padding: 12px 14px; border-radius: 8px; margin-bottom: 12px;">
-            <div style="font-weight: bold; color: #ffd700; margin-bottom: 8px; font-size: 0.9rem;">🕹️ 遊び方の流れ（かんたん4ステップ）</div>
+            <div style="font-weight: bold; color: #ffd700; margin-bottom: 8px; font-size: 0.9rem;">🕹️ 戦いの流れ（4ステップ）</div>
             <ol style="margin: 0; padding-left: 20px; font-size: 0.82rem; line-height: 1.8; color: #eee;">
                 <li>
-                    <strong>ドラフト（カード選び）</strong><br>
-                    最初に画面に出てくる3枚の中から好きなカードを1枚クリックします。これを6回繰り返して、自分のデッキ（計6枚）を作ります。
+                    <strong>ドラフト（編成）</strong>：<br>
+                    3枚の候補から1枚を選ぶ作業を交互に繰り返し、計6枚のデッキを作ります（制限時間各15秒・時間切れは自動選択）。
                 </li>
                 <li>
-                    <strong>ターン開始（MP回復・ドロー）</strong><br>
-                    自分の番になると、カードを出すための「MP」が全回復し、最大値も1増えます。さらにデッキからカードを1枚引きます（ドロー）。
+                    <strong>初期手札とターン開始</strong>：<br>
+                    バトル開始時にデッキから3枚をドロー。ターンが回ると<strong>MPが全回復＆最大MPが+1</strong>（最大10）され、デッキから1枚引きます（制限時間45秒）。
                 </li>
                 <li>
-                    <strong>ユニットを場に出す</strong><br>
-                    手札のカードに書かれたMPコストを消費して、画面下の手札をクリックすると戦場にユニット（兵士）が出ます。
+                    <strong>カードを使う（PLAY_HAND）</strong>：<br>
+                    現在のMPを消費して、手札をクリックして場に出します。
                 </li>
                 <li>
-                    <strong>攻撃する</strong><br>
-                    盤面で<strong>緑色に光っている自分のユニット</strong>をまずクリックします。そのあと、攻撃したい「敵のユニット」または「敵のヒーロー(顔)」をクリックします。
+                    <strong>攻撃する（DECLARE_ATTACK）</strong>：<br>
+                    緑色に光る自分のユニットをクリック後、狙いたい敵ユニットまたは敵ヒーローをクリックします。
                 </li>
             </ol>
         </div>
 
-        <!-- 用語の解説 -->
-        <div style="background: rgba(0,0,0,0.35); padding: 12px 14px; border-radius: 8px; margin-bottom: 14px;">
-            <div style="font-weight: bold; color: #ffd700; margin-bottom: 8px; font-size: 0.9rem;">📚 画面に出てくる言葉の意味</div>
+        <!-- 2. 特殊ルール -->
+        <div style="background: rgba(0,0,0,0.35); padding: 12px 14px; border-radius: 8px; margin-bottom: 12px;">
+            <div style="font-weight: bold; color: #ffd700; margin-bottom: 8px; font-size: 0.9rem;">⚡ 盤面の掟・特殊能力</div>
             <ul style="margin: 0; padding-left: 18px; font-size: 0.82rem; line-height: 1.8; color: #eee;">
-                <li>
-                    <span class="highlight">デッキ</span>：自分が対戦で使うカード一式（合計6枚）のことです。
-                </li>
-                <li>
-                    <span class="highlight">ドラフト</span>：提示された候補の中から1枚ずつ選んでデッキを完成させる方式のことです。
-                </li>
-                <li>
-                    <span class="highlight">ターン</span>：交互に行動する「自分の番」「相手の番」のことです。
-                </li>
-                <li>
-                    <span class="highlight">ユニット</span>：戦場に出て実際に戦うモンスターや兵士のことです。
-                </li>
-                <li>
-                    <span class="highlight">ヒーロー (顔)</span>：画面中央奥にいるプレイヤー自身です。ここを直接叩くことを「ダイレクトアタック」と呼びます。
-                </li>
-                <li>
-                    <span class="highlight">挑発 (Taunt)</span>：盾マーク「🛡️」が付いた身代わり役です。<strong>相手の場に「挑発」ユニットがいるときは、そのユニットを倒すまで他のユニットや敵ヒーロー(顔)をクリックできません。</strong>
-                </li>
+                <li><span class="highlight">🛡️ 挑発</span>：敵の場に「挑発」を持つ重装兵がいる場合、<strong>その兵を全滅させるまで他のユニットや敵ヒーローを一切攻撃できません</strong>。</li>
+                <li><span class="highlight">⚡ 速攻</span>：先鋒兵の能力。場に出した直後の最初のターンから即座に攻撃可能です。</li>
+                <li><span class="highlight">🩸 吸血</span>：吸血鬼の能力。敵に与えたダメージ分、自分のヒーローHPが回復します（最大20まで）。</li>
+                <li><span class="highlight">反撃の掟</span>：ユニット同士が戦うと、互いに自分の攻撃力分のダメージを相手のHPに同時に与え合います。</li>
+                <li><span class="highlight">手札上限・奇跡のドロー</span>：手札の上限は7枚。デッキが0枚の状態で手札が完全に尽きると、ランダムなカードが奇跡的に手札へ1枚生成されます。</li>
+            </ul>
+        </div>
+
+        <!-- 3. 全カード一覧 -->
+        <div style="background: rgba(0,0,0,0.35); padding: 12px 14px; border-radius: 8px; margin-bottom: 14px;">
+            <div style="font-weight: bold; color: #ffd700; margin-bottom: 8px; font-size: 0.9rem;">📜 全カード目録（9種類）</div>
+            
+            <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 4px; font-weight: bold;">【ユニットカード】</div>
+            <ul style="margin: 0 0 8px 0; padding-left: 18px; font-size: 0.8rem; line-height: 1.7; color: #eee;">
+                <li><strong>先鋒兵</strong> (コスト1 / 攻2 / 体1) ： ⚡速攻（出した番に即攻撃）</li>
+                <li><strong>魔導士</strong> (コスト2 / 攻3 / 体2) ： 標準アタッカー</li>
+                <li><strong>重装兵</strong> (コスト3 / 攻2 / 体5) ： 🛡️挑発（身代わりの盾）</li>
+                <li><strong>吸血鬼</strong> (コスト4 / 攻3 / 体4) ： 🩸吸血（与ダメ分HP回復）</li>
+                <li><strong>巨兵</strong> (コスト6 / 攻7 / 体6) ： 圧倒的攻撃力を持つ大型ユニット</li>
+            </ul>
+
+            <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 4px; font-weight: bold;">【スペルカード（呪文）】</div>
+            <ul style="margin: 0; padding-left: 18px; font-size: 0.8rem; line-height: 1.7; color: #eee;">
+                <li><strong>雷撃</strong> (コスト2) ： 単体の敵（ユニットまたはヒーロー）に3ダメージ</li>
+                <li><strong>治癒</strong> (コスト2) ： 自分のヒーローHPを5回復</li>
+                <li><strong>補充</strong> (コスト3) ： デッキからカードを2枚ドロー</li>
+                <li><strong>嵐</strong> (コスト4) ： 敵陣の全ユニットに2ダメージ（全体攻撃）</li>
             </ul>
         </div>
 
@@ -255,6 +265,7 @@
         </div>
     </div>
 </div>
+
 
 
     <!-- ロビー -->
