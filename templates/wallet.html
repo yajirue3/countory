@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>村岡王国 - 王国中央銀行</title>
+    <!-- QRコード読み取り用ライブラリ -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body { font-family: sans-serif; background-color: #1a1a1a; color: #e0e0e0; display: flex; justify-content: center; padding: 20px 0; margin: 0; }
         .container { width: 360px; display: flex; flex-direction: column; gap: 16px; }
@@ -14,8 +16,8 @@
         button:hover { background: #2ecc71; }
         .btn-back { background: #444; color: #ccc; margin-top: 8px; }
         .btn-back:hover { background: #555; }
-        .wallet-item { background: #202020; border: 1px solid #444; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
-        .wallet-title { color: #d4af37; font-weight: bold; font-size: 0.9rem; }
+        .wallet-item { background: #202020; border: 1px solid #444; border-radius: 8px; padding: 12px; margin-bottom: 8px; position: relative; }
+        .wallet-title { color: #d4af37; font-weight: bold; font-size: 0.9rem; margin-right: 60px; }
         .wallet-id { color: #888; font-size: 0.75rem; font-family: monospace; }
         .wallet-balance { font-size: 1.1rem; font-weight: bold; color: #2ecc71; margin-top: 4px; }
         .label { color: #888; font-size: 0.75rem; }
@@ -29,6 +31,15 @@
         .log-type.receive { color: #2ecc71; }
         .log-details { color: #aaa; font-family: monospace; font-size: 0.75rem; }
         .log-time { color: #666; font-size: 0.65rem; margin-top: 2px; }
+
+        /* QR用ボタン・モーダル */
+        .btn-qr-show { position: absolute; right: 12px; top: 12px; width: auto; padding: 6px 10px; background: #8e44ad; font-size: 0.7rem; border-radius: 4px; }
+        .btn-qr-show:hover { background: #9b59b6; }
+        .btn-qr-scan { width: auto; margin: 0; padding: 0 14px; background: #3498db; border-radius: 6px; font-size: 0.8rem; }
+        .btn-qr-scan:hover { background: #2980b9; }
+        
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-content { background: #222; border: 2px solid #555; border-radius: 12px; width: 90%; max-width: 360px; padding: 20px; box-shadow: 0 0 20px rgba(0,0,0,0.8); text-align: center; }
     </style>
 </head>
 <body>
@@ -55,7 +66,10 @@
         <select id="sender-wallet"></select>
 
         <div class="label">送金先ウォレットID</div>
-        <input type="text" id="receiver-wallet-id" placeholder="例: MW-X82K9L">
+        <div style="display: flex; gap: 8px; margin-top: 4px; margin-bottom: 10px;">
+            <input type="text" id="receiver-wallet-id" placeholder="例: MW-X82K9L" style="margin: 0; flex: 1;">
+            <button class="btn-qr-scan" onclick="startQRScanner()">📷 読取</button>
+        </div>
 
         <div class="label">送金金額 (Gold)</div>
         <input type="number" id="transfer-amount" min="1" placeholder="例: 50">
@@ -70,6 +84,31 @@
     </div>
 
     <button class="btn-back" onclick="location.href='/dashboard'">◀ 国民証に戻る</button>
+</div>
+
+<!-- ================= 受取用QR表示モーダル ================= -->
+<div id="qr-show-modal" class="modal-overlay" onclick="closeQRShow(event)">
+    <div class="modal-content" style="border-color: #8e44ad;" onclick="event.stopPropagation()">
+        <h3 style="color: #9b59b6; margin-top: 0;">📱 受取用QRコード</h3>
+        <p style="font-size: 0.8rem; color: #ccc; margin-bottom: 15px;">相手にこの画面をスキャンしてもらってください</p>
+        <div style="background: #fff; padding: 10px; display: inline-block; border-radius: 8px; margin-bottom: 15px;">
+            <img id="my-qr-img" src="" alt="QR Code" width="200" height="200">
+        </div>
+        <div id="my-qr-id-text" style="font-family: monospace; font-size: 1.1rem; color: #d4af37; font-weight: bold; margin-bottom: 15px; user-select: all;">-</div>
+        <button onclick="closeQRShow()" style="background: #444;">閉じる</button>
+    </div>
+</div>
+
+<!-- ================= QRスキャンモーダル ================= -->
+<div id="qr-scan-modal" class="modal-overlay">
+    <div class="modal-content" style="border-color: #3498db;">
+        <h3 style="color: #3498db; margin-top: 0;">📷 スキャン</h3>
+        <p style="font-size: 0.8rem; color: #ccc; margin-bottom: 10px;">相手の受取QRコードを枠に収めてください</p>
+        
+        <div id="qr-reader" style="width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 15px; background: #000;"></div>
+        
+        <button onclick="stopQRScanner()" style="background: #e74c3c;">キャンセル</button>
+    </div>
 </div>
 
 <script>
@@ -97,6 +136,7 @@
                     <div class="wallet-title">${escapeHtml(w.wallet_name)}</div>
                     <div class="wallet-id">ID: ${w.wallet_id}</div>
                     <div class="wallet-balance">${w.balance} Gold</div>
+                    <button class="btn-qr-show" onclick="showMyQR('${w.wallet_id}')">受取QR</button>
                 </div>
             `).join('');
 
@@ -195,6 +235,66 @@
     }
 
     function escapeHtml(str) { return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
+
+    /* ================= QRコード表示機能 ================= */
+    function showMyQR(walletId) {
+        document.getElementById("my-qr-id-text").innerText = walletId;
+        // 外部API(QuickChart)を利用してQR画像を生成（Python側の変更不要）
+        document.getElementById("my-qr-img").src = `https://quickchart.io/qr?text=${encodeURIComponent(walletId)}&size=200&margin=1`;
+        document.getElementById("qr-show-modal").style.display = "flex";
+    }
+
+    function closeQRShow(e) {
+        if (e && e.target !== document.getElementById("qr-show-modal")) return;
+        document.getElementById("qr-show-modal").style.display = "none";
+    }
+
+    /* ================= QRコード読取機能 ================= */
+    let html5QrCode;
+
+    function startQRScanner() {
+        document.getElementById("qr-scan-modal").style.display = "flex";
+        
+        // すでにインスタンスがあればクリア
+        if (html5QrCode) {
+            html5QrCode.clear();
+        }
+
+        html5QrCode = new Html5Qrcode("qr-reader");
+        html5QrCode.start(
+            { facingMode: "environment" }, // スマホの背面カメラを優先
+            {
+                fps: 10,
+                qrbox: { width: 200, height: 200 }
+            },
+            (decodedText, decodedResult) => {
+                // スキャン成功時
+                document.getElementById("receiver-wallet-id").value = decodedText;
+                stopQRScanner();
+                // 金額入力欄へ自動でフォーカス
+                setTimeout(() => document.getElementById("transfer-amount").focus(), 100);
+            },
+            (errorMessage) => {
+                // 読取中のノイズエラーは無視する仕様
+            }
+        ).catch((err) => {
+            alert("カメラの起動に失敗しました。権限が許可されているか確認してください。\n" + err);
+            stopQRScanner();
+        });
+    }
+
+    function stopQRScanner() {
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                html5QrCode.clear();
+                document.getElementById("qr-scan-modal").style.display = "none";
+            }).catch((err) => {
+                document.getElementById("qr-scan-modal").style.display = "none";
+            });
+        } else {
+            document.getElementById("qr-scan-modal").style.display = "none";
+        }
+    }
 </script>
 
 </body>
