@@ -46,7 +46,7 @@
         .control-section {
             background: var(--panel-bg); border: 2px solid var(--panel-border);
             border-radius: 8px; padding: 20px; display: flex; flex-direction: column;
-            overflow-y: auto; /* PCでコンテンツが溢れた場合スクロール */
+            overflow-y: auto; 
         }
         .header-panel {
             border-bottom: 1px dashed var(--panel-border); padding-bottom: 12px; margin-bottom: 12px;
@@ -99,7 +99,9 @@
         .color-swatches::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
         
         .swatch { 
-            min-width: 45px; height: 36px; border: 2px solid #333; border-radius: 4px; 
+            min-width: 60px; /* 文字が入りきるように広げました */
+            padding: 0 4px;
+            height: 36px; border: 2px solid #333; border-radius: 4px; 
             cursor: pointer; display: flex; justify-content: center; align-items: center;
             font-size: 0.8rem; font-weight: bold; color: #fff; text-shadow: 1px 1px 0 #000; flex-shrink: 0;
         }
@@ -130,8 +132,8 @@
                 display: flex; flex-direction: column; height: auto; gap: 15px; max-width: 100%;
             }
             .viewport-section { 
-                height: 40vh; min-height: 260px; flex: none;
-                position: sticky; top: 10px; z-index: 40; /* 3Dビューを上に固定し見やすく */
+                height: 30vh; min-height: 200px; flex: none; /* スマホ時の高さを縮小し、操作盤を見やすく */
+                position: sticky; top: 10px; z-index: 40; 
                 box-shadow: 0 5px 20px rgba(0,0,0,0.8);
             }
             .control-section { 
@@ -140,15 +142,13 @@
             .header-panel h2 { font-size: 1.15rem; }
             .btn-grid { gap: 8px; }
             
-            /* スマホで指で押しやすいようボタンを大きく */
             .btn-machinery { padding: 15px 10px; font-size: 0.95rem; min-height: 55px; }
             .btn-action { font-size: 1.05rem; }
             
-            /* 横スクロールするカラーパレットをタップしやすく */
             .color-row { gap: 8px; }
             .color-label { width: 45px; font-size: 0.75rem; }
             .color-swatches { gap: 8px; padding-bottom: 8px; }
-            .swatch { min-width: 50px; height: 42px; font-size: 0.85rem; }
+            .swatch { min-width: 65px; height: 42px; font-size: 0.85rem; }
             
             .console-log { height: 100px; font-size: 0.8rem; }
             .btn-back { padding: 14px; font-size: 0.95rem; }
@@ -196,39 +196,61 @@
 <script>
 // --- 音響 (Web Audio API) ---
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
 function playSound(type) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.connect(gain); 
+    gain.connect(audioCtx.destination);
     const now = audioCtx.currentTime;
+    
     if (type === 'click') {
-        osc.type = 'square'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(300, now+0.05);
-        gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.01, now+0.05);
-        osc.start(now); osc.stop(now+0.05);
+        osc.type = 'square'; 
+        osc.frequency.setValueAtTime(800, now); 
+        osc.frequency.exponentialRampToValueAtTime(300, now + 0.05);
+        gain.gain.setValueAtTime(0.05, now); 
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+        osc.start(now); 
+        osc.stop(now + 0.05);
     } else if (type === 'error') {
-        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now);
-        gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now+0.3);
-        osc.start(now); osc.stop(now+0.3);
+        osc.type = 'sawtooth'; 
+        osc.frequency.setValueAtTime(100, now);
+        gain.gain.setValueAtTime(0.1, now); 
+        gain.gain.linearRampToValueAtTime(0, now + 0.3);
+        osc.start(now); 
+        osc.stop(now + 0.3);
     } else if (type === 'heavy') { 
-        osc.type = 'square'; osc.frequency.setValueAtTime(120, now); osc.frequency.exponentialRampToValueAtTime(20, now+0.25);
-        gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now+0.25);
-        osc.start(now); osc.stop(now+0.25);
+        osc.type = 'square'; 
+        osc.frequency.setValueAtTime(120, now); 
+        osc.frequency.exponentialRampToValueAtTime(20, now + 0.25);
+        gain.gain.setValueAtTime(0.2, now); 
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.start(now); 
+        osc.stop(now + 0.25);
     }
 }
 
 // --- 質感生成 (プロシージャル・バンプマップ) ---
-// 外部画像を読まずに、Canvas経由で「鉄のザラザラ感」を作る
 function createNoiseTexture() {
-    const cvs = document.createElement('canvas'); cvs.width = 256; cvs.height = 256;
+    const cvs = document.createElement('canvas'); 
+    cvs.width = 256; 
+    cvs.height = 256;
     const ctx = cvs.getContext('2d');
     const imgData = ctx.createImageData(256, 256);
+    
     for (let i = 0; i < imgData.data.length; i += 4) {
         const v = Math.random() * 255;
-        imgData.data[i] = v; imgData.data[i+1] = v; imgData.data[i+2] = v; imgData.data[i+3] = 255;
+        imgData.data[i] = v; 
+        imgData.data[i+1] = v; 
+        imgData.data[i+2] = v; 
+        imgData.data[i+3] = 255;
     }
     ctx.putImageData(imgData, 0, 0);
     const tex = new THREE.CanvasTexture(cvs);
-    tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+    tex.wrapS = THREE.RepeatWrapping; 
+    tex.wrapT = THREE.RepeatWrapping;
     return tex;
 }
 
@@ -236,6 +258,7 @@ function createNoiseTexture() {
 const vp = document.getElementById('viewport-3d');
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x050608, 0.05);
+
 const camera = new THREE.PerspectiveCamera(40, vp.clientWidth / vp.clientHeight, 0.1, 100);
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer.setSize(vp.clientWidth, vp.clientHeight);
@@ -245,19 +268,27 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 vp.appendChild(renderer.domElement);
 
 window.addEventListener('resize', () => {
-    camera.aspect = vp.clientWidth / vp.clientHeight; camera.updateProjectionMatrix();
+    camera.aspect = vp.clientWidth / vp.clientHeight; 
+    camera.updateProjectionMatrix();
     renderer.setSize(vp.clientWidth, vp.clientHeight);
 });
 
 // ライティング
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); scene.add(ambientLight);
-const dirLight = new THREE.DirectionalLight(0xffeedd, 1.5); 
-dirLight.position.set(5, 10, 5); dirLight.castShadow = true; 
-dirLight.shadow.mapSize.width = 512; dirLight.shadow.mapSize.height = 512;
-scene.add(dirLight);
-const bluePoint = new THREE.PointLight(0x3b82f6, 1.5, 10); bluePoint.position.set(-3, 3, 2); scene.add(bluePoint);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); 
+scene.add(ambientLight);
 
-// マテリアル定義 (バンプマップ適用でデコボコ感を出す)
+const dirLight = new THREE.DirectionalLight(0xffeedd, 1.5); 
+dirLight.position.set(5, 10, 5); 
+dirLight.castShadow = true; 
+dirLight.shadow.mapSize.width = 512; 
+dirLight.shadow.mapSize.height = 512;
+scene.add(dirLight);
+
+const bluePoint = new THREE.PointLight(0x3b82f6, 1.5, 10); 
+bluePoint.position.set(-3, 3, 2); 
+scene.add(bluePoint);
+
+// マテリアル定義 (バンプマップ適用)
 const noiseTex = createNoiseTexture();
 const matIron = new THREE.MeshStandardMaterial({ color: 0x222428, roughness: 0.8, metalness: 0.6, bumpMap: noiseTex, bumpScale: 0.03 });
 const matSteel = new THREE.MeshStandardMaterial({ color: 0x777c85, roughness: 0.4, metalness: 0.8, bumpMap: noiseTex, bumpScale: 0.01 });
@@ -266,87 +297,129 @@ const matOrange = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0
 
 // 背景 (床と鉄骨)
 const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), matIron);
-floor.rotation.x = -Math.PI/2; floor.position.y = -2; floor.receiveShadow = true; scene.add(floor);
-for(let i=0; i<3; i++){
+floor.rotation.x = -Math.PI / 2; 
+floor.position.y = -2; 
+floor.receiveShadow = true; 
+scene.add(floor);
+
+for(let i = 0; i < 3; i++) {
     const col = new THREE.Mesh(new THREE.BoxGeometry(0.5, 20, 0.5), matIron);
-    col.position.set(-6 + (i*6), 0, -4); col.castShadow = true; col.receiveShadow = true; scene.add(col);
+    col.position.set(-6 + (i * 6), 0, -4); 
+    col.castShadow = true; 
+    col.receiveShadow = true; 
+    scene.add(col);
 }
 
 // 全工程のモデルを事前生成してキャッシュ
 const steps3D = {};
 
-// 1. ベアリング (TorusとSphereで精巧に)
+// 1. ベアリング (TorusとSphere)
 steps3D[1] = new THREE.Group();
 const bOuter = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.2, 16, 32), matSteel);
 const bInner = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.15, 16, 32), matSteel);
 steps3D[1].add(bOuter, bInner);
-for(let i=0; i<8; i++){
+
+for(let i = 0; i < 8; i++) {
     const ball = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), matSteel);
-    ball.position.set(Math.cos(i/8*Math.PI*2)*0.75, Math.sin(i/8*Math.PI*2)*0.75, 0);
+    ball.position.set(Math.cos(i / 8 * Math.PI * 2) * 0.75, Math.sin(i / 8 * Math.PI * 2) * 0.75, 0);
     steps3D[1].add(ball);
 }
-steps3D[1].rotation.x = Math.PI/2; steps3D[1].position.y = 0;
-steps3D[1].traverse(c => { if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
+steps3D[1].rotation.x = Math.PI / 2; 
+steps3D[1].position.y = 0;
+steps3D[1].traverse(c => { if(c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
 
-// 2. 抵抗器 (キャップとワイヤーを別々に)
+// 2. 抵抗器
 steps3D[2] = new THREE.Group();
 const rBody = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1.8, 32), new THREE.MeshStandardMaterial({color:0xd9c5a0, roughness:1.0}));
-rBody.rotation.z = Math.PI/2; steps3D[2].add(rBody);
+rBody.rotation.z = Math.PI / 2; 
+steps3D[2].add(rBody);
+
 const wireGeo = new THREE.CylinderGeometry(0.05, 0.05, 1.5, 16);
-const w1 = new THREE.Mesh(wireGeo, matSteel); w1.rotation.z = Math.PI/2; w1.position.x = 1.6;
-const w2 = new THREE.Mesh(wireGeo, matSteel); w2.rotation.z = Math.PI/2; w2.position.x = -1.6;
+const w1 = new THREE.Mesh(wireGeo, matSteel); 
+w1.rotation.z = Math.PI / 2; 
+w1.position.x = 1.6;
+
+const w2 = new THREE.Mesh(wireGeo, matSteel); 
+w2.rotation.z = Math.PI / 2; 
+w2.position.x = -1.6;
 steps3D[2].add(w1, w2);
+
 const bands = [];
-for(let i=0; i<4; i++){
+for(let i = 0; i < 4; i++) {
     const b = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.15, 32), new THREE.MeshBasicMaterial({color:0x000}));
-    b.rotation.z = Math.PI/2; b.position.x = -0.6 + (i*0.4); steps3D[2].add(b); bands.push(b);
+    b.rotation.z = Math.PI / 2; 
+    b.position.x = -0.6 + (i * 0.4); 
+    steps3D[2].add(b); 
+    bands.push(b);
 }
 steps3D[2].position.y = 1;
-steps3D[2].traverse(c => { if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
+steps3D[2].traverse(c => { if(c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
 
-// 3. クラッチ (歯車形状をExtrudeGeometryで正確に生成)
+// 3. クラッチ
 function createGearMesh() {
     const shape = new THREE.Shape();
     const teeth = 16, rOut = 1.2, rIn = 0.9;
-    for(let i=0; i<teeth*2; i++) {
-        const a = (i/(teeth*2))*Math.PI*2, r = i%2===0 ? rOut : rIn;
-        if(i===0) shape.moveTo(Math.cos(a)*r, Math.sin(a)*r); else shape.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+    
+    for(let i = 0; i < teeth * 2; i++) {
+        const a = (i / (teeth * 2)) * Math.PI * 2;
+        const r = i % 2 === 0 ? rOut : rIn;
+        if(i === 0) shape.moveTo(Math.cos(a) * r, Math.sin(a) * r); 
+        else shape.lineTo(Math.cos(a) * r, Math.sin(a) * r);
     }
+    
     const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.3, bevelEnabled: true, bevelSegments: 2, bevelSize: 0.05, bevelThickness: 0.05 });
     return new THREE.Mesh(geo, matBrass);
 }
 steps3D[3] = new THREE.Group();
-const gear1 = createGearMesh(); gear1.position.z = -0.2; gear1.rotation.x = Math.PI/2;
-const gear2 = createGearMesh(); gear2.position.z = 0.3; gear2.rotation.x = Math.PI/2;
+const gear1 = createGearMesh(); 
+gear1.position.z = -0.2; 
+gear1.rotation.x = Math.PI / 2;
+
+const gear2 = createGearMesh(); 
+gear2.position.z = 0.3; 
+gear2.rotation.x = Math.PI / 2;
+
 steps3D[3].add(gear1, gear2);
 steps3D[3].position.y = 1;
-steps3D[3].traverse(c => { if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
+steps3D[3].traverse(c => { if(c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
 
-// 4. 油圧シリンダー (リブ付きの重厚なシリンダー)
+// 4. 油圧シリンダー
 steps3D[4] = new THREE.Group();
 const cylGroup = new THREE.Group();
-const mainCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 2, 32), matIron); cylGroup.add(mainCyl);
-for(let i=0; i<4; i++){
+const mainCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 2, 32), matIron); 
+cylGroup.add(mainCyl);
+
+for(let i = 0; i < 4; i++) {
     const rib = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.1, 16, 32), matIron);
-    rib.position.y = -0.6 + (i*0.4); cylGroup.rotation.x = Math.PI/2; cylGroup.add(rib);
+    rib.position.y = -0.6 + (i * 0.4); 
+    cylGroup.rotation.x = Math.PI / 2; 
+    cylGroup.add(rib);
 }
-cylGroup.position.set(0, 0, 0); steps3D[4].add(cylGroup);
-const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 2.5, 32), matSteel); rod.position.y = 1.5; steps3D[4].add(rod);
+cylGroup.position.set(0, 0, 0); 
+steps3D[4].add(cylGroup);
+
+const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 2.5, 32), matSteel); 
+rod.position.y = 1.5; 
+steps3D[4].add(rod);
 steps3D[4].position.y = 0;
-steps3D[4].traverse(c => { if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
+steps3D[4].traverse(c => { if(c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
 
 // 5. 巨大プレス機
 steps3D[5] = new THREE.Group();
 const pressBase = new THREE.Mesh(new THREE.BoxGeometry(3, 0.5, 2), matIron);
-const pressHead = new THREE.Mesh(new THREE.BoxGeometry(2, 1.5, 1.5), matOrange); pressHead.position.y = 2.5;
+const pressHead = new THREE.Mesh(new THREE.BoxGeometry(2, 1.5, 1.5), matOrange); 
+pressHead.position.y = 2.5;
 steps3D[5].add(pressBase, pressHead);
 steps3D[5].position.y = 0;
-steps3D[5].traverse(c => { if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
+steps3D[5].traverse(c => { if(c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
 
 // シーンに全て追加し、非表示
-for(let i=1; i<=5; i++) { steps3D[i].visible = false; scene.add(steps3D[i]); }
+for(let i = 1; i <= 5; i++) { 
+    steps3D[i].visible = false; 
+    scene.add(steps3D[i]); 
+}
 
-// カメラLerp制御 (映画的な動き)
+// カメラLerp制御
 const camTargetPos = new THREE.Vector3(0, 5, 8);
 const camTargetLook = new THREE.Vector3(0, 0, 0);
 const currentLook = new THREE.Vector3(0, 0, 0);
@@ -360,9 +433,10 @@ const camViews = {
 };
 
 function switchStep3D(step) {
-    for(let i=1; i<=5; i++) steps3D[i].visible = (i === step);
+    for(let i = 1; i <= 5; i++) steps3D[i].visible = (i === step);
     const v = camViews[step] || camViews[1];
-    camTargetPos.set(...v.pos); camTargetLook.set(...v.look);
+    camTargetPos.set(...v.pos); 
+    camTargetLook.set(...v.look);
     document.getElementById('cctv-cam').innerText = v.text;
 }
 
@@ -372,9 +446,16 @@ function animate() {
     currentLook.lerp(camTargetLook, 0.06);
     camera.lookAt(currentLook);
 
-    if(steps3D[1].visible) { steps3D[1].rotation.y += 0.01; }
-    if(steps3D[3].visible && !isLocked) { gear1.rotation.z += 0.04; gear2.rotation.z -= 0.02; }
-    if(steps3D[4].visible && rod.position.y < 1.5) { rod.position.y += (1.5 - rod.position.y) * 0.1; } // ピストンの戻り
+    if (steps3D[1].visible) { 
+        steps3D[1].rotation.y += 0.01; 
+    }
+    if (steps3D[3].visible && !isLocked) { 
+        gear1.rotation.z += 0.04; 
+        gear2.rotation.z -= 0.02; 
+    }
+    if (steps3D[4].visible && rod.position.y < 1.5) { 
+        rod.position.y += (1.5 - rod.position.y) * 0.1; 
+    }
 
     renderer.render(scene, camera);
 }
@@ -386,17 +467,19 @@ if (!token) window.location.href = "/";
 
 let currentSession = null, gaugeVal = 0, gaugeDir = 2, gaugeInterval = null, tapCount = 0;
 let isLocked = false, isFetching = false;
-let selectedColors = [0, 0, 0, 10]; // 初期値: 黒,黒,黒,金
+let selectedColors = [0, 0, 0, 10]; 
 
+// 文字色や表記揺れを統一
 const cData = {
     bands: [
-        {v:0, n:"黒(0)", c:"#222", t:"#fff"}, {v:1, n:"茶(1)", c:"#8b4513", t:"#fff"}, {v:2, n:"赤(2)", c:"#ef4444", t:"#fff"}, {v:3, n:"橙(3)", c:"#f97316", t:"#000"},
-        {v:4, n:"黄(4)", c:"#eab308", t:"#000"}, {v:5, n:"緑(5)", c:"#22c55e", t:"#000"}, {v:6, n:"青(6)", c:"#3b82f6", t:"#fff"}, {v:7, n:"紫(7)", c:"#a855f7", t:"#fff"},
-        {v:8, n:"灰(8)", c:"#64748b", t:"#fff"}, {v:9, n:"白(9)", c:"#ffffff", t:"#000"}
+        {v:0, n:"黒(0)", c:"#222", t:"#fff"}, {v:1, n:"茶(1)", c:"#8b4513", t:"#fff"}, {v:2, n:"赤(2)", c:"#ef4444", t:"#fff"}, 
+        {v:3, n:"橙(3)", c:"#f97316", t:"#000"}, {v:4, n:"黄(4)", c:"#eab308", t:"#000"}, {v:5, n:"緑(5)", c:"#22c55e", t:"#000"}, 
+        {v:6, n:"青(6)", c:"#3b82f6", t:"#fff"}, {v:7, n:"紫(7)", c:"#a855f7", t:"#fff"}, {v:8, n:"灰(8)", c:"#64748b", t:"#fff"}, 
+        {v:9, n:"白(9)", c:"#ffffff", t:"#000"}
     ],
     mults: [
-        {v:0, n:"x10^0", c:"#222", t:"#fff"}, {v:1, n:"x10^1", c:"#8b4513", t:"#fff"}, {v:2, n:"x10^2", c:"#ef4444", t:"#fff"},
-        {v:3, n:"x10^3", c:"#f97316", t:"#000"}, {v:4, n:"x10^4", c:"#eab308", t:"#000"}
+        {v:0, n:"黒(0)", c:"#222", t:"#fff"}, {v:1, n:"茶(1)", c:"#8b4513", t:"#fff"}, {v:2, n:"赤(2)", c:"#ef4444", t:"#fff"},
+        {v:3, n:"橙(3)", c:"#f97316", t:"#000"}, {v:4, n:"黄(4)", c:"#eab308", t:"#000"}
     ],
     tols: [
         {v:10, n:"金(±5%)", c:"#d4af37", t:"#000"}, {v:11, n:"銀(±10%)", c:"#c0c0c0", t:"#000"}
@@ -408,7 +491,9 @@ async function initFactory() {
         const res = await fetch('/api/wallets', { headers: { 'Authorization': `Bearer ${token}` } });
         if(res.ok) {
             const w = await res.json();
-            document.getElementById('walletSelect').innerHTML = w.length===0 ? '<option value="">口座なし</option>' : w.map(x=>`<option value="${x.wallet_id}">${x.wallet_name} - ${Math.floor(x.balance)}G</option>`).join('');
+            document.getElementById('walletSelect').innerHTML = w.length === 0 
+                ? '<option value="">口座なし</option>' 
+                : w.map(x => `<option value="${x.wallet_id}">${x.wallet_name} - ${Math.floor(x.balance)}G</option>`).join('');
         }
     } catch(e) {}
     await fetchStatus();
@@ -416,10 +501,10 @@ async function initFactory() {
 
 function logMessage(msg) {
     const log = document.getElementById('consoleLog');
-    log.innerHTML += `> ${msg}<br>`; log.scrollTop = log.scrollHeight;
+    log.innerHTML += `> ${msg}<br>`; 
+    log.scrollTop = log.scrollHeight;
 }
 
-// 汎用エラーキャッチ (バックエンドから返された詳細理由を表示する)
 async function fetchStatus() {
     try {
         const res = await fetch('/api/factory/status', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -431,8 +516,11 @@ async function fetchStatus() {
         }
         const data = await res.json();
         currentSession = data.session;
-        updateWear(data.wear); renderStep();
-    } catch(e) { logMessage(`<span style='color:var(--accent-red);'>[ERROR] 通信に失敗しました。(${e.message})</span>`); }
+        updateWear(data.wear); 
+        renderStep();
+    } catch(e) { 
+        logMessage(`<span style='color:var(--accent-red);'>[ERROR] 通信に失敗しました。(${e.message})</span>`); 
+    }
 }
 
 function updateWear(wear) {
@@ -443,13 +531,16 @@ function updateWear(wear) {
 }
 
 async function performMaintenance() {
-    if(isFetching) return; isFetching = true;
+    if(isFetching) return; 
+    isFetching = true;
     try {
         const res = await fetch('/api/factory/maintain', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
         const data = await res.json();
         logMessage(`<span style="color:var(--accent-blue);">${data.message}</span>`);
         updateWear(data.wear);
-    } catch(e) {} finally { isFetching = false; }
+    } catch(e) {} finally { 
+        isFetching = false; 
+    }
 }
 
 function renderStep() {
@@ -493,12 +584,12 @@ function renderStep() {
     }
 }
 
-// カスタムカラーパレットのHTML生成
 function buildColorRow(bandIdx, label, opts) {
     let html = `<div class="color-row"><div class="color-label">${label}</div><div class="color-swatches">`;
     opts.forEach(o => {
         const sel = selectedColors[bandIdx] === o.v ? ' selected' : '';
-        html += `<div class="swatch${sel}" style="background:${o.c}; color:${o.t}" onclick="pickColor(${bandIdx}, ${o.v})">${o.n.split('(')[0]}</div>`;
+        // 修正: splitせずに o.n (例: "茶(1)") をそのまま表示する
+        html += `<div class="swatch${sel}" style="background:${o.c}; color:${o.t}" onclick="pickColor(${bandIdx}, ${o.v})">${o.n}</div>`;
     });
     html += `</div></div>`;
     return html;
@@ -506,16 +597,16 @@ function buildColorRow(bandIdx, label, opts) {
 
 window.pickColor = function(bandIdx, val) {
     selectedColors[bandIdx] = val;
-    renderStep(); // UI再描画
+    renderStep(); 
     applyColorTo3D();
 };
 
 function applyColorTo3D() {
-    for(let i=0; i<4; i++){
+    for(let i = 0; i < 4; i++) {
         let hex = "#000";
-        if(i < 3) {
-            const row = (i===2) ? cData.mults : cData.bands;
-            hex = row.find(c=>c.v === selectedColors[i]).c;
+        if (i < 3) {
+            const row = (i === 2) ? cData.mults : cData.bands;
+            hex = row.find(c => c.v === selectedColors[i]).c;
         } else {
             hex = selectedColors[3] === 10 ? "#d4af37" : "#c0c0c0";
         }
@@ -524,19 +615,28 @@ function applyColorTo3D() {
 }
 
 function startGauge() {
-    gaugeVal = 0; gaugeDir = 2.5; clearInterval(gaugeInterval);
+    gaugeVal = 0; 
+    gaugeDir = 2.5; 
+    clearInterval(gaugeInterval);
+    
     gaugeInterval = setInterval(() => {
         gaugeVal += gaugeDir;
         if (gaugeVal >= 100 || gaugeVal <= 0) gaugeDir *= -1;
-        const p = document.getElementById('pointer'); if(p) p.style.left = `${gaugeVal}%`;
+        const p = document.getElementById('pointer'); 
+        if (p) p.style.left = `${gaugeVal}%`;
     }, 20);
 }
-function stopGauge(step) { clearInterval(gaugeInterval); submitStep(step, Math.floor(gaugeVal)); }
+
+function stopGauge(step) { 
+    clearInterval(gaugeInterval); 
+    submitStep(step, Math.floor(gaugeVal)); 
+}
 
 function countTap(step) {
     if(isLocked || isFetching) return;
-    tapCount++; playSound('heavy');
-    rod.position.y = 0.8; // 押し込みアニメ (Lerpで戻る)
+    tapCount++; 
+    playSound('heavy');
+    rod.position.y = 0.8; 
     document.getElementById('taps').innerText = tapCount;
     if (tapCount >= 10) setTimeout(() => submitStep(step, tapCount), 300);
 }
@@ -544,44 +644,53 @@ function countTap(step) {
 async function submitStep(step, answer) {
     if (isLocked || isFetching) return;
     const walletId = document.getElementById('walletSelect').value;
-    if (step === 5 && !walletId) { logMessage("<span style='color:var(--accent-red);'>ERROR: 出荷先口座を選択してください。</span>"); return; }
+    if (step === 5 && !walletId) { 
+        logMessage("<span style='color:var(--accent-red);'>ERROR: 出荷先口座を選択してください。</span>"); 
+        return; 
+    }
 
     isFetching = true;
     document.getElementById('loadingOverlay').style.display = 'flex';
 
     try {
         const res = await fetch('/api/factory/process', {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ step: step, answer: answer, wallet_id: walletId })
         });
         
         if (!res.ok) {
             let errStr = "エラーが発生しました";
             try { const errObj = await res.json(); errStr = errObj.detail || errStr; } catch(e){}
-            logMessage(`<span style="color:var(--accent-red);">${errStr}</span>`); playSound('error');
+            logMessage(`<span style="color:var(--accent-red);">${errStr}</span>`); 
+            playSound('error');
+            
             if(errStr.includes("WEAR")) updateWear(100);
-            else setTimeout(()=> fetchStatus(), 1500);
+            else setTimeout(() => fetchStatus(), 1500);
             return;
         }
 
         const data = await res.json();
-        updateWear(data.wear); playSound('click');
+        updateWear(data.wear); 
+        playSound('click');
         
         if (step === 5) { 
             playSound('heavy'); 
-            pressHead.position.y = 0.5; setTimeout(()=>{pressHead.position.y = 2.5;}, 400); // プレスアニメ
+            pressHead.position.y = 0.5; 
+            setTimeout(() => { pressHead.position.y = 2.5; }, 400); 
         }
 
         if (data.completed) {
             logMessage(`<span style="color:var(--accent-blue);">${data.message}</span>`);
-            // 口座残高更新
-            fetch('/api/wallets', { headers: { 'Authorization': `Bearer ${token}` } }).then(r=>r.json()).then(w => {
-                document.getElementById('walletSelect').innerHTML = w.map(x=>`<option value="${x.wallet_id}">${x.wallet_name} - ${Math.floor(x.balance)}G</option>`).join('');
-            });
-            selectedColors = [0, 0, 0, 10]; // カラーコードリセット
+            fetch('/api/wallets', { headers: { 'Authorization': `Bearer ${token}` } })
+                .then(r => r.json())
+                .then(w => {
+                    document.getElementById('walletSelect').innerHTML = w.map(x => `<option value="${x.wallet_id}">${x.wallet_name} - ${Math.floor(x.balance)}G</option>`).join('');
+                });
+            selectedColors = [0, 0, 0, 10]; 
         }
         currentSession = data.next_step;
-        setTimeout(() => renderStep(), 600); // アニメーションの余韻
+        setTimeout(() => renderStep(), 600); 
     } catch(e) { 
         logMessage(`<span style='color:var(--accent-red);'>[ERROR] 通信に失敗しました。(${e.message})</span>`); 
     } finally {
