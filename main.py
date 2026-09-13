@@ -1,8 +1,9 @@
 import os
 import random
 import string
+import asyncio
 from pathlib import Path
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from contextlib import asynccontextmanager
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Request, Header
@@ -20,11 +21,32 @@ from db import get_supabase
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
+# 毎日0時(UTC) = 日本時間 9時に自動没収を実行するタスク
+async def daily_confiscation_task():
+    while True:
+        now = datetime.now(timezone.utc)
+        next_run = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        if now >= next_run:
+            next_run = next_run + timedelta(days=1)
+        sleep_seconds = (next_run - now).total_seconds()
+        
+        await asyncio.sleep(sleep_seconds)
+        
+        try:
+            client = await get_supabase()
+            await client.rpc("execute_daily_confiscation").execute()
+            print(f"[{datetime.now()}] 日次の借金強制没収バッチが完了しました。")
+        except Exception as e:
+            print(f"[{datetime.now()}] 日次バッチエラー: {e}")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if SUPABASE_URL and SUPABASE_KEY:
         await get_supabase()
+    # 自動没収タスクの起動
+    task = asyncio.create_task(daily_confiscation_task())
     yield
+    task.cancel()
 
 app = FastAPI(title="村岡王国 ポータル", lifespan=lifespan)
 
@@ -173,11 +195,6 @@ def get_slot(request: Request):
     return templates.TemplateResponse(request=request, name="slot.html")
 
 
-@app.get("/loan", response_class=HTMLResponse)
-def get_loan(request: Request):
-    return templates.TemplateResponse(request=request, name="loan.html")
-
-
 app.mount("/templates", StaticFiles(directory="templates"), name="templates")
 
 # --------------------------------------------------
@@ -253,6 +270,7 @@ async def pay_tax(data: PayTaxRequest, authorization: str = Header(None)):
             "p_wallet_id": str(data.wallet_id),
             "p_today": today_str
         }).execute()
+        return {"message": "納税完了！100Gold獲得しました！"}
     except Exception as e:
         err_msg = getattr(e, "message", str(e))
         if "本日の受け取りは完了しています" in err_msg:
@@ -260,44 +278,6 @@ async def pay_tax(data: PayTaxRequest, authorization: str = Header(None)):
         if "指定された口座が存在しません" in err_msg:
             raise HTTPException(status_code=400, detail="指定された受取口座が存在しないか、所有権がありません。")
         raise HTTPException(status_code=400, detail=f"納税処理エラー: {err_msg}")
-
-    # --- 追加: 借金の自動没収ロジック ---
-    confiscated_amount = 0
-    try:
-        loans_res = await client.table("active_loans").select("*, loan_offers(lender_wallet_id)").eq("borrower_user_id", user.id).eq("status", "ACTIVE").order("created_at").execute()
-        if loans_res.data:
-            loan = loans_res.data[0]
-            remaining_debt = loan["total_due"] - loan["repaid_amount"]
-            
-            confiscate_amount = min(100, remaining_debt)
-
-            bw_res = await client.table("wallets").select("*").eq("wallet_id", data.wallet_id).execute()
-            if bw_res.data and bw_res.data[0]["balance"] >= confiscate_amount:
-                bw = bw_res.data[0]
-                await client.table("wallets").update({"balance": bw["balance"] - confiscate_amount}).eq("id", bw["id"]).execute()
-
-                lender_wallet_id = loan["loan_offers"]["lender_wallet_id"]
-                lw_res = await client.table("wallets").select("*").eq("wallet_id", lender_wallet_id).execute()
-                if lw_res.data:
-                    lw = lw_res.data[0]
-                    await client.table("wallets").update({"balance": lw["balance"] + confiscate_amount}).eq("id", lw["id"]).execute()
-
-                new_repaid = loan["repaid_amount"] + confiscate_amount
-                new_status = "PAID" if new_repaid >= loan["total_due"] else "ACTIVE"
-                await client.table("active_loans").update({
-                    "repaid_amount": new_repaid,
-                    "status": new_status
-                }).eq("id", loan["id"]).execute()
-
-                confiscated_amount = confiscate_amount
-    except Exception as e:
-        print(f"Tax Confiscation Error: {e}")
-        pass 
-
-    if confiscated_amount > 0:
-        return {"message": f"納税（+100G）が完了しましたが、借金返済のため {confiscated_amount}G が自動的に没収されました。"}
-    return {"message": "納税完了！100Gold獲得しました！"}
-    # ---------------------------------
 
 @app.get("/api/wallets")
 async def get_wallets(authorization: str = Header(None)):
@@ -670,7 +650,6 @@ async def create_loan_offer(data: LoanOfferCreate, authorization: str = Header(N
     if wallet["balance"] < data.max_amount:
         raise HTTPException(status_code=400, detail="融資枠を作成するための口座残高が不足しています。")
         
-    # 貸出プールへ資金移動（デポジットとして口座から引く）
     await client.table("wallets").update({"balance": wallet["balance"] - data.max_amount}).eq("id", wallet["id"]).execute()
     
     await client.table("loan_offers").insert({
@@ -683,107 +662,61 @@ async def create_loan_offer(data: LoanOfferCreate, authorization: str = Header(N
     
     return {"message": f"金利 {data.interest_rate}%、融資枠 {data.max_amount}G を市場に出品しました！"}
 
-# 3. 融資枠からお金を借りる
+# 3. 融資枠からお金を借りる（DB行ロック RPC を使用）
 @app.post("/api/loans/borrow")
 async def borrow_loan(data: LoanBorrow, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
     client = await get_supabase()
     
-    o_res = await client.table("loan_offers").select("*").eq("id", data.offer_id).execute()
-    if not o_res.data:
-        raise HTTPException(status_code=404, detail="融資枠が見つかりません。")
-    offer = o_res.data[0]
-
-    # 不正防止: 自身の融資枠からの借入（自作自演・資金洗浄ループ）をブロック
-    if offer["lender_user_id"] == user.id:
-        raise HTTPException(status_code=400, detail="自分自身の融資枠からは借入できません。")
-    
-    if offer["status"] != "OPEN" or offer["max_amount"] < data.borrow_amount:
-        raise HTTPException(status_code=400, detail="この融資枠の残高が不足しています。")
+    try:
+        res = await client.rpc("execute_loan_borrow", {
+            "p_offer_id": data.offer_id,
+            "p_borrower_user_id": str(user.id),
+            "p_borrower_wallet_id": str(data.borrower_wallet_id),
+            "p_borrow_amount": data.borrow_amount
+        }).execute()
         
-    w_res = await client.table("wallets").select("*").eq("wallet_id", data.borrower_wallet_id).eq("user_id", user.id).execute()
-    if not w_res.data:
-        raise HTTPException(status_code=400, detail="借入先の受取口座が存在しません。")
-        
-    borrower_wallet = w_res.data[0]
-    
-    # 負債計算（元本 + 金利分）
-    interest = int(data.borrow_amount * (offer["interest_rate"] / 100.0))
-    total_due = data.borrow_amount + interest
-    
-    # 融資枠の残高を減らす
-    new_max_amount = offer["max_amount"] - data.borrow_amount
-    await client.table("loan_offers").update({
-        "max_amount": new_max_amount,
-        "status": "OPEN" if new_max_amount > 0 else "CLOSED"
-    }).eq("id", offer["id"]).execute()
-    
-    # 借金レコード作成
-    await client.table("active_loans").insert({
-        "offer_id": offer["id"],
-        "borrower_user_id": user.id,
-        "borrower_wallet_id": data.borrower_wallet_id,
-        "principal": data.borrow_amount,
-        "total_due": total_due,
-        "repaid_amount": 0,
-        "status": "ACTIVE"
-    }).execute()
-    
-    # 借り手の口座に入金
-    await client.table("wallets").update({"balance": borrower_wallet["balance"] + data.borrow_amount}).eq("id", borrower_wallet["id"]).execute()
-    
-    return {"message": f"{data.borrow_amount}Gの借入に成功しました。金利を含めた返済義務は {total_due}G です。"}
+        result = res.data
+        return {"message": f"{result['principal']}Gの借入に成功しました。金利を含めた返済義務は {result['total_due']}G です。"}
+    except Exception as e:
+        err_msg = getattr(e, "message", str(e))
+        raise HTTPException(status_code=400, detail=f"借入エラー: {err_msg}")
 
-# 4. 自分の借入状況（未返済）を取得
+# 4. 自分の借入状況（負債）を取得
 @app.get("/api/loans/my-debts")
 async def get_my_debts(authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
     client = await get_supabase()
-    res = await client.table("active_loans").select("*").eq("borrower_user_id", user.id).eq("status", "ACTIVE").execute()
+    res = await client.table("active_loans").select("*, loan_offers(interest_rate)").eq("borrower_user_id", user.id).in_("status", ["ACTIVE", "PAID"]).order("created_at", desc=True).execute()
     return res.data
 
-# 5. 借金の手動返済
+# 5. 自分の貸付状況（債権）を取得
+@app.get("/api/loans/my-receivables")
+async def get_my_receivables(authorization: str = Header(None)):
+    user = await get_user_from_token(authorization)
+    client = await get_supabase()
+    # 自身が出品したオファーに紐づく全ての貸し出し（債権）を取得
+    res = await client.table("active_loans").select("*, loan_offers!inner(*)").eq("loan_offers.lender_user_id", user.id).order("created_at", desc=True).execute()
+    return res.data
+
+# 6. 借金の手動返済（DB行ロック RPC を使用）
 @app.post("/api/loans/repay")
 async def repay_loan(data: LoanRepay, authorization: str = Header(None)):
     user = await get_user_from_token(authorization)
     client = await get_supabase()
     
-    l_res = await client.table("active_loans").select("*, loan_offers(lender_wallet_id)").eq("id", data.loan_id).execute()
-    if not l_res.data:
-        raise HTTPException(status_code=404, detail="借入記録が見つかりません。")
-    loan = l_res.data[0]
-    
-    if loan["borrower_user_id"] != user.id or loan["status"] != "ACTIVE":
-        raise HTTPException(status_code=400, detail="返済可能な借金ではありません。")
+    try:
+        res = await client.rpc("execute_loan_repay", {
+            "p_loan_id": data.loan_id,
+            "p_borrower_user_id": str(user.id),
+            "p_repay_amount": data.repay_amount
+        }).execute()
         
-    remaining_debt = loan["total_due"] - loan["repaid_amount"]
-    repay_amount = min(data.repay_amount, remaining_debt)
-    
-    bw_res = await client.table("wallets").select("*").eq("wallet_id", loan["borrower_wallet_id"]).execute()
-    borrower_wallet = bw_res.data[0]
-    
-    if borrower_wallet["balance"] < repay_amount:
-        raise HTTPException(status_code=400, detail="返済するための口座残高が不足しています。")
-        
-    # 借り手の口座から引き落とし
-    await client.table("wallets").update({"balance": borrower_wallet["balance"] - repay_amount}).eq("id", borrower_wallet["id"]).execute()
-    
-    # 貸し手の口座へ送金
-    lender_wallet_id = loan["loan_offers"]["lender_wallet_id"]
-    lw_res = await client.table("wallets").select("*").eq("wallet_id", lender_wallet_id).execute()
-    if lw_res.data:
-        lw = lw_res.data[0]
-        await client.table("wallets").update({"balance": lw["balance"] + repay_amount}).eq("id", lw["id"]).execute()
-        
-    # 借金記録の更新
-    new_repaid = loan["repaid_amount"] + repay_amount
-    new_status = "PAID" if new_repaid >= loan["total_due"] else "ACTIVE"
-    await client.table("active_loans").update({
-        "repaid_amount": new_repaid,
-        "status": new_status
-    }).eq("id", loan["id"]).execute()
-    
-    return {"message": f"{repay_amount}G を返済しました！"}
+        result = res.data
+        return {"message": f"{result['repaid']}G を返済しました！ 現在の状態: {result['status']}"}
+    except Exception as e:
+        err_msg = getattr(e, "message", str(e))
+        raise HTTPException(status_code=400, detail=f"返済エラー: {err_msg}")
 
 # --------------------------------------------------
 # カジノモジュールの登録
