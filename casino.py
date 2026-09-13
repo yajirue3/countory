@@ -390,6 +390,12 @@ class MinesCashoutRequest(BaseModel):
     game_id: str
 
 
+# カジノ画面配信ルート：マインズ
+@router.get("/mines", response_class=HTMLResponse)
+async def get_mines(request: Request):
+    return templates.TemplateResponse(request=request, name="mines.html")
+
+
 # セッション保持用辞書 (メモリ管理)
 MINES_SESSIONS = {}
 
@@ -498,7 +504,6 @@ async def step_mines(data: MinesStepRequest, authorization: str = Header(None)):
 
         # 3. 全安全マス踏破（完全クリア）
         if revealed_count == max_safe:
-            # await 前に即座に非アクティブ化して cashout 割り込みを完全遮断
             session["is_active"] = False
 
             wallet_res = await supabase.table("wallets").select("*").eq("id", session["wallet_db_id"]).execute()
@@ -524,4 +529,51 @@ async def step_mines(data: MinesStepRequest, authorization: str = Header(None)):
             "is_safe": True,
             "tile_index": data.tile_index,
             "is_cleared": False,
-     
+            "multiplier": multiplier,
+            "current_payout": current_payout,
+            "revealed_count": revealed_count
+        }
+
+    finally:
+        if data.game_id in MINES_SESSIONS:
+            MINES_SESSIONS[data.game_id]["busy"] = False
+
+
+@router.post("/api/mines/cashout")
+async def cashout_mines(data: MinesCashoutRequest, authorization: str = Header(None)):
+    user = await get_user_from_token(authorization)
+    supabase = await get_supabase()
+
+    session = MINES_SESSIONS.get(data.game_id)
+    if not session or not session["is_active"]:
+        raise HTTPException(status_code=400, detail="無効または終了したゲームセッションです。")
+    if session["user_id"] != str(user.id):
+        raise HTTPException(status_code=403, detail="不正な操作です。")
+
+    if session["busy"]:
+        raise HTTPException(status_code=429, detail="処理中です。")
+
+    revealed_count = len(session["revealed_tiles"])
+    if revealed_count < 1:
+        raise HTTPException(status_code=400, detail="1マスも開けていないため引き出せません。")
+
+    session["is_active"] = False
+    session["busy"] = True
+
+    multiplier = get_mines_multiplier(session["mines_count"], revealed_count)
+    payout = int(session["bet_amount"] * multiplier)
+
+    wallet_res = await supabase.table("wallets").select("*").eq("id", session["wallet_db_id"]).execute()
+    wallet = wallet_res.data[0]
+    new_balance = wallet["balance"] + payout
+    await supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+
+    mines = session["mine_positions"]
+    MINES_SESSIONS.pop(data.game_id, None)
+
+    return {
+        "payout": payout,
+        "multiplier": multiplier,
+        "new_balance": new_balance,
+        "mines": mines
+    }
