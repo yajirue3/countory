@@ -199,7 +199,7 @@ def get_loan(request: Request):
     return templates.TemplateResponse(request=request, name="loan.html")
 
 @app.get("/mines", response_class=HTMLResponse)
-async def get_mines(request: Request):
+def get_mines(request: Request):
     return templates.TemplateResponse(request=request, name="mines.html")
 
 
