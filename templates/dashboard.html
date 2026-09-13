@@ -245,6 +245,10 @@
 
     /* 路地裏の男イベントモーダル処理 */
     function openAlleyModal() {
+        document.getElementById("alley-text").innerHTML = "「……あ？ なんだお前、俺に何か用か？」";
+        document.getElementById("alley-choices-initial").style.display = "flex";
+        document.getElementById("alley-choices-factory").style.display = "none";
+        document.getElementById("alley-choices-loan").style.display = "none";
         document.getElementById("alley-modal").style.display = "flex";
     }
 
@@ -252,8 +256,35 @@
         document.getElementById("alley-modal").style.display = "none";
     }
 
+    function chooseWork() {
+        document.getElementById("alley-text").innerHTML = 
+            "「おい…声がでけぇ、しっ！ 静かにしろ。<br><br>" +
+            "…お前、稼ぎに困ってんだろ？ 特別な仕事がある。<br>" +
+            "この国に『国立機械工場』ってのがあるのは知ってるよな？ あそこが今、深刻な人手不足で生産が滞りかけてんだ。<br>" +
+            "このまま予定のノルマを割ったら村岡国王の怒りを買って現場の首が飛ぶってんで、連中、保身のためにワケありの奴らでも何でも裏から掻き集めてラインを回しててな。<br><br>" +
+            "誰でもできる簡単な作業で、報酬は作った分だけその場で支払われる完全歩合制の即金だ。<br>" +
+            "どうだ、工場へ行って一稼ぎするか？」";
+        document.getElementById("alley-choices-initial").style.display = "none";
+        document.getElementById("alley-choices-factory").style.display = "flex";
+    }
+
+    function chooseLoan() {
+        document.getElementById("alley-text").innerHTML = 
+            "「……カネ、だと？ ククッ、いい顔つきになってきやがったな。<br><br>" +
+            "カジノで全部スッちまったか？ それとも一発デカい勝負を仕掛けたいって口か。<br>" +
+            "表の銀行じゃ門前払いの奴らでも、この裏路地の闇金融ならカネの余った奴らがいくらでも融資枠をぶら下げて待ってるぜ。<br><br>" +
+            "ただし、借りたカネはきっちり利息乗せて返せよ。返さねぇ奴は朝9時にキッチリ強制回収だ。<br>" +
+            "……覚悟があるなら、裏金融を覗いてきな。」";
+        document.getElementById("alley-choices-initial").style.display = "none";
+        document.getElementById("alley-choices-loan").style.display = "flex";
+    }
+
     function goToFactory() {
         window.location.href = "/factory";
+    }
+
+    function goToLoan() {
+        window.location.href = "/loan";
     }
 </script>
 
@@ -281,21 +312,40 @@
     <div style="background: #1c1e22; border: 2px solid #3a4a5e; border-radius: 12px; width: 90%; max-width: 380px; padding: 20px; box-shadow: 0 0 20px rgba(0,0,0,0.8); color: #e2e8f0; font-family: sans-serif;">
         <h3 style="color: #cbd5e0; margin-top: 0; text-align: center; border-bottom: 1px solid #2d3748; padding-bottom: 8px;">🕵️ 路地裏の男</h3>
         
-        <div style="background: #0f1115; border: 1px solid #2d3748; border-radius: 6px; padding: 12px; font-size: 0.85rem; color: #cbd5e0; line-height: 1.6; margin-bottom: 16px;">
-       「おい…声がでけぇ、しっ！ 静かにしろ。<br><br>
-…お前、稼ぎに困ってんだろ？ 特別な仕事がある。<br>
-この国に『国立機械工場』ってのがあるのは知ってるよな？ あそこが今、深刻な人手不足で生産が滞りかけてんだ。<br>
-このまま予定のノルマを割ったら村岡国王の怒りを買って現場の首が飛ぶってんで、連中、保身のためにワケありの奴らでも何でも裏から掻き集めてラインを回しててな。<br><br>
-誰でもできる簡単な作業で、報酬は作った分だけその場で支払われる完全歩合制の即金だ。<br>
-どうだ、工場へ行って一稼ぎするか？」
+        <div id="alley-text" style="background: #0f1115; border: 1px solid #2d3748; border-radius: 6px; padding: 12px; font-size: 0.85rem; color: #cbd5e0; line-height: 1.6; margin-bottom: 16px;">
+            「……あ？ なんだお前、俺に何か用か？」
         </div>
 
-        <div style="display: flex; gap: 10px;">
+        <!-- 初期選択肢 -->
+        <div id="alley-choices-initial" style="display: flex; flex-direction: column; gap: 8px;">
+            <button onclick="chooseWork()" style="background: #2b6cb0; color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                🔨 働きたい（仕事を探す）
+            </button>
+            <button onclick="chooseLoan()" style="background: #8e44ad; color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                💰 金を借りたい（裏金融へ）
+            </button>
+            <button onclick="closeAlleyModal()" style="background: #4a5568; color: #ccc; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                👋 用はない（立ち去る）
+            </button>
+        </div>
+
+        <!-- 工場分岐の選択肢 -->
+        <div id="alley-choices-factory" style="display: none; gap: 10px;">
             <button onclick="goToFactory()" style="flex: 1; background: #2b6cb0; color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">
                 はい（工場へ行く）
             </button>
-            <button onclick="closeAlleyModal()" style="flex: 1; background: #4a5568; color: #ccc; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">
-                いいえ（断る）
+            <button onclick="openAlleyModal()" style="flex: 1; background: #4a5568; color: #ccc; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                戻る
+            </button>
+        </div>
+
+        <!-- 借金分岐の選択肢 -->
+        <div id="alley-choices-loan" style="display: none; gap: 10px;">
+            <button onclick="goToLoan()" style="flex: 1; background: #8e44ad; color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                裏金融へ行く
+            </button>
+            <button onclick="openAlleyModal()" style="flex: 1; background: #4a5568; color: #ccc; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                戻る
             </button>
         </div>
     </div>
