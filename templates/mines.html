@@ -4,18 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>村岡王国 - マインズ (MINES)</title>
+    <title>村岡王国 - 狂乱マインズ (MINES)</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=M+PLUS+1p:wght@900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=M+PLUS+1p:wght@800;900&display=swap');
 
         :root {
-            --neon-gold: #ffcf00;
-            --neon-emerald: #00ff73;
-            --neon-cyan: #00f0ff;
-            --neon-crimson: #ff003c;
-            --neon-violet: #a200ff;
-            --bg-dark: #050508;
-            --panel-bg: rgba(12, 12, 18, 0.85);
+            --neon-pink: #ff007f;
+            --neon-cyan: #00f3ff;
+            --neon-yellow: #ffe600;
+            --neon-green: #00ff66;
+            --neon-red: #ff003c;
+            --neon-purple: #b000ff;
         }
 
         * {
@@ -23,603 +22,607 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        body {
-            font-family: 'M PLUS 1p', 'Black Ops One', sans-serif;
-            background: var(--bg-dark);
+        body { 
+            font-family: 'M PLUS 1p', 'Black Ops One', sans-serif; 
+            background: #000;
             background-image: 
-                radial-gradient(circle at 50% 50%, #1a002a 0%, #000000 100%),
-                linear-gradient(0deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 0, 60, 0.05) 1px, transparent 1px);
-            background-size: 100% 100%, 30px 30px, 30px 30px;
-            color: #fff;
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
+                radial-gradient(circle at 50% 50%, #2a0033 0%, #000000 90%),
+                linear-gradient(0deg, rgba(255, 0, 127, 0.15) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.15) 1px, transparent 1px);
+            background-size: 100% 100%, 15px 15px, 15px 15px;
+            color: #fff; 
+            display: flex; 
+            justify-content: center; 
+            align-items: flex-start; /* スマホで見切れないよう上詰め・スクロール許可 */
+            margin: 0; 
+            min-height: 100vh;
+            padding: 10px 5px;
             user-select: none;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
-        .app-container {
+        .container { 
+            width: 100%; 
+            max-width: 420px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px;
+            margin: 0 auto;
+        }
+
+        .card { 
+            background: rgba(10, 2, 18, 0.95); 
+            border: 2px solid var(--neon-pink); 
+            border-radius: 16px; 
+            padding: 12px; 
+            box-shadow: 0 0 25px rgba(255, 0, 127, 0.6); 
             display: flex;
-            width: 100%;
-            height: 100%;
-            max-width: 1200px;
             flex-direction: column;
-            padding: 10px;
-            gap: 15px;
-        }
-
-        @media (min-width: 850px) {
-            .app-container {
-                flex-direction: row;
-                align-items: center;
-                padding: 30px;
-                gap: 40px;
-            }
-            .left-panel {
-                width: 380px;
-                flex-shrink: 0;
-            }
-            .right-panel {
-                flex-grow: 1;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-            }
-            .mines-grid {
-                width: 100%;
-                max-width: 600px;
-            }
-            .tile {
-                border-radius: 16px !important;
-                font-size: 2.5rem !important;
-            }
-        }
-
-        @media (max-width: 849px) {
-            .app-container {
-                justify-content: flex-start;
-                padding: 8px;
-                gap: 8px;
-            }
-            .left-panel {
-                order: 2;
-                display: flex;
-                flex-direction: column;
-                gap: 6px;
-            }
-            .right-panel {
-                order: 1;
-                flex-grow: 1;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                min-height: 0;
-            }
-            .mines-grid {
-                width: 100%;
-                max-width: 45vh;
-                margin: 0 auto;
-            }
-            .control-card {
-                padding: 15px !important;
-                border-radius: 12px !important;
-            }
-            .inputs-row {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
-            }
-            .header-title {
-                font-size: 1.2rem !important;
-                margin-bottom: 8px !important;
-            }
-        }
-
-        .control-card {
-            background: var(--panel-bg);
-            border: 2px solid rgba(0, 240, 255, 0.3);
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 0 30px rgba(0, 240, 255, 0.1), inset 0 0 20px rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
+            gap: 8px;
             position: relative;
-            z-index: 10;
+            overflow: hidden;
         }
 
-        .header-title {
-            font-size: 1.8rem;
-            font-weight: 900;
-            color: var(--neon-cyan);
-            text-align: center;
-            text-shadow: 0 0 15px var(--neon-cyan);
-            margin: 0 0 20px 0;
+        .header { 
+            font-size: 1.2rem; 
+            font-weight: 900; 
+            color: var(--neon-yellow); 
+            text-align: center; 
+            border-bottom: 2px solid var(--neon-cyan); 
+            padding-bottom: 4px; 
+            text-shadow: 0 0 10px var(--neon-yellow);
             letter-spacing: 2px;
-            border-bottom: 1px solid rgba(0, 240, 255, 0.3);
-            padding-bottom: 10px;
+            margin: 0;
         }
 
-        /* ステータス系 */
-        .status-box {
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(0, 240, 255, 0.2);
-            border-radius: 12px;
-            padding: 15px;
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 20px;
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
+        /* 🎰 ステータスエリア */
+        .status-display { 
+            background: #000; 
+            border: 2px solid var(--neon-cyan); 
+            border-radius: 12px; 
+            padding: 8px; 
+            text-align: center; 
+            box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.4);
+            position: relative;
+            will-change: transform;
         }
 
-        .status-item {
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .status-label {
-            font-size: 0.75rem;
-            color: #888;
-            letter-spacing: 1px;
-            margin-bottom: 4px;
-        }
-
-        .status-value {
-            font-size: 1.4rem;
-            font-weight: 900;
-            font-family: 'Black Ops One', sans-serif;
-            transition: all 0.3s ease;
-        }
-
-        .val-multi { color: var(--neon-emerald); text-shadow: 0 0 10px var(--neon-emerald); }
-        .val-profit { color: var(--neon-gold); text-shadow: 0 0 10px var(--neon-gold); }
-
-        /* 入力フォーム */
-        .input-group {
-            margin-bottom: 15px;
-        }
-        
-        .inputs-row {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            font-size: 0.85rem;
-            color: #aaa;
+        .status-text { 
+            font-size: 0.85rem; 
+            font-weight: 900; 
+            color: var(--neon-yellow); 
+            min-height: 20px; 
+            text-shadow: 0 0 8px currentColor;
             margin-bottom: 6px;
-            font-weight: bold;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 12px;
-            background: rgba(0,0,0,0.7);
-            border: 1px solid rgba(0, 240, 255, 0.4);
-            color: #fff;
-            border-radius: 8px;
-            font-family: inherit;
-            font-size: 1.1rem;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--neon-cyan);
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
-        }
-
-        /* ボタン */
-        .btn {
-            width: 100%;
-            padding: 16px;
-            border: none;
-            border-radius: 10px;
-            font-weight: 900;
-            font-size: 1.3rem;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 2px;
         }
         
-        .btn:active {
-            transform: scale(0.96);
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 6px; 
         }
 
-        .btn-start {
-            background: var(--neon-cyan);
-            color: #000;
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        .stat-box { 
+            text-align: center; 
+            background: rgba(20, 20, 35, 0.9);
+            padding: 6px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 243, 255, 0.3);
         }
 
-        .btn-start:hover {
-            box-shadow: 0 0 25px rgba(0, 240, 255, 0.8);
-            background: #4dffff;
+        .stat-label { font-size: 0.7rem; color: #aaa; font-weight: bold; }
+        .stat-val { 
+            font-size: 1.2rem; 
+            font-weight: 900; 
+            color: var(--neon-green); 
+            text-shadow: 0 0 8px var(--neon-green); 
+            font-family: 'Black Ops One', monospace;
+            display: inline-block;
+            will-change: transform;
         }
 
-        .btn-cashout {
-            background: var(--neon-gold);
-            color: #000;
-            box-shadow: 0 0 15px rgba(255, 207, 0, 0.4);
-            display: none;
-        }
-
-        .btn-cashout:hover {
-            box-shadow: 0 0 25px rgba(255, 207, 0, 0.8);
-            background: #ffdb4d;
-        }
-
-        /* グリッド */
+        /* 💣 マインズグリッド (スマホ完全フィット) */
         .mines-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
+            gap: 6px;
             width: 100%;
             aspect-ratio: 1 / 1;
-            padding: 15px;
-            background: var(--panel-bg);
-            border-radius: 20px;
-            border: 2px solid rgba(0, 240, 255, 0.2);
-            box-shadow: 0 0 30px rgba(0, 240, 255, 0.1), inset 0 0 30px rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(10px);
+            background: #050508;
+            padding: 8px;
+            border-radius: 12px;
+            border: 2px solid var(--neon-pink);
+            box-shadow: inset 0 0 20px rgba(255, 0, 127, 0.3);
         }
 
         .tile {
-            background: rgba(255, 255, 255, 0.04);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            background: rgba(20, 10, 30, 0.8);
+            border: 2px solid rgba(0, 243, 255, 0.3);
+            border-radius: 8px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 2rem;
+            font-size: 1.8rem;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            transition: all 0.1s;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
         }
 
         .tile:hover:not(.disabled) {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-3px) scale(1.05);
-            border-color: rgba(0, 240, 255, 0.5);
-            box-shadow: 0 5px 15px rgba(0, 240, 255, 0.2), inset 0 0 10px rgba(0,240,255,0.2);
+            background: rgba(0, 243, 255, 0.2);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 15px var(--neon-cyan);
+            transform: scale(1.05);
         }
 
         .tile.revealed-gem {
-            background: rgba(0, 255, 115, 0.15);
-            border-color: var(--neon-emerald);
-            box-shadow: 0 0 20px rgba(0, 255, 115, 0.4) inset, 0 0 15px rgba(0, 255, 115, 0.2);
+            background: linear-gradient(135deg, #00ff66 0%, #009933 100%);
+            border-color: #fff;
+            box-shadow: 0 0 20px var(--neon-green);
             cursor: default;
-            transform: scale(1);
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: tile-mega-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.4);
+            text-shadow: 0 0 10px rgba(255,255,255,0.8);
         }
 
         .tile.revealed-mine {
-            background: rgba(255, 0, 60, 0.2);
-            border-color: var(--neon-crimson);
-            box-shadow: 0 0 25px rgba(255, 0, 60, 0.6) inset, 0 0 20px rgba(255, 0, 60, 0.4);
+            background: linear-gradient(135deg, #ff003c 0%, #990000 100%);
+            border-color: #fff;
+            box-shadow: 0 0 25px var(--neon-red);
             cursor: default;
-            transform: scale(1);
-            animation: shake 0.4s;
+            animation: tile-shake 0.3s ease-in-out;
         }
 
-        .tile.disabled {
-            pointer-events: none;
-        }
+        .tile.disabled { pointer-events: none; }
+        .tile.fade { opacity: 0.3; filter: grayscale(100%); transition: all 0.5s ease; }
 
-        .tile.fade {
-            opacity: 0.3;
-            filter: grayscale(100%);
-            transition: all 0.5s ease;
-        }
-
-        @keyframes popIn {
-            0% { transform: scale(0.5); opacity: 0; }
-            80% { transform: scale(1.1); }
+        @keyframes tile-mega-pop {
+            0% { transform: scale(0.3); opacity: 0; }
+            60% { transform: scale(1.4); }
             100% { transform: scale(1); opacity: 1; }
         }
-
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg) scale(1.1); }
-            20% { transform: translate(-3px, 0px) rotate(2deg) scale(1.1); }
-            40% { transform: translate(1px, -1px) rotate(-2deg) scale(1.1); }
-            60% { transform: translate(-3px, 1px) rotate(2deg) scale(1.1); }
-            80% { transform: translate(-1px, -1px) rotate(-2deg) scale(1.1); }
-            100% { transform: translate(0px, 0px) rotate(0deg) scale(1); }
+        @keyframes tile-shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px) rotate(-5deg); }
+            40%, 80% { transform: translateX(6px) rotate(5deg); }
         }
 
-        /* トースト通知 */
-        .toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        /* 🎛️ 入力フォーム */
+        .inputs-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
         }
 
-        .toast {
-            background: rgba(12, 12, 18, 0.95);
-            border-left: 4px solid var(--neon-cyan);
-            color: #fff;
-            padding: 15px 25px;
-            border-radius: 6px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.6);
+        .label { 
+            font-size: 0.75rem; 
+            color: var(--neon-cyan); 
+            font-weight: 900;
+            text-shadow: 0 0 4px var(--neon-cyan);
+            margin-bottom: 4px;
+        }
+
+        input, select { 
+            width: 100%; 
+            padding: 8px 10px; 
+            border-radius: 8px; 
+            border: 2px solid var(--neon-cyan); 
+            background: rgba(10, 10, 20, 0.9); 
+            color: #fff; 
+            font-size: 0.9rem; 
             font-weight: bold;
-            animation: slideIn 0.3s ease forwards, fadeOut 0.5s ease 2.5s forwards;
+            font-family: inherit; 
+            outline: none;
         }
 
-        .toast.error { border-color: var(--neon-crimson); }
-        .toast.success { border-color: var(--neon-emerald); }
-        .toast.gold { border-color: var(--neon-gold); }
-
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+        input:focus, select:focus {
+            border-color: var(--neon-pink);
+            box-shadow: 0 0 10px var(--neon-pink);
         }
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; visibility: hidden; }
+
+        /* 🚀 アクションボタン */
+        button { 
+            width: 100%; 
+            padding: 12px; 
+            border: none; 
+            border-radius: 12px; 
+            font-weight: 900; 
+            cursor: pointer; 
+            font-size: 1.1rem; 
+            box-shadow: 0 0 10px var(--neon-yellow);
+            user-select: none;
+            transition: transform 0.05s ease;
+        }
+
+        button:active:not(:disabled) { transform: scale(0.95); filter: brightness(1.3); }
+
+        .btn-start { 
+            background: linear-gradient(135deg, #ff0055 0%, #ff00a0 50%, #7928ca 100%); 
+            color: #fff; 
+            box-shadow: 0 0 20px var(--neon-pink);
+            text-shadow: 0 0 5px #fff;
+            border: 2px solid #fff;
+            animation: pulse-btn 1.0s infinite;
+        }
+        @keyframes pulse-btn {
+            0% { box-shadow: 0 0 15px var(--neon-pink); }
+            50% { box-shadow: 0 0 30px var(--neon-pink), 0 0 15px var(--neon-cyan); }
+            100% { box-shadow: 0 0 15px var(--neon-pink); }
+        }
+
+        .btn-start:disabled { 
+            background: #222; box-shadow: none; cursor: not-allowed; border: none; color: #555; animation: none; 
+        }
+
+        .btn-cashout {
+            background: linear-gradient(135deg, #00ff66 0%, #009933 100%);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-green);
+            border: 2px solid #fff;
+            animation: cashout-glow 0.5s infinite alternate;
+            display: none;
+        }
+        @keyframes cashout-glow {
+            from { box-shadow: 0 0 10px var(--neon-green); filter: brightness(1); }
+            to { box-shadow: 0 0 35px var(--neon-green), 0 0 20px var(--neon-yellow); filter: brightness(1.5); }
+        }
+
+        /* ⚙️ フッター */
+        .footer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+        }
+        .btn-back { 
+            background: #111; color: #888; border: 1px solid #333; font-size: 0.7rem; padding: 6px; box-shadow: none; width: auto; 
+        }
+        .checkbox-label { 
+            display: flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: bold; color: #aaa; cursor: pointer; 
+        }
+        .checkbox-label input[type=checkbox] { width: 16px; height: 16px; margin: 0; accent-color: var(--neon-pink); }
+
+        /* 💥💥💥 激化限界突破フラッシュ・超振動演出 💥💥💥 */
+        body.hyper-flash-active { animation: hyper-body-flash 0.25s linear; }
+        @keyframes hyper-body-flash {
+            0% { background-color: #fff; filter: invert(1) hue-rotate(180deg); }
+            50% { background-color: var(--neon-pink); }
+            100% { background-color: #000; filter: none; }
+        }
+
+        .win-rainbow-shake { animation: hyper-rainbow-glow 0.15s linear infinite, hyper-shake-anim 0.08s ease-in-out infinite alternate; }
+        .win-rainbow-noshake { animation: hyper-rainbow-glow 0.15s linear infinite; }
+        .win-text-rainbow { animation: rainbow-text 0.1s linear infinite; }
+        .num-pop { animation: hyper-pop-bounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.5); }
+        
+        @keyframes hyper-pop-bounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(2.0); text-shadow: 0 0 40px #ffffff, 0 0 80px var(--neon-pink), 0 0 100px var(--neon-yellow); }
+            100% { transform: scale(1); }
+        }
+
+        .lose-shake { animation: hyper-lose-shake 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) 2; border-color: var(--neon-red) !important; }
+
+        @keyframes hyper-rainbow-glow {
+            0% { border-color: #ff0000; box-shadow: 0 0 40px #ff0000, inset 0 0 30px #ff0000; }
+            20% { border-color: #ffff00; box-shadow: 0 0 40px #ffff00, inset 0 0 30px #ffff00; }
+            40% { border-color: #00ff00; box-shadow: 0 0 40px #00ff00, inset 0 0 30px #00ff00; }
+            60% { border-color: #00ffff; box-shadow: 0 0 40px #00ffff, inset 0 0 30px #00ffff; }
+            80% { border-color: #ff00ff; box-shadow: 0 0 40px #ff00ff, inset 0 0 30px #ff00ff; }
+            100% { border-color: #ff0000; box-shadow: 0 0 40px #ff0000, inset 0 0 30px #ff0000; }
+        }
+        @keyframes rainbow-text {
+            0% { color: #ff0055; text-shadow: 0 0 20px #ff0055; }
+            25% { color: #ffe600; text-shadow: 0 0 20px #ffe600; }
+            50% { color: #00ff66; text-shadow: 0 0 20px #00ff66; }
+            75% { color: #00f3ff; text-shadow: 0 0 20px #00f3ff; }
+            100% { color: #ff00a0; text-shadow: 0 0 20px #ff00a0; }
+        }
+        @keyframes hyper-shake-anim {
+            0% { transform: scale(1.04) translate(2px, 2px) rotate(0deg); }
+            25% { transform: scale(1.04) translate(-2px, -2px) rotate(-1.5deg); }
+            50% { transform: scale(1.04) translate(-2px, 2px) rotate(1.5deg); }
+            75% { transform: scale(1.04) translate(2px, -2px) rotate(-1.5deg); }
+            100% { transform: scale(1.04) translate(2px, 2px) rotate(1.5deg); }
+        }
+        @keyframes hyper-lose-shake {
+            0%, 100% { transform: translate(0, 0); }
+            10% { transform: translate(-12px, -6px); }
+            30% { transform: translate(12px, 6px); }
+            50% { transform: translate(-12px, 6px); }
+            70% { transform: translate(12px, -6px); }
+            90% { transform: translate(-6px, 0); }
         }
 
     </style>
 </head>
 <body>
 
-    <div class="toast-container" id="toast-container"></div>
+<div class="container">
+    <div class="card">
+        <div class="header">🚨 脳汁全開！MINES 🚨</div>
 
-    <div class="app-container">
-        <!-- 左側コントロールパネル -->
-        <div class="left-panel control-card">
-            <div class="header-title">MINES</div>
-            
-            <div class="status-box">
-                <div class="status-item">
-                    <span class="status-label">NEXT MULTIPLIER</span>
-                    <span class="status-value val-multi" id="next-multi">1.00x</span>
+        <!-- 🎰 ステータスエリア -->
+        <div class="status-display" id="status-display-box">
+            <div id="game-status" class="status-text" style="color: #00f3ff;">⚡ 全財産溶かして地雷を避けろ！ ⚡</div>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">🔥 配当倍率</div>
+                    <div id="stat-multiplier" class="stat-val">1.00x</div>
                 </div>
-                <div class="status-item">
-                    <span class="status-label">CURRENT PROFIT</span>
-                    <span class="status-value val-profit" id="current-profit">0</span>
+                <div class="stat-box">
+                    <div class="stat-label">💰 獲得Gold</div>
+                    <div id="stat-payout" class="stat-val">0</div>
                 </div>
             </div>
-
-            <div class="inputs-row">
-                <div>
-                    <label>BET AMOUNT</label>
-                    <input type="number" id="bet-amount" value="100" min="1" step="1">
-                </div>
-                <div>
-                    <label>MINES</label>
-                    <select id="mines-count">
-                        <option value="1">1 Mine</option>
-                        <option value="3" selected>3 Mines</option>
-                        <option value="5">5 Mines</option>
-                        <option value="10">10 Mines</option>
-                        <option value="20">20 Mines</option>
-                    </select>
-                </div>
-            </div>
-
-            <button class="btn btn-start" id="btn-start">BET</button>
-            <button class="btn btn-cashout" id="btn-cashout">CASHOUT</button>
         </div>
 
-        <!-- 右側グリッドパネル -->
-        <div class="right-panel">
-            <div class="mines-grid" id="mines-grid">
-                <!-- JavaScriptで25マスを生成 -->
+        <!-- 💣 グリッドエリア -->
+        <div class="mines-grid" id="mines-grid">
+            <!-- JSで生成 -->
+        </div>
+
+        <!-- 🎛️ 入力エリア -->
+        <div class="inputs-grid">
+            <div>
+                <div class="label">💎 賭け金 (Gold)</div>
+                <input type="number" id="bet-amount" value="100" min="1" step="1">
+            </div>
+            <div>
+                <div class="label">💣 地雷の数</div>
+                <select id="mines-count">
+                    <option value="1">1 Mine (チキン)</option>
+                    <option value="3" selected>3 Mines (標準)</option>
+                    <option value="5">5 Mines (強気)</option>
+                    <option value="10">10 Mines (狂気)</option>
+                    <option value="20">20 Mines (神頼み)</option>
+                </select>
             </div>
         </div>
+
+        <!-- 🚀 アクションボタン -->
+        <button id="btn-start" class="btn-start">🎲 脳汁ダイブ (BET)</button>
+        <button id="btn-cashout" class="btn-cashout">💰 超絶利確 (CASHOUT)</button>
+
+        <!-- ⚙️ フッター -->
+        <div class="footer-row">
+            <button class="btn-back" onclick="location.href='/casino'">◀ 戻る</button>
+            <label class="checkbox-label">
+                <input type="checkbox" id="bgm-toggle">
+                <span>🎵 BGM ON</span>
+            </label>
+            <label class="checkbox-label">
+                <input type="checkbox" id="disable-shake">
+                <span>🚫 演出オフ</span>
+            </label>
+        </div>
+        <audio id="bgm-player" src="/templates/dopa.mp3" loop preload="auto"></audio>
     </div>
+</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const grid = document.getElementById('mines-grid');
-            const btnStart = document.getElementById('btn-start');
-            const btnCashout = document.getElementById('btn-cashout');
-            const inputBet = document.getElementById('bet-amount');
-            const inputMines = document.getElementById('mines-count');
-            const displayMulti = document.getElementById('next-multi');
-            const displayProfit = document.getElementById('current-profit');
-            const toastContainer = document.getElementById('toast-container');
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const grid = document.getElementById('mines-grid');
+        const btnStart = document.getElementById('btn-start');
+        const btnCashout = document.getElementById('btn-cashout');
+        const inputBet = document.getElementById('bet-amount');
+        const inputMines = document.getElementById('mines-count');
+        const displayMulti = document.getElementById('stat-multiplier');
+        const displayProfit = document.getElementById('stat-payout');
+        const statusText = document.getElementById('game-status');
+        const statusBox = document.getElementById('status-display-box');
+        const bgmPlayer = document.getElementById('bgm-player');
+        const bgmToggle = document.getElementById('bgm-toggle');
+        const disableShake = document.getElementById('disable-shake');
 
-            let isPlaying = false;
-            let sessionId = null;
-            let currentBet = 0;
+        let isPlaying = false;
+        let sessionId = null;
+        let currentBet = 0;
 
-            // APIパス設定
-            const API_START = '/api/mines/start';
-            const API_STEP = '/api/mines/step';
-            const API_CASHOUT = '/api/mines/cashout';
+        const API_START = '/api/mines/start';
+        const API_STEP = '/api/mines/step';
+        const API_CASHOUT = '/api/mines/cashout';
 
-            function showToast(message, type = 'default') {
-                const toast = document.createElement('div');
-                toast.className = `toast ${type}`;
-                toast.textContent = message;
-                toastContainer.appendChild(toast);
-                setTimeout(() => toast.remove(), 3000);
-            }
-
-            function getHeaders() {
-                const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-                return {
-                    'Content-Type': 'application/json',
-                    'Authorization': token ? `Bearer ${token}` : ''
-                };
-            }
-
-            function initGrid() {
-                grid.innerHTML = '';
-                for (let i = 0; i < 25; i++) {
-                    const tile = document.createElement('div');
-                    tile.className = 'tile';
-                    tile.dataset.index = i;
-                    
-                    const triggerEvent = ('ontouchstart' in window) ? 'touchstart' : 'mousedown';
-                    tile.addEventListener(triggerEvent, (e) => {
-                        e.preventDefault();
-                        handleTileClick(i, tile);
-                    });
-                    
-                    grid.appendChild(tile);
-                }
-            }
-
-            async function handleTileClick(index, tileEl) {
-                if (!isPlaying) return;
-                if (tileEl.classList.contains('revealed-gem') || tileEl.classList.contains('revealed-mine')) return;
-
-                try {
-                    const res = await fetch(API_STEP, {
-                        method: 'POST',
-                        headers: getHeaders(),
-                        body: JSON.stringify({ session_id: sessionId, position: index })
-                    });
-                    
-                    const data = await res.json();
-
-                    if (!res.ok) {
-                        showToast(data.detail || '通信エラー', 'error');
-                        return;
-                    }
-
-                    if (data.status === 'playing') {
-                        // セーフ（ドーパミン演出）
-                        tileEl.classList.add('revealed-gem');
-                        tileEl.innerHTML = '💎';
-                        displayMulti.textContent = `${data.multiplier.toFixed(2)}x`;
-                        
-                        // プロフィットをアニメーション風に更新
-                        const newProfit = Math.floor(currentBet * data.multiplier);
-                        displayProfit.textContent = newProfit;
-                        displayProfit.style.transform = 'scale(1.2)';
-                        setTimeout(() => displayProfit.style.transform = 'scale(1)', 200);
-                        
-                    } else if (data.status === 'busted') {
-                        // アウト
-                        tileEl.classList.add('revealed-mine');
-                        tileEl.innerHTML = '💣';
-                        showToast('BOOM! 敗北...', 'error');
-                        displayProfit.textContent = '0';
-                        endGame(data.grid); 
-                    }
-
-                } catch (err) {
-                    console.error(err);
-                    showToast('サーバーとの通信に失敗しました', 'error');
-                }
-            }
-
-            async function startGame() {
-                const bet = parseFloat(inputBet.value);
-                const mines = parseInt(inputMines.value);
-
-                if (isNaN(bet) || bet <= 0) {
-                    return showToast('正しいベット額を入力してください', 'error');
-                }
-
-                try {
-                    const res = await fetch(API_START, {
-                        method: 'POST',
-                        headers: getHeaders(),
-                        body: JSON.stringify({ bet_amount: bet, mines_count: mines })
-                    });
-                    
-                    const data = await res.json();
-
-                    if (!res.ok) {
-                        return showToast(data.detail || '開始できませんでした', 'error');
-                    }
-
-                    sessionId = data.session_id;
-                    isPlaying = true;
-                    currentBet = bet;
-
-                    initGrid();
-                    
-                    displayMulti.textContent = '1.00x';
-                    displayProfit.textContent = bet;
-                    
-                    inputBet.disabled = true;
-                    inputMines.disabled = true;
-                    btnStart.style.display = 'none';
-                    btnCashout.style.display = 'block';
-
-                    showToast('GOOD LUCK!', 'success');
-
-                } catch (err) {
-                    console.error(err);
-                    showToast('通信エラーが発生しました', 'error');
-                }
-            }
-
-            async function cashout() {
-                if (!isPlaying) return;
-
-                try {
-                    const res = await fetch(API_CASHOUT, {
-                        method: 'POST',
-                        headers: getHeaders(),
-                        body: JSON.stringify({ session_id: sessionId })
-                    });
-                    
-                    const data = await res.json();
-
-                    if (!res.ok) {
-                        return showToast(data.detail || 'エラーが発生しました', 'error');
-                    }
-
-                    if (data.status === 'cashed_out') {
-                        showToast(`見事な利確！ +${data.payout}`, 'gold');
-                        endGame(data.grid);
-                    }
-
-                } catch (err) {
-                    console.error(err);
-                    showToast('通信エラーが発生しました', 'error');
-                }
-            }
-
-            function endGame(gridData) {
-                isPlaying = false;
-                
-                const tiles = grid.querySelectorAll('.tile');
-                
-                tiles.forEach((tile, i) => {
-                    tile.classList.add('disabled');
-                    
-                    if (!tile.classList.contains('revealed-gem') && !tile.classList.contains('revealed-mine')) {
-                        tile.classList.add('fade');
-                        
-                        setTimeout(() => {
-                            if (gridData && gridData[i] === 1) {
-                                tile.innerHTML = '💣';
-                            } else {
-                                tile.innerHTML = '💎';
-                            }
-                        }, i * 30); // 終了時のパラパラとめくれる余韻演出
-                    }
-                });
-
-                inputBet.disabled = false;
-                inputMines.disabled = false;
-                btnStart.style.display = 'block';
-                btnCashout.style.display = 'none';
-            }
-
-            btnStart.addEventListener('click', startGame);
-            btnCashout.addEventListener('click', cashout);
-
-            initGrid();
+        // BGM設定
+        bgmToggle.addEventListener("change", (e) => {
+            if (e.target.checked) bgmPlayer.play().catch(() => {});
+            else bgmPlayer.pause();
         });
-    </script>
+        document.addEventListener("click", () => {
+            if (bgmToggle.checked && bgmPlayer.paused) bgmPlayer.play().catch(() => {});
+        }, { once: true });
+
+        function getHeaders() {
+            const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : ''
+            };
+        }
+
+        function initGrid() {
+            grid.innerHTML = '';
+            for (let i = 0; i < 25; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.dataset.index = i;
+                
+                const triggerEvent = ('ontouchstart' in window) ? 'touchstart' : 'mousedown';
+                tile.addEventListener(triggerEvent, (e) => {
+                    e.preventDefault();
+                    handleTileClick(i, tile);
+                });
+                grid.appendChild(tile);
+            }
+        }
+
+        // 💥 演出リセット
+        function resetEffects() {
+            statusBox.className = "status-display";
+            displayProfit.className = "stat-val";
+            statusText.className = "status-text";
+        }
+
+        // 🌈 脳汁大噴射エフェクト
+        function triggerWinEffects() {
+            resetEffects();
+            statusText.classList.add("win-text-rainbow");
+            if (disableShake.checked) {
+                statusBox.classList.add("win-rainbow-noshake");
+            } else {
+                statusBox.classList.add("win-rainbow-shake");
+                displayProfit.classList.add("num-pop");
+                document.body.classList.add("hyper-flash-active");
+                setTimeout(() => document.body.classList.remove("hyper-flash-active"), 250);
+            }
+        }
+
+        // 💀 爆死エフェクト
+        function triggerLoseEffects() {
+            resetEffects();
+            if (!disableShake.checked) {
+                statusBox.classList.add("lose-shake");
+            }
+        }
+
+        async function handleTileClick(index, tileEl) {
+            if (!isPlaying) return;
+            if (tileEl.classList.contains('revealed-gem') || tileEl.classList.contains('revealed-mine')) return;
+
+            try {
+                const res = await fetch(API_STEP, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ session_id: sessionId, position: index })
+                });
+                const data = await res.json();
+                if (!res.ok) return alert(data.detail || '通信エラー');
+
+                if (data.status === 'playing') {
+                    // セーフ！
+                    tileEl.classList.add('revealed-gem');
+                    tileEl.innerHTML = '💎';
+                    displayMulti.textContent = `${data.multiplier.toFixed(2)}x`;
+                    
+                    const newProfit = Math.floor(currentBet * data.multiplier);
+                    displayProfit.textContent = newProfit;
+                    
+                    statusText.innerText = "✨ 回避成功！次を開けるか利確しろ！";
+                    statusText.style.color = "#00ff66";
+                    
+                    // 軽いポップ演出
+                    if (!disableShake.checked) {
+                        displayProfit.style.transform = 'scale(1.3)';
+                        setTimeout(() => displayProfit.style.transform = 'scale(1)', 150);
+                    }
+                    
+                } else if (data.status === 'busted') {
+                    // ドカーン！
+                    tileEl.classList.add('revealed-mine');
+                    tileEl.innerHTML = '💣';
+                    
+                    statusText.innerText = `💀 爆死... ${currentBet} Gold 没収！！`;
+                    statusText.style.color = "#ff003c";
+                    
+                    triggerLoseEffects();
+                    endGame(data.grid); 
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function startGame() {
+            const bet = parseFloat(inputBet.value);
+            const mines = parseInt(inputMines.value);
+
+            if (isNaN(bet) || bet <= 0) return alert('賭け金を入力してください');
+
+            try {
+                const res = await fetch(API_START, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ bet_amount: bet, mines_count: mines })
+                });
+                const data = await res.json();
+                if (!res.ok) return alert(data.detail || '開始できませんでした');
+
+                sessionId = data.session_id;
+                isPlaying = true;
+                currentBet = bet;
+
+                resetEffects();
+                initGrid();
+                
+                displayMulti.textContent = '1.00x';
+                displayProfit.textContent = bet;
+                
+                statusText.innerText = "🎯 直感を信じてマスを開けろ！";
+                statusText.style.color = "#00f3ff";
+                
+                inputBet.disabled = true;
+                inputMines.disabled = true;
+                btnStart.style.display = 'none';
+                btnCashout.style.display = 'block';
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function cashout() {
+            if (!isPlaying) return;
+
+            try {
+                const res = await fetch(API_CASHOUT, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ session_id: sessionId })
+                });
+                const data = await res.json();
+                if (!res.ok) return alert(data.detail || 'エラーが発生しました');
+
+                if (data.status === 'cashed_out') {
+                    statusText.innerText = `🌈👑 脳汁大噴射！！ +${data.payout} Gold 獲得！！ 👑🌈`;
+                    triggerWinEffects();
+                    endGame(data.grid);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function endGame(gridData) {
+            isPlaying = false;
+            const tiles = grid.querySelectorAll('.tile');
+            
+            tiles.forEach((tile, i) => {
+                tile.classList.add('disabled');
+                
+                if (!tile.classList.contains('revealed-gem') && !tile.classList.contains('revealed-mine')) {
+                    tile.classList.add('fade');
+                    setTimeout(() => {
+                        if (gridData && gridData[i] === 1) {
+                            tile.innerHTML = '💣';
+                        } else {
+                            tile.innerHTML = '💎';
+                        }
+                    }, i * 20); // 高速パラパラめくり
+                }
+            });
+
+            inputBet.disabled = false;
+            inputMines.disabled = false;
+            btnStart.style.display = 'block';
+            btnCashout.style.display = 'none';
+        }
+
+        btnStart.addEventListener('click', startGame);
+        btnCashout.addEventListener('click', cashout);
+
+        initGrid();
+    });
+</script>
 </body>
 </html>
 {% endraw %}
