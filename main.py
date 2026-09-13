@@ -198,7 +198,7 @@ def get_slot(request: Request):
 def get_loan(request: Request):
     return templates.TemplateResponse(request=request, name="loan.html")
 
-@router.get("/mines", response_class=HTMLResponse)
+@app.get("/mines", response_class=HTMLResponse)
 async def get_mines(request: Request):
     return templates.TemplateResponse(request=request, name="mines.html")
 
