@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from casino import router as casino_router
 from inventory import router as inventory_router
 from policy import router as policy_router
@@ -66,20 +66,20 @@ class ReviewCreate(BaseModel):
     rating: int  # 1 〜 5
     comment: str = ""
 
-# --- 追加: 融資・借金システム用モデル ---
+# --- 追加: 融資・借金システム用モデル (Zero Trust 堅牢化) ---
 class LoanOfferCreate(BaseModel):
     lender_wallet_id: str
-    max_amount: int
-    interest_rate: int
+    max_amount: int = Field(..., gt=0, description="出品額は1以上でなければなりません")
+    interest_rate: int = Field(..., ge=0, description="金利はマイナスにできません")
 
 class LoanBorrow(BaseModel):
     offer_id: int
-    borrow_amount: int
+    borrow_amount: int = Field(..., gt=0, description="借入額は1以上でなければなりません")
     borrower_wallet_id: str
 
 class LoanRepay(BaseModel):
     loan_id: int
-    repay_amount: int
+    repay_amount: int = Field(..., gt=0, description="返済額は1以上でなければなりません")
 # -------------------------------------
 
 def generate_wallet_id():
@@ -173,6 +173,11 @@ def get_slot(request: Request):
     return templates.TemplateResponse(request=request, name="slot.html")
 
 
+@app.get("/loan", response_class=HTMLResponse)
+def get_loan(request: Request):
+    return templates.TemplateResponse(request=request, name="loan.html")
+
+
 app.mount("/templates", StaticFiles(directory="templates"), name="templates")
 
 # --------------------------------------------------
@@ -261,27 +266,22 @@ async def pay_tax(data: PayTaxRequest, authorization: str = Header(None)):
     try:
         loans_res = await client.table("active_loans").select("*, loan_offers(lender_wallet_id)").eq("borrower_user_id", user.id).eq("status", "ACTIVE").order("created_at").execute()
         if loans_res.data:
-            # 最も古い未返済の借金を対象とする
             loan = loans_res.data[0]
             remaining_debt = loan["total_due"] - loan["repaid_amount"]
             
-            # 納税で得た100Gか、残り借金額の少ない方を没収額とする
             confiscate_amount = min(100, remaining_debt)
 
-            # 借り手の口座から没収
             bw_res = await client.table("wallets").select("*").eq("wallet_id", data.wallet_id).execute()
             if bw_res.data and bw_res.data[0]["balance"] >= confiscate_amount:
                 bw = bw_res.data[0]
                 await client.table("wallets").update({"balance": bw["balance"] - confiscate_amount}).eq("id", bw["id"]).execute()
 
-                # 貸し手の口座へ強制返済（送金）
                 lender_wallet_id = loan["loan_offers"]["lender_wallet_id"]
                 lw_res = await client.table("wallets").select("*").eq("wallet_id", lender_wallet_id).execute()
                 if lw_res.data:
                     lw = lw_res.data[0]
                     await client.table("wallets").update({"balance": lw["balance"] + confiscate_amount}).eq("id", lw["id"]).execute()
 
-                # 借金ステータスの更新
                 new_repaid = loan["repaid_amount"] + confiscate_amount
                 new_status = "PAID" if new_repaid >= loan["total_due"] else "ACTIVE"
                 await client.table("active_loans").update({
@@ -292,7 +292,7 @@ async def pay_tax(data: PayTaxRequest, authorization: str = Header(None)):
                 confiscated_amount = confiscate_amount
     except Exception as e:
         print(f"Tax Confiscation Error: {e}")
-        pass # 没収失敗時も通常の納税成功としては扱う
+        pass 
 
     if confiscated_amount > 0:
         return {"message": f"納税（+100G）が完了しましたが、借金返済のため {confiscated_amount}G が自動的に没収されました。"}
@@ -693,6 +693,10 @@ async def borrow_loan(data: LoanBorrow, authorization: str = Header(None)):
     if not o_res.data:
         raise HTTPException(status_code=404, detail="融資枠が見つかりません。")
     offer = o_res.data[0]
+
+    # 不正防止: 自身の融資枠からの借入（自作自演・資金洗浄ループ）をブロック
+    if offer["lender_user_id"] == user.id:
+        raise HTTPException(status_code=400, detail="自分自身の融資枠からは借入できません。")
     
     if offer["status"] != "OPEN" or offer["max_amount"] < data.borrow_amount:
         raise HTTPException(status_code=400, detail="この融資枠の残高が不足しています。")
