@@ -194,6 +194,11 @@ def get_factory(request: Request):
 def get_slot(request: Request):
     return templates.TemplateResponse(request=request, name="slot.html")
 
+@app.get("/loan", response_class=HTMLResponse)
+def get_loan(request: Request):
+    return templates.TemplateResponse(request=request, name="loan.html")
+
+
 
 app.mount("/templates", StaticFiles(directory="templates"), name="templates")
 
