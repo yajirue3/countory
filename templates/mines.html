@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>村岡王国 - マインズ (MINES)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=M+PLUS+1p:wght@900&display=swap');
+
+        :root {
+            --neon-gold: #ffcf00;
+            --neon-emerald: #00ff73;
+            --neon-cyan: #00f0ff;
+            --neon-crimson: #ff003c;
+            --neon-violet: #a200ff;
+            --bg-dark: #050508;
+            --panel-bg: rgba(12, 12, 18, 0.85);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'M PLUS 1p', 'Black Ops One', sans-serif;
+            background: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 50% 50%, #1a002a 0%, #000000 100%),
+                linear-gradient(0deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 0, 60, 0.05) 1px, transparent 1px);
+            background-size: 100% 100%, 30px 30px, 30px 30px;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* アプリケーションラッパー (レスポンシブ) */
+        .app-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            max-width: 1200px;
+            flex-direction: column;
+            padding: 10px;
+            gap: 15px;
+        }
+
+        /* -------------------------------------------
+           PC用レイアウト (横並び)
+           ------------------------------------------- */
+        @media (min-width: 850px) {
+            .app-container {
+                flex-direction: row;
+                align-items: center;
+                padding: 30px;
+                gap: 40px;
+            }
+            .left-panel {
+                width: 380px;
+                flex-shrink: 0;
+            }
+            .right-panel {
+                flex-grow: 1;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .mines-grid {
+                width: 100%;
+                max-width: 600px;
+            }
+            .tile {
+                border-radius: 16px !important;
+                font-size: 2.5rem !important;
+            }
+        }
+
+        /* -------------------------------------------
+           スマホ用レイアウト (縦幅圧縮)
+           ------------------------------------------- */
+        @media (max-width: 849px) {
+            .app-container {
+                justify-content: flex-start;
+                padding: 8px;
+                gap: 8px;
+            }
+            .left-panel {
+                order: 2;
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+            .right-panel {
+                order: 1;
+                flex-grow: 1;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 0; /* フレックスバグ防止 */
+            }
+            .mines-grid {
+                width: 100%;
+                max-width: 45vh; /* 縦幅に収めるための極限設定 */
+                margin: 0 auto;
+            }
+            /* スマホ操作パネルの極限圧縮 */
+            .control-card {
+                padding: 10px !important;
+                border-radius: 12px !important;
+            }
+            .inputs-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 6px;
+            }
+            .action-row {
+                display: flex;
+                gap: 6px;
+                margin-top: 4px;
+            }
+            .header-title {
+                font-size: 1.1rem !important;
+                margin-bottom: 4px !important;
+            }
+        }
+
+        /* -------------------------------------------
+           共通コンポーネント
+           ------------------------------------------- */
+        .control-card {
+            background: var(--panel-bg);
+            border: 2px solid rgba(0, 240, 255, 0.3);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.1), inset 0 0 20px rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 10;
+        }
+
+        .header-title {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: var(--neon-cyan);
+            text-align: center;
+            text-shadow: 0 0 15px var(--neon-cyan);
+            margin: 0 0 15px 0;
+            letter-spacing: 2px;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.3);
+            padding-bottom: 8px;
+        }
+
+        /* ステータ
