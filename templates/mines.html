@@ -33,7 +33,7 @@
             color: #fff; 
             display: flex; 
             justify-content: center; 
-            align-items: flex-start; /* スマホで見切れないよう上詰め・スクロール許可 */
+            align-items: flex-start;
             margin: 0; 
             min-height: 100vh;
             padding: 10px 5px;
@@ -122,7 +122,7 @@
             will-change: transform;
         }
 
-        /* 💣 マインズグリッド (スマホ完全フィット) */
+        /* 💣 マインズグリッド */
         .mines-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -189,6 +189,11 @@
 
         /* 🎛️ 入力フォーム */
         .inputs-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .inputs-row-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 8px;
@@ -364,19 +369,25 @@
 
         <!-- 🎛️ 入力エリア -->
         <div class="inputs-grid">
-            <div>
-                <div class="label">💎 賭け金 (Gold)</div>
-                <input type="number" id="bet-amount" value="100" min="1" step="1">
+            <div class="input-group">
+                <div class="label">💳 支払口座</div>
+                <select id="wallet-select"></select>
             </div>
-            <div>
-                <div class="label">💣 地雷の数</div>
-                <select id="mines-count">
-                    <option value="1">1 Mine (チキン)</option>
-                    <option value="3" selected>3 Mines (標準)</option>
-                    <option value="5">5 Mines (強気)</option>
-                    <option value="10">10 Mines (狂気)</option>
-                    <option value="20">20 Mines (神頼み)</option>
-                </select>
+            <div class="inputs-row-2">
+                <div>
+                    <div class="label">💎 賭け金 (Gold)</div>
+                    <input type="number" id="bet-amount" value="100" min="1" step="1">
+                </div>
+                <div>
+                    <div class="label">💣 地雷の数</div>
+                    <select id="mines-count">
+                        <option value="1">1 Mine (チキン)</option>
+                        <option value="3" selected>3 Mines (標準)</option>
+                        <option value="5">5 Mines (強気)</option>
+                        <option value="10">10 Mines (狂気)</option>
+                        <option value="20">20 Mines (神頼み)</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -405,6 +416,7 @@
         const grid = document.getElementById('mines-grid');
         const btnStart = document.getElementById('btn-start');
         const btnCashout = document.getElementById('btn-cashout');
+        const inputWallet = document.getElementById('wallet-select');
         const inputBet = document.getElementById('bet-amount');
         const inputMines = document.getElementById('mines-count');
         const displayMulti = document.getElementById('stat-multiplier');
@@ -416,12 +428,38 @@
         const disableShake = document.getElementById('disable-shake');
 
         let isPlaying = false;
-        let sessionId = null;
+        let currentGameId = null;
         let currentBet = 0;
 
         const API_START = '/api/mines/start';
         const API_STEP = '/api/mines/step';
         const API_CASHOUT = '/api/mines/cashout';
+
+        // トークン取得
+        const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+        if (!token) window.location.href = "/";
+
+        function getHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : ''
+            };
+        }
+
+        // 口座の読み込み
+        async function loadWallets() {
+            try {
+                const res = await fetch("/api/wallets", { headers: getHeaders() });
+                if (!res.ok) return;
+                const wallets = await res.json();
+                inputWallet.innerHTML = wallets.map(w => 
+                    `<option value="${w.wallet_id}">${w.wallet_name} - 残高:${w.balance}G</option>`
+                ).join('');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        loadWallets();
 
         // BGM設定
         bgmToggle.addEventListener("change", (e) => {
@@ -431,14 +469,6 @@
         document.addEventListener("click", () => {
             if (bgmToggle.checked && bgmPlayer.paused) bgmPlayer.play().catch(() => {});
         }, { once: true });
-
-        function getHeaders() {
-            const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-            return {
-                'Content-Type': 'application/json',
-                'Authorization': token ? `Bearer ${token}` : ''
-            };
-        }
 
         function initGrid() {
             grid.innerHTML = '';
@@ -490,33 +520,38 @@
             if (tileEl.classList.contains('revealed-gem') || tileEl.classList.contains('revealed-mine')) return;
 
             try {
+                // API仕様に合致させる（game_id と tile_index）
                 const res = await fetch(API_STEP, {
                     method: 'POST',
                     headers: getHeaders(),
-                    body: JSON.stringify({ session_id: sessionId, position: index })
+                    body: JSON.stringify({ game_id: currentGameId, tile_index: index })
                 });
                 const data = await res.json();
                 if (!res.ok) return alert(data.detail || '通信エラー');
 
-                if (data.status === 'playing') {
+                // バックエンドからのレスポンス(is_safe)で判定
+                if (data.is_safe) {
                     // セーフ！
                     tileEl.classList.add('revealed-gem');
                     tileEl.innerHTML = '💎';
                     displayMulti.textContent = `${data.multiplier.toFixed(2)}x`;
+                    displayProfit.textContent = data.current_payout || data.payout; // クリア時は payout に入る
                     
-                    const newProfit = Math.floor(currentBet * data.multiplier);
-                    displayProfit.textContent = newProfit;
-                    
-                    statusText.innerText = "✨ 回避成功！次を開けるか利確しろ！";
-                    statusText.style.color = "#00ff66";
-                    
-                    // 軽いポップ演出
-                    if (!disableShake.checked) {
-                        displayProfit.style.transform = 'scale(1.3)';
-                        setTimeout(() => displayProfit.style.transform = 'scale(1)', 150);
+                    if (data.is_cleared) {
+                        statusText.innerText = `🎉 完璧！全マス制覇！！ +${data.payout} Gold 獲得！！`;
+                        triggerWinEffects();
+                        endGame(data.mines);
+                        loadWallets();
+                    } else {
+                        statusText.innerText = "✨ 回避成功！次を開けるか利確しろ！";
+                        statusText.style.color = "#00ff66";
+                        if (!disableShake.checked) {
+                            displayProfit.style.transform = 'scale(1.3)';
+                            setTimeout(() => displayProfit.style.transform = 'scale(1)', 150);
+                        }
                     }
                     
-                } else if (data.status === 'busted') {
+                } else {
                     // ドカーン！
                     tileEl.classList.add('revealed-mine');
                     tileEl.innerHTML = '💣';
@@ -525,7 +560,7 @@
                     statusText.style.color = "#ff003c";
                     
                     triggerLoseEffects();
-                    endGame(data.grid); 
+                    endGame(data.mines); 
                 }
             } catch (err) {
                 console.error(err);
@@ -533,26 +568,30 @@
         }
 
         async function startGame() {
+            const walletId = inputWallet.value;
             const bet = parseFloat(inputBet.value);
             const mines = parseInt(inputMines.value);
 
+            if (!walletId) return alert('口座を選択してください');
             if (isNaN(bet) || bet <= 0) return alert('賭け金を入力してください');
 
             try {
+                // API仕様に合致させる（wallet_id, amount, mines_count）
                 const res = await fetch(API_START, {
                     method: 'POST',
                     headers: getHeaders(),
-                    body: JSON.stringify({ bet_amount: bet, mines_count: mines })
+                    body: JSON.stringify({ wallet_id: walletId, amount: bet, mines_count: mines })
                 });
                 const data = await res.json();
                 if (!res.ok) return alert(data.detail || '開始できませんでした');
 
-                sessionId = data.session_id;
+                currentGameId = data.game_id;
                 isPlaying = true;
                 currentBet = bet;
 
                 resetEffects();
                 initGrid();
+                loadWallets();
                 
                 displayMulti.textContent = '1.00x';
                 displayProfit.textContent = bet;
@@ -560,6 +599,7 @@
                 statusText.innerText = "🎯 直感を信じてマスを開けろ！";
                 statusText.style.color = "#00f3ff";
                 
+                inputWallet.disabled = true;
                 inputBet.disabled = true;
                 inputMines.disabled = true;
                 btnStart.style.display = 'none';
@@ -574,25 +614,26 @@
             if (!isPlaying) return;
 
             try {
+                // API仕様に合致させる（game_id）
                 const res = await fetch(API_CASHOUT, {
                     method: 'POST',
                     headers: getHeaders(),
-                    body: JSON.stringify({ session_id: sessionId })
+                    body: JSON.stringify({ game_id: currentGameId })
                 });
                 const data = await res.json();
                 if (!res.ok) return alert(data.detail || 'エラーが発生しました');
 
-                if (data.status === 'cashed_out') {
-                    statusText.innerText = `🌈👑 脳汁大噴射！！ +${data.payout} Gold 獲得！！ 👑🌈`;
-                    triggerWinEffects();
-                    endGame(data.grid);
-                }
+                statusText.innerText = `🌈👑 脳汁大噴射！！ +${data.payout} Gold 獲得！！ 👑🌈`;
+                triggerWinEffects();
+                endGame(data.mines);
+                loadWallets();
             } catch (err) {
                 console.error(err);
             }
         }
 
-        function endGame(gridData) {
+        // minesArray = 地雷の配置インデックスの配列 [3, 12, 19, ...]
+        function endGame(minesArray) {
             isPlaying = false;
             const tiles = grid.querySelectorAll('.tile');
             
@@ -602,7 +643,7 @@
                 if (!tile.classList.contains('revealed-gem') && !tile.classList.contains('revealed-mine')) {
                     tile.classList.add('fade');
                     setTimeout(() => {
-                        if (gridData && gridData[i] === 1) {
+                        if (minesArray && minesArray.includes(i)) {
                             tile.innerHTML = '💣';
                         } else {
                             tile.innerHTML = '💎';
@@ -611,6 +652,7 @@
                 }
             });
 
+            inputWallet.disabled = false;
             inputBet.disabled = false;
             inputMines.disabled = false;
             btnStart.style.display = 'block';
