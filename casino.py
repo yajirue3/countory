@@ -390,7 +390,7 @@ class MinesCashoutRequest(BaseModel):
     game_id: str
 
 
-# セッション保持用辞書 (メモリ管理)
+# セッション保持用辞書 (サーバーメモリ管理)
 MINES_SESSIONS = {}
 
 
@@ -406,7 +406,7 @@ def get_mines_multiplier(mines_count: int, revealed_count: int) -> float:
 
 
 # --------------------------------------------------
-# カジノAPI：マインズゲーム
+# カジノAPI：マインズゲーム（不正対策・完全サーバー判定）
 # --------------------------------------------------
 @router.post("/api/mines/start")
 async def start_mines(data: MinesStartRequest, authorization: str = Header(None)):
@@ -442,7 +442,8 @@ async def start_mines(data: MinesStartRequest, authorization: str = Header(None)
         "mines_count": data.mines_count,
         "mine_positions": mine_positions,
         "revealed_tiles": [],
-        "is_active": True
+        "is_active": True,
+        "processing": False
     }
 
     return {
@@ -462,64 +463,75 @@ async def step_mines(data: MinesStepRequest, authorization: str = Header(None)):
         raise HTTPException(status_code=400, detail="無効または終了したゲームセッションです。")
     if session["user_id"] != str(user.id):
         raise HTTPException(status_code=403, detail="不正な操作です。")
-    if data.tile_index < 0 or data.tile_index > 24:
-        raise HTTPException(status_code=400, detail="不正なタイルの指定です。")
-    if data.tile_index in session["revealed_tiles"]:
-        raise HTTPException(status_code=400, detail="すでにオープンされたタイルです。")
 
-    # 1. 地雷を踏んだ場合
-    if data.tile_index in session["mine_positions"]:
-        session["is_active"] = False
-        mines = session["mine_positions"]
-        MINES_SESSIONS.pop(data.game_id, None)
+    # 連打・並行リクエスト防止ロック
+    if session.get("processing", False):
+        raise HTTPException(status_code=429, detail="処理中です。")
+    session["processing"] = True
 
-        return {
-            "is_safe": False,
-            "tile_index": data.tile_index,
-            "mines": mines,
-            "multiplier": 0.0,
-            "payout": 0
-        }
+    try:
+        if data.tile_index < 0 or data.tile_index > 24:
+            raise HTTPException(status_code=400, detail="不正なタイルの指定です。")
+        if data.tile_index in session["revealed_tiles"]:
+            raise HTTPException(status_code=400, detail="すでにオープンされたタイルです。")
 
-    # 2. 安全マスを踏んだ場合
-    session["revealed_tiles"].append(data.tile_index)
-    revealed_count = len(session["revealed_tiles"])
-    max_safe = 25 - session["mines_count"]
+        # 1. 地雷を踏んだ場合
+        if data.tile_index in session["mine_positions"]:
+            session["is_active"] = False
+            mines = session["mine_positions"]
+            MINES_SESSIONS.pop(data.game_id, None)
 
-    multiplier = get_mines_multiplier(session["mines_count"], revealed_count)
-    current_payout = int(session["bet_amount"] * multiplier)
+            return {
+                "is_safe": False,
+                "tile_index": data.tile_index,
+                "mines": mines,
+                "multiplier": 0.0,
+                "payout": 0
+            }
 
-    # 3. 全安全マスを踏破（全制覇）
-    if revealed_count == max_safe:
-        session["is_active"] = False
+        # 2. 安全マスを開けた場合
+        session["revealed_tiles"].append(data.tile_index)
+        revealed_count = len(session["revealed_tiles"])
+        max_safe = 25 - session["mines_count"]
 
-        wallet_res = await supabase.table("wallets").select("*").eq("id", session["wallet_db_id"]).execute()
-        wallet = wallet_res.data[0]
-        new_balance = wallet["balance"] + current_payout
-        await supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+        multiplier = get_mines_multiplier(session["mines_count"], revealed_count)
+        current_payout = int(session["bet_amount"] * multiplier)
 
-        mines = session["mine_positions"]
-        MINES_SESSIONS.pop(data.game_id, None)
+        # 3. 全安全マスを踏破（完全クリア）
+        if revealed_count == max_safe:
+            session["is_active"] = False
 
+            wallet_res = await supabase.table("wallets").select("*").eq("id", session["wallet_db_id"]).execute()
+            wallet = wallet_res.data[0]
+            new_balance = wallet["balance"] + current_payout
+            await supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
+
+            mines = session["mine_positions"]
+            MINES_SESSIONS.pop(data.game_id, None)
+
+            return {
+                "is_safe": True,
+                "tile_index": data.tile_index,
+                "is_cleared": True,
+                "multiplier": multiplier,
+                "payout": current_payout,
+                "new_balance": new_balance,
+                "mines": mines
+            }
+
+        # 4. 途中経過
         return {
             "is_safe": True,
             "tile_index": data.tile_index,
-            "is_cleared": True,
+            "is_cleared": False,
             "multiplier": multiplier,
-            "payout": current_payout,
-            "new_balance": new_balance,
-            "mines": mines
+            "current_payout": current_payout,
+            "revealed_count": revealed_count
         }
 
-    # 4. 途中経過
-    return {
-        "is_safe": True,
-        "tile_index": data.tile_index,
-        "is_cleared": False,
-        "multiplier": multiplier,
-        "current_payout": current_payout,
-        "revealed_count": revealed_count
-    }
+    finally:
+        if data.game_id in MINES_SESSIONS:
+            MINES_SESSIONS[data.game_id]["processing"] = False
 
 
 @router.post("/api/mines/cashout")
@@ -533,16 +545,18 @@ async def cashout_mines(data: MinesCashoutRequest, authorization: str = Header(N
     if session["user_id"] != str(user.id):
         raise HTTPException(status_code=403, detail="不正な操作です。")
 
+    # DB処理の前に即時無効化（二重キャッシュアウト・連打バグの完全遮断）
+    session["is_active"] = False
+
     revealed_count = len(session["revealed_tiles"])
     if revealed_count < 1:
+        session["is_active"] = True
         raise HTTPException(status_code=400, detail="1マスも開けていないため引き出せません。")
 
     multiplier = get_mines_multiplier(session["mines_count"], revealed_count)
     payout = int(session["bet_amount"] * multiplier)
 
-    session["is_active"] = False
-
-    # 配当加算処理
+    # 配当加算
     wallet_res = await supabase.table("wallets").select("*").eq("id", session["wallet_db_id"]).execute()
     wallet = wallet_res.data[0]
     new_balance = wallet["balance"] + payout
