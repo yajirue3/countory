@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>村岡王国 - 王国裏金融</title>
+    <title>村岡王国 - 地下自由金融市場</title>
     <style>
         body { font-family: sans-serif; background-color: #1a1a1a; color: #e0e0e0; display: flex; justify-content: center; padding: 20px 0; margin: 0; }
         .container { width: 360px; display: flex; flex-direction: column; gap: 16px; }
@@ -12,8 +12,9 @@
         
         /* タブメニュー */
         .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
-        .tab-btn { flex: 1; padding: 8px; background: #333; border: 1px solid #555; color: #aaa; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
+        .tab-btn { flex: 1; padding: 8px; background: #333; border: 1px solid #555; color: #aaa; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; transition: 0.2s; }
         .tab-btn.active { background: #d4af37; color: #1a1a1a; border-color: #ffd700; }
+        .tab-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
@@ -25,36 +26,39 @@
         .list-item .highlight-green { color: #2ecc71; font-weight: bold; }
 
         input, select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #333; color: #fff; box-sizing: border-box; margin-top: 4px; margin-bottom: 10px; font-size: 0.85rem; }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         
-        button { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #d4af37; color: #1a1a1a; font-size: 0.85rem; margin-top: 6px; }
-        button:hover { background: #f1c40f; }
+        button { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #d4af37; color: #1a1a1a; font-size: 0.85rem; margin-top: 6px; transition: 0.2s; }
+        button:hover:not(:disabled) { background: #f1c40f; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(100%); }
 
         .btn-action { background: #2980b9; color: #fff; padding: 8px; margin-top: 8px; }
-        .btn-action:hover { background: #3498db; }
+        .btn-action:hover:not(:disabled) { background: #3498db; }
         
         .btn-danger { background: #c0392b; color: #fff; padding: 8px; margin-top: 8px; }
-        .btn-danger:hover { background: #e74c3c; }
+        .btn-danger:hover:not(:disabled) { background: #e74c3c; }
 
         .btn-back { background: #444; color: #ccc; margin-top: 10px; }
-        .btn-back:hover { background: #555; }
+        .btn-back:hover:not(:disabled) { background: #555; }
 
         /* モーダル */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; }
-        .modal-content { background: #222; border: 2px solid #555; border-radius: 12px; width: 90%; max-width: 320px; padding: 20px; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-content { background: #222; border: 2px solid #555; border-radius: 12px; width: 90%; max-width: 320px; padding: 20px; box-shadow: 0 0 15px rgba(0,0,0,0.8); }
         .modal-title { color: #fff; margin-top: 0; font-size: 1rem; border-bottom: 1px solid #444; padding-bottom: 8px; margin-bottom: 12px; }
         
-        .empty-msg { text-align: center; color: #777; font-size: 0.85rem; padding: 10px 0; }
+        .empty-msg { text-align: center; color: #777; font-size: 0.85rem; padding: 15px 0; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="card">
-        <div class="header">⚖️ 王国金融市場</div>
+        <div class="header">⚖️ 王国裏金融</div>
         <p style="font-size: 0.75rem; color: #aaa; text-align: center; margin-top: 0;">プレイヤー間での自由な資金貸借市場</p>
 
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('borrow')">借りたい (募集一覧)</button>
+            <button class="tab-btn active" onclick="switchTab('borrow')">借りたい (募集)</button>
             <button class="tab-btn" onclick="switchTab('debts')">自分の借金</button>
             <button class="tab-btn" onclick="switchTab('lend')">貸したい (出品)</button>
         </div>
@@ -64,7 +68,7 @@
             <div id="offers-list">
                 <div class="empty-msg">読み込み中...</div>
             </div>
-            <button onclick="loadOffers()" style="background: #333; color: #fff; margin-top: 10px;">🔄 更新</button>
+            <button id="btn-refresh-offers" onclick="loadOffers()" style="background: #333; color: #fff; margin-top: 10px;">🔄 更新</button>
         </div>
 
         <!-- タブ2: 自分の借金 -->
@@ -72,7 +76,7 @@
             <div id="debts-list">
                 <div class="empty-msg">読み込み中...</div>
             </div>
-            <button onclick="loadMyDebts()" style="background: #333; color: #fff; margin-top: 10px;">🔄 更新</button>
+            <button id="btn-refresh-debts" onclick="loadMyDebts()" style="background: #333; color: #fff; margin-top: 10px;">🔄 更新</button>
         </div>
 
         <!-- タブ3: 貸したい (出品フォーム) -->
@@ -84,7 +88,357 @@
             <select id="lend-wallet-select"></select>
 
             <label style="font-size: 0.75rem; color: #888;">最大貸出枠 (Gold)</label>
-            <input type="number" id="lend-max-amount" placeholder="例: 5000" min="1">
+            <input type="number" id="lend-max-amount" placeholder="例: 5000" min="1" step="1" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
 
             <label style="font-size: 0.75rem; color: #888;">設定金利 (%)</label>
-            <inpu
+            <input type="number" id="lend-interest-rate" placeholder="例: 20" min="0" step="1" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+
+            <button id="btn-create-offer" class="btn-action" onclick="createOffer()">市場へ融資枠を出品する</button>
+        </div>
+
+        <button class="btn-back" onclick="location.href='/dashboard'">ダッシュボードへ戻る</button>
+    </div>
+</div>
+
+<!-- 借入モーダル -->
+<div id="modal-borrow" class="modal">
+    <div class="modal-content">
+        <h3 class="modal-title">資金を借りる</h3>
+        <p style="font-size: 0.8rem; color: #aaa;" id="borrow-offer-info"></p>
+        
+        <input type="hidden" id="borrow-offer-id">
+        <input type="hidden" id="borrow-max-amount">
+        <input type="hidden" id="borrow-interest-rate">
+        
+        <label style="font-size: 0.75rem; color: #888;">借入額 (Gold)</label>
+        <input type="number" id="borrow-amount" placeholder="借りたい金額を入力" min="1" step="1" onkeypress="return event.charCode >= 48 && event.charCode <= 57" oninput="calculateBorrow()">
+        
+        <div style="font-size: 0.8rem; margin-bottom: 10px;">
+            返済予定額: <span id="borrow-total-due" class="highlight">0</span> G
+        </div>
+
+        <label style="font-size: 0.75rem; color: #888;">受取口座</label>
+        <select id="borrow-wallet-select"></select>
+
+        <div style="display: flex; gap: 8px;">
+            <button id="btn-execute-borrow" class="btn-action" onclick="executeBorrow()">契約する</button>
+            <button id="btn-cancel-borrow" class="btn-back" onclick="closeModal('modal-borrow')" style="margin-top: 8px;">キャンセル</button>
+        </div>
+    </div>
+</div>
+
+<!-- 返済モーダル -->
+<div id="modal-repay" class="modal">
+    <div class="modal-content">
+        <h3 class="modal-title">借金を返済する</h3>
+        <p style="font-size: 0.8rem; color: #aaa;" id="repay-loan-info"></p>
+        
+        <input type="hidden" id="repay-loan-id">
+        <input type="hidden" id="repay-remaining">
+        
+        <label style="font-size: 0.75rem; color: #888;">返済額 (Gold)</label>
+        <input type="number" id="repay-amount" placeholder="返済する金額を入力" min="1" step="1" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+        
+        <div style="display: flex; gap: 8px;">
+            <button id="btn-execute-repay" class="btn-action" onclick="executeRepay()">返済を実行</button>
+            <button id="btn-cancel-repay" class="btn-back" onclick="closeModal('modal-repay')" style="margin-top: 8px;">キャンセル</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem("access_token");
+    if (!token) window.location.href = "/";
+
+    let wallets = [];
+    let isProcessing = false; // 全体ロック用フラグ
+
+    function escapeHtml(str) { 
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); 
+    }
+
+    async function init() {
+        await loadWallets();
+        loadOffers();
+        loadMyDebts();
+    }
+
+    function switchTab(tabId) {
+        if (isProcessing) return;
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        event.target.classList.add('active');
+        document.getElementById(`tab-${tabId}`).classList.add('active');
+    }
+
+    async function loadWallets() {
+        try {
+            const res = await fetch("/api/wallets", { headers: { "Authorization": `Bearer ${token}` } });
+            if (res.ok) {
+                wallets = await res.json();
+                const options = wallets.map(w => `<option value="${escapeHtml(w.wallet_id)}">${escapeHtml(w.wallet_name)} (残高:${w.balance}G)</option>`).join('');
+                document.getElementById("lend-wallet-select").innerHTML = options;
+                document.getElementById("borrow-wallet-select").innerHTML = options;
+            }
+        } catch (e) {
+            console.error("Wallet Load Error", e);
+        }
+    }
+
+    // --- 融資枠一覧 ---
+    async function loadOffers() {
+        if (isProcessing) return;
+        const listEl = document.getElementById("offers-list");
+        const btnRefresh = document.getElementById("btn-refresh-offers");
+        
+        listEl.innerHTML = '<div class="empty-msg">読み込み中...</div>';
+        btnRefresh.disabled = true;
+
+        try {
+            const res = await fetch("/api/loans/offers", { headers: { "Authorization": `Bearer ${token}` } });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.length === 0) {
+                    listEl.innerHTML = '<div class="empty-msg">現在、市場に融資枠はありません。</div>';
+                } else {
+                    listEl.innerHTML = data.map(offer => `
+                        <div class="list-item">
+                            <div class="title">💰 融資枠 #${offer.id}</div>
+                            <div class="detail"><span>残り枠:</span> <span class="highlight-green">${offer.max_amount} G</span></div>
+                            <div class="detail"><span>金利:</span> <span>${offer.interest_rate} %</span></div>
+                            <button class="btn-action" onclick="openBorrowModal(${offer.id}, ${offer.max_amount}, ${offer.interest_rate})">この枠から借りる</button>
+                        </div>
+                    `).join('');
+                }
+            } else {
+                listEl.innerHTML = '<div class="empty-msg">データの取得に失敗しました。</div>';
+            }
+        } catch (e) {
+            console.error(e);
+            listEl.innerHTML = '<div class="empty-msg">通信エラーが発生しました。</div>';
+        } finally {
+            btnRefresh.disabled = false;
+        }
+    }
+
+    // --- 自分の借金一覧 ---
+    async function loadMyDebts() {
+        if (isProcessing) return;
+        const listEl = document.getElementById("debts-list");
+        const btnRefresh = document.getElementById("btn-refresh-debts");
+        
+        listEl.innerHTML = '<div class="empty-msg">読み込み中...</div>';
+        btnRefresh.disabled = true;
+
+        try {
+            const res = await fetch("/api/loans/my-debts", { headers: { "Authorization": `Bearer ${token}` } });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.length === 0) {
+                    listEl.innerHTML = '<div class="empty-msg">現在、借金はありません。健全です。</div>';
+                } else {
+                    listEl.innerHTML = data.map(debt => {
+                        const remaining = debt.total_due - debt.repaid_amount;
+                        return `
+                        <div class="list-item">
+                            <div class="title">📜 借入契約 #${debt.id}</div>
+                            <div class="detail"><span>借入元本:</span> <span>${debt.principal} G</span></div>
+                            <div class="detail"><span>返済総額:</span> <span>${debt.total_due} G</span></div>
+                            <div class="detail"><span>返済済み:</span> <span>${debt.repaid_amount} G</span></div>
+                            <div class="detail" style="border-top: 1px solid #444; margin-top: 4px; padding-top: 4px;">
+                                <span>残り返済額:</span> <span class="highlight">${remaining} G</span>
+                            </div>
+                            <button class="btn-danger" onclick="openRepayModal(${debt.id}, ${remaining})">手動で返済する</button>
+                        </div>
+                        `;
+                    }).join('');
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            listEl.innerHTML = '<div class="empty-msg">通信エラーが発生しました。</div>';
+        } finally {
+            btnRefresh.disabled = false;
+        }
+    }
+
+    // --- 出品処理 ---
+    async function createOffer() {
+        if (isProcessing) return;
+        
+        const lender_wallet_id = document.getElementById("lend-wallet-select").value;
+        const max_amount = parseInt(document.getElementById("lend-max-amount").value, 10);
+        const interest_rate = parseInt(document.getElementById("lend-interest-rate").value, 10);
+
+        if (isNaN(max_amount) || max_amount <= 0) return alert("貸出枠は1以上の正の整数を入力してください。");
+        if (isNaN(interest_rate) || interest_rate < 0) return alert("金利は0以上の数値を入力してください。");
+        if (!lender_wallet_id) return alert("口座を選択してください。");
+
+        isProcessing = true;
+        const btn = document.getElementById("btn-create-offer");
+        btn.disabled = true;
+        btn.innerText = "処理中...";
+
+        try {
+            const res = await fetch("/api/loans/offers", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ lender_wallet_id, max_amount, interest_rate })
+            });
+            const data = await res.json();
+            alert(data.message || data.detail);
+            if (res.ok) {
+                document.getElementById("lend-max-amount").value = "";
+                document.getElementById("lend-interest-rate").value = "";
+                await loadWallets();
+                switchTab('borrow');
+                loadOffers();
+            }
+        } catch (e) {
+            console.error(e);
+            alert("通信エラーが発生しました。");
+        } finally {
+            isProcessing = false;
+            btn.disabled = false;
+            btn.innerText = "市場へ融資枠を出品する";
+        }
+    }
+
+    // --- 借入処理 ---
+    function openBorrowModal(id, max, rate) {
+        if (isProcessing) return;
+        document.getElementById("borrow-offer-id").value = id;
+        document.getElementById("borrow-max-amount").value = max;
+        document.getElementById("borrow-interest-rate").value = rate;
+        document.getElementById("borrow-offer-info").innerText = `残り枠: ${max} G / 金利: ${rate}%`;
+        document.getElementById("borrow-amount").value = "";
+        document.getElementById("borrow-total-due").innerText = "0";
+        document.getElementById("modal-borrow").style.display = "flex";
+    }
+
+    function calculateBorrow() {
+        let amt = parseInt(document.getElementById("borrow-amount").value, 10);
+        if (isNaN(amt) || amt < 0) amt = 0;
+        
+        const rate = parseInt(document.getElementById("borrow-interest-rate").value, 10) || 0;
+        const max = parseInt(document.getElementById("borrow-max-amount").value, 10) || 0;
+        
+        // UI上で最大枠を超えないようクリップ
+        if (amt > max) {
+            amt = max;
+            document.getElementById("borrow-amount").value = max;
+        }
+
+        const total = amt > 0 ? amt + Math.floor(amt * (rate / 100)) : 0;
+        document.getElementById("borrow-total-due").innerText = total;
+    }
+
+    async function executeBorrow() {
+        if (isProcessing) return;
+
+        const offer_id = parseInt(document.getElementById("borrow-offer-id").value, 10);
+        const borrow_amount = parseInt(document.getElementById("borrow-amount").value, 10);
+        const borrower_wallet_id = document.getElementById("borrow-wallet-select").value;
+
+        if (isNaN(borrow_amount) || borrow_amount <= 0) return alert("借入額は1以上の正の整数を入力してください。");
+        if (!borrower_wallet_id) return alert("受取口座を選択してください。");
+
+        isProcessing = true;
+        const btnExec = document.getElementById("btn-execute-borrow");
+        const btnCancel = document.getElementById("btn-cancel-borrow");
+        btnExec.disabled = true;
+        btnCancel.disabled = true;
+        btnExec.innerText = "処理中...";
+
+        try {
+            const res = await fetch("/api/loans/borrow", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ offer_id, borrow_amount, borrower_wallet_id })
+            });
+            const data = await res.json();
+            alert(data.message || data.detail);
+            if (res.ok) {
+                closeModal('modal-borrow');
+                await loadWallets();
+                loadOffers();
+                loadMyDebts();
+            }
+        } catch (e) {
+            console.error(e);
+            alert("通信エラーが発生しました。");
+        } finally {
+            isProcessing = false;
+            btnExec.disabled = false;
+            btnCancel.disabled = false;
+            btnExec.innerText = "契約する";
+        }
+    }
+
+    // --- 返済処理 ---
+    function openRepayModal(id, remaining) {
+        if (isProcessing) return;
+        document.getElementById("repay-loan-id").value = id;
+        document.getElementById("repay-remaining").value = remaining;
+        document.getElementById("repay-loan-info").innerText = `残り返済額: ${remaining} G`;
+        document.getElementById("repay-amount").value = remaining; // デフォルト全額
+        document.getElementById("modal-repay").style.display = "flex";
+    }
+
+    async function executeRepay() {
+        if (isProcessing) return;
+
+        const loan_id = parseInt(document.getElementById("repay-loan-id").value, 10);
+        let repay_amount = parseInt(document.getElementById("repay-amount").value, 10);
+        const max_remaining = parseInt(document.getElementById("repay-remaining").value, 10);
+
+        if (isNaN(repay_amount) || repay_amount <= 0) return alert("返済額は1以上の正の整数を入力してください。");
+        
+        // 余剰に支払おうとした場合は残額に丸める
+        if (repay_amount > max_remaining) {
+            repay_amount = max_remaining;
+        }
+
+        isProcessing = true;
+        const btnExec = document.getElementById("btn-execute-repay");
+        const btnCancel = document.getElementById("btn-cancel-repay");
+        btnExec.disabled = true;
+        btnCancel.disabled = true;
+        btnExec.innerText = "処理中...";
+
+        try {
+            const res = await fetch("/api/loans/repay", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ loan_id, repay_amount })
+            });
+            const data = await res.json();
+            alert(data.message || data.detail);
+            if (res.ok) {
+                closeModal('modal-repay');
+                await loadWallets();
+                loadMyDebts();
+            }
+        } catch (e) {
+            console.error(e);
+            alert("通信エラーが発生しました。");
+        } finally {
+            isProcessing = false;
+            btnExec.disabled = false;
+            btnCancel.disabled = false;
+            btnExec.innerText = "返済を実行";
+        }
+    }
+
+    function closeModal(id) {
+        if (isProcessing) return; // 通信中は閉じられないように保護
+        document.getElementById(id).style.display = "none";
+    }
+
+    // 初期化
+    init();
+</script>
+
+</body>
+</html>
