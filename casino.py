@@ -390,7 +390,7 @@ class MinesCashoutRequest(BaseModel):
     game_id: str
 
 
-# セッション保持用辞書 (サーバーメモリ管理)
+# セッション保持用辞書 (メモリ管理)
 MINES_SESSIONS = {}
 
 
@@ -406,7 +406,7 @@ def get_mines_multiplier(mines_count: int, revealed_count: int) -> float:
 
 
 # --------------------------------------------------
-# カジノAPI：マインズゲーム（不正対策・完全サーバー判定）
+# カジノAPI：マインズゲーム（追加importなし・不正防止仕様）
 # --------------------------------------------------
 @router.post("/api/mines/start")
 async def start_mines(data: MinesStartRequest, authorization: str = Header(None)):
@@ -430,7 +430,6 @@ async def start_mines(data: MinesStartRequest, authorization: str = Header(None)
     new_balance = wallet["balance"] - data.amount
     await supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
 
-    # 地雷位置の抽選（クライアントには返さない）
     mine_positions = random.sample(range(25), data.mines_count)
     game_id = str(uuid.uuid4())
 
@@ -443,7 +442,7 @@ async def start_mines(data: MinesStartRequest, authorization: str = Header(None)
         "mine_positions": mine_positions,
         "revealed_tiles": [],
         "is_active": True,
-        "processing": False
+        "busy": False
     }
 
     return {
@@ -464,10 +463,10 @@ async def step_mines(data: MinesStepRequest, authorization: str = Header(None)):
     if session["user_id"] != str(user.id):
         raise HTTPException(status_code=403, detail="不正な操作です。")
 
-    # 連打・並行リクエスト防止ロック
-    if session.get("processing", False):
+    # 同一セッションへの同時リクエスト・連打を弾く（排他判定）
+    if session["busy"]:
         raise HTTPException(status_code=429, detail="処理中です。")
-    session["processing"] = True
+    session["busy"] = True
 
     try:
         if data.tile_index < 0 or data.tile_index > 24:
@@ -497,8 +496,9 @@ async def step_mines(data: MinesStepRequest, authorization: str = Header(None)):
         multiplier = get_mines_multiplier(session["mines_count"], revealed_count)
         current_payout = int(session["bet_amount"] * multiplier)
 
-        # 3. 全安全マスを踏破（完全クリア）
+        # 3. 全安全マス踏破（完全クリア）
         if revealed_count == max_safe:
+            # await 前に即座に非アクティブ化して cashout 割り込みを完全遮断
             session["is_active"] = False
 
             wallet_res = await supabase.table("wallets").select("*").eq("id", session["wallet_db_id"]).execute()
@@ -524,50 +524,4 @@ async def step_mines(data: MinesStepRequest, authorization: str = Header(None)):
             "is_safe": True,
             "tile_index": data.tile_index,
             "is_cleared": False,
-            "multiplier": multiplier,
-            "current_payout": current_payout,
-            "revealed_count": revealed_count
-        }
-
-    finally:
-        if data.game_id in MINES_SESSIONS:
-            MINES_SESSIONS[data.game_id]["processing"] = False
-
-
-@router.post("/api/mines/cashout")
-async def cashout_mines(data: MinesCashoutRequest, authorization: str = Header(None)):
-    user = await get_user_from_token(authorization)
-    supabase = await get_supabase()
-
-    session = MINES_SESSIONS.get(data.game_id)
-    if not session or not session["is_active"]:
-        raise HTTPException(status_code=400, detail="無効または終了したゲームセッションです。")
-    if session["user_id"] != str(user.id):
-        raise HTTPException(status_code=403, detail="不正な操作です。")
-
-    # DB処理の前に即時無効化（二重キャッシュアウト・連打バグの完全遮断）
-    session["is_active"] = False
-
-    revealed_count = len(session["revealed_tiles"])
-    if revealed_count < 1:
-        session["is_active"] = True
-        raise HTTPException(status_code=400, detail="1マスも開けていないため引き出せません。")
-
-    multiplier = get_mines_multiplier(session["mines_count"], revealed_count)
-    payout = int(session["bet_amount"] * multiplier)
-
-    # 配当加算
-    wallet_res = await supabase.table("wallets").select("*").eq("id", session["wallet_db_id"]).execute()
-    wallet = wallet_res.data[0]
-    new_balance = wallet["balance"] + payout
-    await supabase.table("wallets").update({"balance": new_balance}).eq("id", wallet["id"]).execute()
-
-    mines = session["mine_positions"]
-    MINES_SESSIONS.pop(data.game_id, None)
-
-    return {
-        "payout": payout,
-        "multiplier": multiplier,
-        "new_balance": new_balance,
-        "mines": mines
-    }
+     
